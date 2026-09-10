@@ -510,14 +510,14 @@
         <div class="nav-item" onclick="switchTab('more')"><span class="material-symbols-outlined">more_horiz</span><span>More</span></div>
       </div>
     </div>
-    <!-- ================= SCREEN 7: BOOKINGS ================= -->
+   <!-- ================= SCREEN 7: BOOKINGS ================= -->
     <div id="screen-bookings" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
       <header class="dash-header">
         <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
           <h3>Shanti Residency</h3>
           <span class="material-symbols-outlined">expand_more</span>
         </div>
-       <!-- WORKING HEADER ICONS (Paste this in Rooms, Bookings, and Billing headers) -->
+       <!-- WORKING HEADER ICONS -->
         <div class="header-icons">
           <div class="bell-icon" onclick="openNotifications()" style="cursor: pointer;">
             <span class="material-symbols-outlined">notifications</span><div id="global-notif-dot" class="red-dot"></div>
@@ -530,43 +530,29 @@
 
       <div class="rooms-scroll-area">
         <h2 class="section-heading" style="margin-top: 10px;">Bookings</h2>
+        
+        <!-- SMART CHIPS (Active aur History Feature ke sath) -->
         <div class="filter-chips">
-          <div class="chip active">Upcoming</div>
-          <div class="chip">In-house</div>
-          <div class="chip">Completed</div>
+          <div id="chip-active" class="chip active" onclick="toggleBookingView('active')" style="cursor: pointer;">Active Stays</div>
+          <div id="chip-history" class="chip" onclick="toggleBookingView('history')" style="cursor: pointer;">History</div>
         </div>
-        <div class="room-cards-list">
-          <div class="room-card">
-            <div class="room-card-header" style="margin-bottom: 12px;">
-              <div class="guest-info" style="margin-bottom: 0;">
-                <div class="guest-avatar"><span class="material-symbols-outlined">person</span></div>
-                <div>
-                  <h4 class="guest-name">Vikash Sharma</h4>
-                  <p class="guest-label">+91 98765 43210</p>
-                </div>
-              </div>
-              <div class="status-tag tag-available"><div class="dot"></div> Confirmed</div>
-            </div>
-            <div style="font-size: 14px; color: #0f172a; font-weight: 600; margin-bottom: 12px;">
-              Deluxe AC - Room 105
-            </div>
-            <div class="room-footer" style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <div>
-                <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">In: 10 Sept, 12:00 PM</div>
-                <div style="font-size: 12px; color: #64748b;">Out: 12 Sept, 11:00 AM</div>
-              </div>
-              <div style="text-align: right;">
-                <div class="price-big" style="font-size: 18px;">₹2,400</div>
-                <div style="font-size: 12px; color: #16A34A; font-weight: 600;">Paid</div>
-              </div>
-            </div>
-          </div>
+
+        <!-- SEARCH BAR -->
+        <div style="position: relative; margin: 16px;">
+          <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 10px; color: #94a3b8; font-size: 20px;">search</span>
+          <input type="text" id="booking-search" oninput="handleBookingSearch(this.value)" placeholder="Search bookings..." style="width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; outline: none; box-sizing: border-box; background: white;">
+        </div>
+
+        <!-- 🚨 JAVASCRIPT YAHAN CARDS RENDER KAREGA (Vikash Sharma ki jagah) 🚨 -->
+        <div class="room-cards-list" id="bookings-list-container" style="padding-bottom: 80px;">
+          <!-- Cards automatically ayenge -->
         </div>
       </div>
 
+      <!-- TUMHARA ORIGINAL ADD BUTTON -->
       <button class="fab-btn" onclick="openActionScreen('screen-new-booking')"><span class="material-symbols-outlined">add</span></button>
 
-      <!-- Bookings Bottom Nav -->
+      <!-- TUMHARA ORIGINAL BOTTOM NAV -->
       <div class="bottom-nav">
         <div class="nav-item" onclick="switchTab('dashboard')">
           <span class="material-symbols-outlined">dashboard</span>
@@ -917,59 +903,95 @@
       </div>
     </div>
 
-    <!-- ================= SCREEN 13: NEW BOOKING FORM ================= -->
-    <div id="screen-new-booking" class="screen hidden" style="padding: 0; background-color: #f8fafc; z-index: 100;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0;">
+   <!-- ================= ACTION SCREEN: NEW BOOKING (PRO VERSION) ================= -->
+    <div id="screen-new-booking" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
+      <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
         <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; font-size: 18px; color: #0f172a;">New Booking</h3>
+        <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">New Booking</h3>
       </header>
       
-      <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 120px;">
+      <div class="rooms-scroll-area" style="padding: 20px; padding-bottom: 100px;">
         
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; display: block;">Guest Name</label>
-          <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; padding: 0 12px;">
-            <span class="material-symbols-outlined text-light" style="font-size: 20px;">person</span>
-            <input type="text" id="book-guest-name" placeholder="e.g., Amit Kumar" style="flex: 1; border: none; outline: none; padding: 12px; font-size: 15px; background: transparent;">
+        <!-- SECTION 1: Guest Info -->
+        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">1. Guest Info</h4>
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+          <input type="text" id="book-guest-name" placeholder="Guest Full Name*" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; font-size: 14px; outline: none; box-sizing: border-box;">
+          
+          <div style="display: flex; gap: 8px;">
+            <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; font-size: 14px; font-weight: 600;">+91</div>
+            <input type="tel" id="book-guest-phone" placeholder="WhatsApp / Mobile*" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
           </div>
         </div>
 
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; display: block;">Assign Room</label>
-          <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; padding: 0 12px;">
-            <span class="material-symbols-outlined text-light" style="font-size: 20px;">meeting_room</span>
-            <input type="text" id="book-room-no" placeholder="e.g., 101" style="flex: 1; border: none; outline: none; padding: 12px; font-size: 15px; background: transparent;">
+        <!-- SECTION 2: Stay & Billing -->
+        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">2. Stay & Billing</h4>
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <input type="text" id="book-room-no" placeholder="Room No.*" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+            <select id="book-stay-type" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; background: white;">
+              <option value="Daily">Daily (Hotel)</option>
+              <option value="Monthly">Monthly (PG)</option>
+            </select>
           </div>
-          <p style="font-size: 11px; color: #64748b; margin-top: 6px;">Enter an available room number.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <input type="datetime-local" id="book-checkin" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
+            <input type="number" id="book-duration" placeholder="Duration" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
+          </div>
+          <input type="number" id="book-advance" placeholder="Advance Collected (₹)" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
         </div>
 
-        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
-          <div style="flex: 1;">
-            <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; display: block;">Check-in Date</label>
-            <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px;">
-              <input type="date" id="book-checkin" style="width: 100%; border: none; outline: none; font-size: 14px; color: #0f172a; background: transparent;">
-            </div>
+        <!-- SECTION 3: Smart KYC & Signature -->
+        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">3. Smart KYC & Legal</h4>
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+          <select id="book-id-type" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; background: white; margin-bottom: 12px;">
+            <option value="Aadhar">Aadhar Card</option>
+            <option value="PAN">PAN Card</option>
+            <option value="Passport">Passport</option>
+          </select>
+
+          <!-- Camera/Photo Upload Buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <label style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 8px; background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; cursor: pointer;">
+              <span class="material-symbols-outlined" style="color: #3b82f6;">photo_camera</span>
+              <span style="font-size: 11px; font-weight: 600; color: #475569;">Front Photo</span>
+              <input type="file" accept="image/*" capture="environment" hidden onchange="alert('📸 Front ID Captured!')">
+            </label>
+            <label style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 8px; background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; cursor: pointer;">
+              <span class="material-symbols-outlined" style="color: #3b82f6;">photo_camera</span>
+              <span style="font-size: 11px; font-weight: 600; color: #475569;">Back Photo</span>
+              <input type="file" accept="image/*" capture="environment" hidden onchange="alert('📸 Back ID Captured!')">
+            </label>
           </div>
-          <div style="flex: 1;">
-            <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; display: block;">Duration (Days)</label>
-            <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px;">
-              <input type="number" id="book-duration" placeholder="e.g., 2" style="width: 100%; border: none; outline: none; font-size: 14px; color: #0f172a; background: transparent;">
-            </div>
+
+          <!-- Digital Signature Pad -->
+          <p style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 8px;">Guest Signature</p>
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; position: relative; overflow: hidden; margin-bottom: 12px;">
+            <canvas id="signature-pad" style="width: 100%; height: 140px; touch-action: none; display: block;"></canvas>
+            <button onclick="clearSignature()" style="position: absolute; bottom: 8px; right: 8px; background: white; color: #ef4444; border: 1px solid #fecdd3; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer;">Clear</button>
           </div>
         </div>
 
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; display: block;">Advance Payment (₹)</label>
-          <div style="background: white; border: 1px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; padding: 0 12px;">
-            <span class="material-symbols-outlined text-green" style="font-size: 20px;">payments</span>
-            <input type="number" id="book-advance" placeholder="e.g., 2000" style="flex: 1; border: none; outline: none; padding: 12px; font-size: 15px; background: transparent;">
+        <!-- SECTION 4: Pro Features -->
+        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">4. Pro Add-ons</h4>
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; margin-bottom: 12px;">
+            <input type="checkbox" id="book-is-corporate" onchange="toggleGSTBox()" style="width: 16px; height: 16px; accent-color: #4f46e5;">
+            Corporate Booking (GST Invoice)
+          </label>
+          <div id="corporate-gst-box" style="display: none; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
+            <input type="text" id="book-company-name" placeholder="Company Name" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
+            <input type="text" id="book-gstin" placeholder="GSTIN Number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;">
           </div>
+          
+          <label style="display: flex; align-items: center; gap: 8px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer;">
+            <input type="checkbox" id="book-smart-menu" checked style="width: 16px; height: 16px; accent-color: #059669;">
+            <span style="font-size: 12px; font-weight: 600; color: #065f46;">Auto-send Smart Menu on WhatsApp</span>
+          </label>
         </div>
-        
-      </div>
-      
-      <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 24px; background: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);">
-        <button class="btn-primary" onclick="saveNewBooking()" style="background-color: #075E33; border-radius: 12px; width: 100%; padding: 16px; font-size: 16px; font-weight: 600;">Confirm Booking</button>
+
+        <button onclick="saveNewBooking()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">
+          Confirm Booking
+        </button>
       </div>
     </div>
     <!-- ================= ACTION SCREEN: SMART NOTIFICATIONS ================= -->
