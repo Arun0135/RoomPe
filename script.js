@@ -1,4 +1,3 @@
-
 // ==========================================================================
 // 🔔 CUSTOM ROOMPE POPUP ENGINE
 // ==========================================================================
@@ -12,7 +11,6 @@ function showPopup(type, title, message, actionCallback = null) {
   document.getElementById('roompe-popup-title').innerText = title;
   document.getElementById('roompe-popup-msg').innerText = message;
 
-  // Save action callback globally
   window.tempPopupCallback = actionCallback; 
   let okayAction = `closePopup(); if(window.tempPopupCallback) window.tempPopupCallback();`;
 
@@ -20,12 +18,10 @@ function showPopup(type, title, message, actionCallback = null) {
     iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#10b981; font-size:32px;">check_circle</span>';
     iconBox.style.background = '#dcfce7';
     btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Awesome</button>`;
-  
   } else if (type === 'error') {
     iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#ef4444; font-size:32px;">error</span>';
     iconBox.style.background = '#fee2e2';
     btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#ef4444; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Okay</button>`;
-  
   } else if (type === 'confirm') {
     iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#f59e0b; font-size:32px;">help</span>';
     iconBox.style.background = '#fef3c7';
@@ -49,8 +45,9 @@ function closePopup() {
   box.style.transform = 'scale(0.9)';
   setTimeout(() => { overlay.style.display = 'none'; }, 200);
 }
+
 // ==========================================================================
-// ROOMPE APP - FINAL MASTER JAVASCRIPT (100% UNIFIED & ERROR-FREE)
+// ROOMPE APP - GLOBALS & SCREEN TRANSITIONS
 // ==========================================================================
 
 var currentRoomFilter = 'All';
@@ -59,13 +56,10 @@ var currentMainTab = 'dashboard';
 var currentBillingFilter = 'Received';
 var currentRoomView = 'grid';
 
-
-// ==========================================================================
-// 1. BASIC SCREEN TRANSITIONS & AUTH
-// ==========================================================================
 function goToLogin() {
   document.getElementById('screen-welcome').classList.add('hidden');
-  document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('screen-login').classList.remove('hidden'); // 🚨 Yahi line missing thi!
+  document.getElementById('screen-login').style.display = 'flex';
 }
 
 function goToSetup() {
@@ -89,34 +83,16 @@ function selectProperty(clickedCard) {
 // ==========================================================================
 var RoomPeDB = {
   init: function() {
-    // 1. Ekdum khali rooms array
-    if(!localStorage.getItem('roompe_rooms')) {
-      localStorage.setItem('roompe_rooms', JSON.stringify([]));
-    }
-    // 2. Ekdum khali properties array (No Shanti Residency)
-    if(!localStorage.getItem('roompe_properties')) {
-      localStorage.setItem('roompe_properties', JSON.stringify([]));
-    }
-    // 3. Koi active property nahi
-    if(!localStorage.getItem('roompe_active_prop')) {
-      localStorage.setItem('roompe_active_prop', '');
-    }
-    // 4. Khali bookings
-    if(!localStorage.getItem('roompe_bookings')) {
-      localStorage.setItem('roompe_bookings', JSON.stringify([]));
-    }
-    // 5. Khali payments
-    if(!localStorage.getItem('roompe_payments')) {
-      localStorage.setItem('roompe_payments', JSON.stringify([]));
-    }
+    if(!localStorage.getItem('roompe_rooms')) { localStorage.setItem('roompe_rooms', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_properties')) { localStorage.setItem('roompe_properties', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_active_prop')) { localStorage.setItem('roompe_active_prop', ''); }
+    if(!localStorage.getItem('roompe_bookings')) { localStorage.setItem('roompe_bookings', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_payments')) { localStorage.setItem('roompe_payments', JSON.stringify([])); }
   },
-
   getRooms: function() { return JSON.parse(localStorage.getItem('roompe_rooms')) || []; },
   saveRooms: function(roomsArray) { localStorage.setItem('roompe_rooms', JSON.stringify(roomsArray)); },
-
   getProperties: function() {
     let props = localStorage.getItem('roompe_properties');
-    // Yahan se bhi Shanti Residency ka naam hata diya
     return props ? JSON.parse(props) : [];
   },
   saveProperties: function(propsArray) { localStorage.setItem('roompe_properties', JSON.stringify(propsArray)); },
@@ -125,7 +101,6 @@ var RoomPeDB = {
     return active ? active : 'prop_default';
   },
   setActiveProperty: function(propId) { localStorage.setItem('roompe_active_prop', propId); },
-
   getBookings: function() { return JSON.parse(localStorage.getItem('roompe_bookings')) || []; },
   saveBookings: function(b) { localStorage.setItem('roompe_bookings', JSON.stringify(b)); },
   getActivePropertyBookings: function() {
@@ -133,7 +108,6 @@ var RoomPeDB = {
     let activeId = this.getActiveProperty();
     return all.filter(b => b.propId === activeId || (!b.propId && activeId === 'prop_default'));
   },
-
   getPayments: function() { return JSON.parse(localStorage.getItem('roompe_payments')) || []; },
   savePayments: function(p) { localStorage.setItem('roompe_payments', JSON.stringify(p)); },
   getActivePropertyPayments: function() {
@@ -172,7 +146,6 @@ function updateRoomStats(rooms) {
     `;
   }
 
-  // 🚨 SMART FIX: Directly target the spans to prevent destroying the chip HTML
   let chipAll = document.getElementById('chip-count-all');
   let chipVacant = document.getElementById('chip-count-vacant');
   let chipOcc = document.getElementById('chip-count-occupied');
@@ -203,13 +176,11 @@ function markRoomClean(roomNo) {
   }
 }
 
-// 1. Search Logic
 function handleRoomSearch(query) {
   currentRoomSearch = query.toLowerCase().trim();
   renderRoomsGrid();
 }
 
-// 2. View Toggle Logic (Grid vs List)
 function toggleRoomView(viewType) {
   currentRoomView = viewType;
   let btnList = document.getElementById('view-btn-list');
@@ -228,7 +199,6 @@ function toggleRoomView(viewType) {
   renderRoomsGrid(); 
 }
 
-// 3. Filter Chips Logic
 function setRoomFilter(filterName) {
   currentRoomFilter = filterName;
   document.querySelectorAll('.room-chip').forEach(chip => {
@@ -245,7 +215,6 @@ function setRoomFilter(filterName) {
   renderRoomsGrid(); 
 }
 
-// 5. MASTER RENDER ENGINE (Renders Grid or Beautiful List)
 function renderRoomsGrid() {
   let allRooms = RoomPeDB.getRooms();
   let scrollArea = document.querySelector('#screen-rooms .rooms-scroll-area');
@@ -326,12 +295,10 @@ function renderRoomsGrid() {
         subText = room.guest;
         cardAction = `onclick="openRoomDetails('${room.no}')"`;
       } else if (room.status === 'available') {
-    // Chhota icon dabane par bhi VIP form khulega
-    footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';">add_circle</span>`;
-    subText = `₹${room.price}/d`;
-    // 🚨 POORE CARD PE CLICK KARNE KA JADU YAHAN HAI 🚨
-    cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
-} else if (room.status === 'cleaning') {
+        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';">add_circle</span>`;
+        subText = `₹${room.price}/d`;
+        cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
+      } else if (room.status === 'cleaning') {
         footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); markRoomClean('${room.no}')">check</span>`;
         subText = 'Housekeeping';
       }
@@ -383,6 +350,7 @@ function renderRoomsGrid() {
     scrollArea.insertAdjacentHTML('beforeend', floorHTML);
   }
 }
+
 // ==========================================
 // BOOKINGS & HISTORY ENGINE VARIABLES
 // ==========================================
@@ -411,6 +379,7 @@ function handleBookingSearch(val) {
   currentBookingSearch = val.toLowerCase().trim();
   renderBookingsList();
 }
+
 // ==========================================================================
 // 4. NAVIGATION & ANIMATION ENGINE
 // ==========================================================================
@@ -458,7 +427,6 @@ function updateDashboardStats() {
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
   
-  // 🚨 SMART LOGIC: Active Property ka type check karo
   let props = RoomPeDB.getProperties();
   let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty()) || props[0];
   let isMonthlyProperty = activeProp && activeProp.type === 'Monthly';
@@ -499,7 +467,6 @@ function updateDashboardStats() {
         let diffTime = Math.abs(today - expectedCheckoutDate);
         let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // 🧠 DUAL MATH ENGINE IN ACTION:
         let perDayFine = isMonthlyProperty ? Math.round(basePrice / 30) : basePrice;
         extraFine = extraDays * perDayFine;
         
@@ -581,7 +548,7 @@ function updateDashboardStats() {
 }
 
 // ==========================================================================
-// 5. FORMS & DATA ACTIONS (Rooms, Bookings, Payments)
+// 5. FORMS & DATA ACTIONS (Rooms)
 // ==========================================================================
 function saveNewRoom() {
   let activeId = RoomPeDB.getActiveProperty();
@@ -617,72 +584,6 @@ function saveNewRoom() {
   switchTab('rooms');
 }
 
-function saveNewBooking() {
-  let guestName = document.getElementById('book-guest-name').value.trim();
-  let roomNo = document.getElementById('book-room-no').value.trim();
-  let checkin = document.getElementById('book-checkin').value;
-  let duration = document.getElementById('book-duration').value;
-  let advance = document.getElementById('book-advance').value;
-  
-  if(guestName === "" || roomNo === "") {
-    alert("Please enter both Guest Name and Room Number!");
-    return;
-  }
-
-  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
-  let activePropId = RoomPeDB.getActiveProperty();
-  let absIndex = absoluteRooms.findIndex(r => r.no === roomNo && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
-  
-  if(absIndex === -1) { alert("Room " + roomNo + " does not exist!"); return; }
-  if(absoluteRooms[absIndex].status === 'occupied') { alert("Room " + roomNo + " is already occupied!"); return; }
-
-  let actualCheckin = checkin || new Date().toISOString().split('T')[0];
-  let actualDuration = duration || '1';
-
-  absoluteRooms[absIndex].status = 'occupied';
-  absoluteRooms[absIndex].guest = guestName;
-  absoluteRooms[absIndex].checkinDate = actualCheckin;
-  absoluteRooms[absIndex].duration = actualDuration;
-  localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
-
-  let bookings = RoomPeDB.getBookings();
-  bookings.push({
-    id: 'bk_' + Date.now(),
-    propId: activePropId,
-    guest: guestName,
-    room: roomNo,
-    checkin: actualCheckin,
-    duration: actualDuration,
-    advance: advance || '0',
-    status: 'confirmed',
-    createdAt: new Date().getTime()
-  });
-  RoomPeDB.saveBookings(bookings);
-
-  if (advance && parseInt(advance) > 0) {
-    let payments = RoomPeDB.getPayments();
-    payments.push({
-      id: 'pay_' + Date.now(),
-      propId: activePropId,
-      room: roomNo,
-      guest: guestName,
-      amount: advance,
-      mode: 'UPI', 
-      date: new Date().getTime()
-    });
-    RoomPeDB.savePayments(payments);
-  }
-
-  document.getElementById('book-guest-name').value = '';
-  document.getElementById('book-room-no').value = '';
-  document.getElementById('book-checkin').value = '';
-  document.getElementById('book-duration').value = '';
-  document.getElementById('book-advance').value = '';
-
-  closeActionScreen();
-  switchTab('bookings');
-}
-
 // ==========================================
 // RENDER BOOKINGS (ACTIVE VS HISTORY)
 // ==========================================
@@ -693,11 +594,9 @@ function renderBookingsList() {
   let listContainer = document.getElementById('bookings-list-container');
   if(!listContainer) return;
   
-  // 1. Data Filter karo: Active ('confirmed') ya History ('completed')
   let targetStatus = currentBookingView === 'active' ? 'confirmed' : 'completed';
   let filteredBookings = allBookings.filter(b => b.status === targetStatus);
 
-  // 2. Search Filter
   if (currentBookingSearch !== '') {
     filteredBookings = filteredBookings.filter(b => 
       (b.guest && b.guest.toLowerCase().includes(currentBookingSearch)) ||
@@ -765,7 +664,6 @@ function renderBookingsList() {
   listContainer.innerHTML = html;
 }
 
-
 // ==========================================================================
 // 6. BILLING & PAYMENTS LOGIC
 // ==========================================================================
@@ -801,10 +699,7 @@ function saveNewPayment() {
   let amtEl = document.getElementById('pay-amount');
   let modeEl = document.getElementById('pay-mode-value');
 
-  if (!roomEl || !amtEl) {
-    alert("Payment form inputs missing!");
-    return;
-  }
+  if (!roomEl || !amtEl) { alert("Payment form inputs missing!"); return; }
 
   let roomNo = roomEl.value.trim();
   let amount = amtEl.value.trim();
@@ -817,7 +712,7 @@ function saveNewPayment() {
   }
 
   let allRooms = RoomPeDB.getActivePropertyRooms();
-  let room = allRooms.find(r => r.no === roomNo);
+  let room = allRooms.find(r => String(r.no) === String(roomNo));
   let guestName = room && room.guest ? room.guest : "Unknown Guest";
 
   let payments = RoomPeDB.getPayments();
@@ -862,11 +757,7 @@ function renderBillingList() {
     let remainingDue = expectedRent - roomTotalPaid;
 
     if (remainingDue > 0) {
-      pendingRooms.push({
-        ...r,
-        remainingDue: remainingDue,
-        totalPaid: roomTotalPaid
-      });
+      pendingRooms.push({ ...r, remainingDue: remainingDue, totalPaid: roomTotalPaid });
     }
   });
 
@@ -894,7 +785,6 @@ function renderBillingList() {
     pendingRooms.forEach(r => {
       itemsCount++;
       let initials = r.guest ? r.guest.charAt(0).toUpperCase() : "G";
-      
       let partialBadge = r.totalPaid > 0 
         ? `<span style="font-size: 9px; color: #b45309; border: 1px solid #fcd34d; background: #fffbeb; padding: 2px 4px; border-radius: 4px; margin-left: 6px;">PARTIAL PAID: ₹${r.totalPaid}</span>` 
         : '';
@@ -969,7 +859,6 @@ function renderBillingList() {
   listContainer.innerHTML = html;
 }
 
-
 // ==========================================================================
 // 7. ROOM DETAILS, CHECKOUT & EDIT LOGIC (MASTER ENGINE)
 // ==========================================================================
@@ -1034,7 +923,7 @@ function openRoomDetails(roomNo) {
   // OVERVIEW MATH & EXTRAS
   if (room.status === 'occupied') {
     if(!room.checkinDate) {
-      room.checkinDate = new Date().toISOString().split('T')[0];
+      room.checkinDate = new Date().toISOString().slice(0,16);
       room.duration = 1;
       let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
       let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
@@ -1177,32 +1066,25 @@ function openRoomDetails(roomNo) {
   switchRoomDetailsTab('overview');
   openActionScreen('screen-room-details');
 }
+
 // ==========================================================================
 // 🏢 DYNAMIC PROPERTY NAME ENGINE
 // ==========================================================================
 function updateHotelName() {
   if (typeof RoomPeDB === 'undefined' || typeof RoomPeDB.getProperties !== 'function') return;
 
-  // 1. Database se properties nikalna
   let props = RoomPeDB.getProperties();
   let activeId = RoomPeDB.getActiveProperty();
   let activeProp = props.find(p => p.id === activeId) || props[0];
   
-  // 2. Agar owner ne apna naam set nahi kiya hai, toh ek professional default dena
   let hotelName = (activeProp && activeProp.name) ? activeProp.name : "My Property";
   
-  // 3. App ke har screen par header update karna
   let headers = document.querySelectorAll('.active-hotel-name');
   headers.forEach(h => {
       h.innerText = hotelName;
   });
 }
 
-// 🚨 Page load hote hi isko chalao
-window.addEventListener('load', () => {
-  // Thoda delay taaki Firebase aur LocalStorage load ho jayein
-  setTimeout(updateHotelName, 300); 
-});
 // ==========================================
 // SMART CHECKOUT ENGINE (Saves to History)
 // ==========================================
@@ -1212,7 +1094,6 @@ function checkoutGuest(roomNo) {
   let room = rooms.find(r => String(r.no) === String(roomNo));
   if (!room) return;
 
-  // 1. Check math engine logic
   let props = RoomPeDB.getProperties();
   let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty()) || props[0];
   let isMonthlyProperty = activeProp && activeProp.type === 'Monthly';
@@ -1240,7 +1121,6 @@ function checkoutGuest(roomNo) {
 
   let remainingDue = expectedRent - roomTotalPaid;
 
-  // Agar paisa baaki hai toh checkout block karo
   if (remainingDue > 0) {
     alert(`🚨 CHECKOUT BLOCKED!\n\nRoom ${roomNo} has a pending due of ₹${remainingDue}.\nPlease collect the payment before checking out the guest.`);
     openActionScreen('screen-add-payment');
@@ -1249,10 +1129,8 @@ function checkoutGuest(roomNo) {
     return; 
   }
 
-  // 2. Clear Room and Move Record to History
   if (confirm(`Checkout guest from Room ${roomNo}? Record will be saved to History.`)) {
     
-    // History me bhejo
     let allBookings = RoomPeDB.getBookings();
     let activeBookingIndex = allBookings.findIndex(b => String(b.room) === String(roomNo) && b.status === 'confirmed' && b.propId === RoomPeDB.getActiveProperty());
     
@@ -1263,7 +1141,6 @@ function checkoutGuest(roomNo) {
       RoomPeDB.saveBookings(allBookings);
     }
 
-    // Room khali karo
     let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
     let absIndex = absoluteRooms.findIndex(r => r.no === roomNo && (r.propertyId === RoomPeDB.getActiveProperty() || (!r.propertyId && RoomPeDB.getActiveProperty() === 'prop_default')));
     
@@ -1355,18 +1232,6 @@ function switchRoomDetailsTab(tabName) {
   }
 }
 
-function contactGuestAction(actionType, roomNo) {
-  let rooms = RoomPeDB.getActivePropertyRooms();
-  let room = rooms.find(r => String(r.no) === String(roomNo));
-  let name = room && room.guest ? room.guest : 'Guest';
-  
-  if(actionType === 'whatsapp') {
-    alert(`📱 WhatsApp Request\n\nOpening WhatsApp to chat with ${name} (Room ${roomNo})...\n\nMessage: "Hi ${name}, this is Shanti Residency."`);
-  } else if (actionType === 'call') {
-    alert(`📞 Phone Dialer\n\nDialing ${name} (Room ${roomNo})...`);
-  }
-}
-
 function handleFileUpload(input) {
   if (input.files && input.files[0]) {
     let fileName = input.files[0].name;
@@ -1404,9 +1269,8 @@ function updateAppHeaders() {
 
 function saveNewProperty() {
   let propName = document.getElementById('setup-prop-name').value;
-  // HTML mein jo Daily/Monthly ka dropdown hai uska id 'setup-prop-type' hona chahiye
   let propTypeEl = document.getElementById('setup-prop-type'); 
-  let propType = propTypeEl ? propTypeEl.value : 'Daily'; // Default Daily agar na mile
+  let propType = propTypeEl ? propTypeEl.value : 'Daily'; 
 
   if (propName) propName = propName.trim();
   
@@ -1419,7 +1283,7 @@ function saveNewProperty() {
   let newProp = {
     id: 'prop_' + Date.now(),
     name: propName,
-    type: propType // 🚨 NAYA: Database ko ab property ka type pata chal gaya
+    type: propType
   };
 
   props.push(newProp);
@@ -1622,85 +1486,6 @@ updateDashboardStats = function() {
 };
 
 // ==========================================================================
-// FIREBASE AUTHENTICATION ENGINE
-// ==========================================================================
-function checkAutoLogin() {
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        localStorage.setItem('roompe_logged_in_user', user.email);
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        routeToDashboard();
-      } else {
-        localStorage.removeItem('roompe_logged_in_user');
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById('screen-welcome').classList.remove('hidden');
-      }
-    });
-  } else {
-    let loggedInUser = localStorage.getItem('roompe_logged_in_user');
-    if (loggedInUser) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-      routeToDashboard();
-    } else {
-      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-      document.getElementById('screen-welcome').classList.remove('hidden');
-    }
-  }
-}
-
-function loginWithEmail() {
-  let email = document.getElementById('login-email').value.trim();
-  let password = document.getElementById('login-password').value.trim();
-  if (email === "" || !email.includes('@') || password === "") {
-    alert("Bhai, please enter a valid email and password!");
-    return;
-  }
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    firebase.auth().signInWithEmailAndPassword(email, password).catch((error) => alert("Login Failed: " + error.message));
-  } else {
-    localStorage.setItem('roompe_logged_in_user', email);
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    routeToDashboard();
-  }
-}
-
-function loginWithGoogle() {
-  if (typeof firebase !== 'undefined' && firebase.auth) {
-    let provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).catch((error) => alert("Google Login Failed: " + error.message));
-  } else {
-    localStorage.setItem('roompe_logged_in_user', "google_user@gmail.com");
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    routeToDashboard();
-  }
-}
-
-function logOutApp() {
-  if (confirm("Are you sure you want to log out?")) {
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      firebase.auth().signOut().catch((error) => console.error("Sign Out Error", error));
-    } else {
-      localStorage.removeItem('roompe_logged_in_user');
-      document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
-      document.getElementById('screen-welcome').classList.remove('hidden');
-    }
-  }
-}
-
-function routeToDashboard() {
-  let props = RoomPeDB.getProperties();
-  if (props.length > 0) {
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-    updateAppHeaders();
-    if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
-    if (typeof updateDashboardStats === 'function') updateDashboardStats();
-  } else {
-    document.getElementById('screen-setup').classList.remove('hidden');
-  }
-}
-
-// ==========================================================================
 // NOTIFICATION ENGINE
 // ==========================================================================
 function timeAgo(time) {
@@ -1719,31 +1504,17 @@ function openNotifications() {
 
   payments.forEach(p => {
     allNotifs.push({
-      id: p.id,
-      type: 'Payment',
-      title: 'Payment Received',
+      id: p.id, type: 'Payment', title: 'Payment Received',
       desc: `₹${parseInt(p.amount).toLocaleString('en-IN')} received from <b>${p.guest}</b> (Room ${p.room}) via ${p.mode}.`,
-      time: p.date,
-      icon: 'payments',
-      color: '#059669',
-      bg: '#ecfdf5',
-      action: `closeActionScreen(); openRoomDetails('${p.room}')`,
-      pill: 'View Room'
+      time: p.date, icon: 'payments', color: '#059669', bg: '#ecfdf5', action: `closeActionScreen(); openRoomDetails('${p.room}')`, pill: 'View Room'
     });
   });
 
   allBookings.forEach(b => {
     allNotifs.push({
-      id: b.id,
-      type: 'Booking',
-      title: 'New Booking Confirmed',
+      id: b.id, type: 'Booking', title: 'New Booking Confirmed',
       desc: `<b>${b.guest}</b> booked Room <b>${b.room}</b> for ${b.duration} nights.`,
-      time: b.createdAt,
-      icon: 'book_online',
-      color: '#4f46e5',
-      bg: '#e0e7ff',
-      action: `closeActionScreen(); switchTab('bookings')`,
-      pill: 'View Booking'
+      time: b.createdAt, icon: 'book_online', color: '#4f46e5', bg: '#e0e7ff', action: `closeActionScreen(); switchTab('bookings')`, pill: 'View Booking'
     });
   });
 
@@ -1830,24 +1601,15 @@ function clearAllNotifications() {
 }
 
 // ==========================================================================
-// APP INITIALIZATION
-// ==========================================================================
-window.onload = function() { 
-  RoomPeDB.init();
-  checkAutoLogin(); 
-};
-// ==========================================================================
 // 🚀 VIP BOOKING ENGINE & DIGITAL SIGNATURE
 // ==========================================================================
 
-// GST Box Toggle
 function toggleGSTBox() {
   let isCorp = document.getElementById('book-is-corporate').checked;
   document.getElementById('corporate-gst-box').style.display = isCorp ? 'block' : 'none';
 }
 
-// Master Save Function
-function saveNewBooking() {
+function saveNewBookingVIP() {
   let guestName = document.getElementById('book-guest-name').value.trim();
   let guestPhone = document.getElementById('book-guest-phone').value.trim();
   let roomNo = document.getElementById('book-room-no').value.trim();
@@ -1855,7 +1617,6 @@ function saveNewBooking() {
   let checkin = document.getElementById('book-checkin').value;
   let duration = document.getElementById('book-duration').value;
   let advance = document.getElementById('book-advance').value;
-  
   let smartMenu = document.getElementById('book-smart-menu').checked;
   
   if(guestName === "" || roomNo === "" || guestPhone === "") {
@@ -1872,7 +1633,6 @@ function saveNewBooking() {
   let actualCheckin = checkin || new Date().toISOString().slice(0,16); 
   let actualDuration = duration || '1';
 
-  // Save to Room DB
   absoluteRooms[absIndex].status = 'occupied';
   absoluteRooms[absIndex].guest = guestName;
   absoluteRooms[absIndex].phone = guestPhone; 
@@ -1881,7 +1641,12 @@ function saveNewBooking() {
   absoluteRooms[absIndex].duration = actualDuration;
   localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
 
-  // Process Advance
+  let bookings = RoomPeDB.getBookings();
+  bookings.push({
+    id: 'bk_' + Date.now(), propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType
+  });
+  RoomPeDB.saveBookings(bookings);
+
   if (advance && parseInt(advance) > 0) {
     let payments = RoomPeDB.getPayments();
     payments.push({
@@ -1890,14 +1655,12 @@ function saveNewBooking() {
     RoomPeDB.savePayments(payments);
   }
 
-  // Clear Form Fields
   document.getElementById('book-guest-name').value = '';
   document.getElementById('book-guest-phone').value = '';
   document.getElementById('book-room-no').value = '';
   document.getElementById('book-advance').value = '';
-  clearSignature();
+  clearSignature('signature-pad');
 
-  // Smart Menu Alert
   if (smartMenu) {
     alert(`✅ BOOKING SAVED & WHATSAPP SENT!\n\nMessage delivered to ${guestPhone}:\n"Hi ${guestName}, welcome to RoomPe! Scan or click this link to open your 3D Smart Menu!"`);
   } else {
@@ -1908,7 +1671,9 @@ function saveNewBooking() {
   switchTab('rooms');
 }
 
-// REAL WHATSAPP & CALL SYSTEM
+// Ensure the HTML button calls the right function
+window.saveNewBooking = saveNewBookingVIP;
+
 function contactGuestAction(actionType, roomNo) {
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
@@ -1934,7 +1699,7 @@ function contactGuestAction(actionType, roomNo) {
 }
 
 // ==========================================================================
-// ✍️ PRO SIGNATURE ENGINE (With Full-Screen Support)
+// ✍️ PRO SIGNATURE ENGINE
 // ==========================================================================
 let sigCanvas, sigCtx;
 let isDrawingSig = false;
@@ -1950,7 +1715,6 @@ function initSignaturePad(canvasId) {
   sigCtx.lineCap = 'round';
   sigCtx.strokeStyle = '#0f172a'; 
 
-  // Remove old listeners to prevent duplicates
   sigCanvas.onmousedown = startSig;
   sigCanvas.onmouseup = endSig;
   sigCanvas.onmousemove = drawSig;
@@ -1977,7 +1741,6 @@ function clearSignature(canvasId) {
   if(c) c.getContext('2d').clearRect(0, 0, c.width, c.height); 
 }
 
-// Full Screen Toggles
 function openFullScreenSignature() {
   document.getElementById('fullscreen-sig-modal').style.display = 'flex';
   setTimeout(() => initSignaturePad('fs-signature-pad'), 150);
@@ -1985,7 +1748,7 @@ function openFullScreenSignature() {
 
 function closeFullScreenSignature() {
   document.getElementById('fullscreen-sig-modal').style.display = 'none';
-  initSignaturePad('signature-pad'); // Wapas chhote canvas ko active karo
+  initSignaturePad('signature-pad'); 
 }
 
 function saveFSSignature() {
@@ -1993,13 +1756,11 @@ function saveFSSignature() {
   let smallCanvas = document.getElementById('signature-pad');
   let smallCtx = smallCanvas.getContext('2d');
   
-  // Bade canvas ka data chhote me draw karo
   smallCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
   smallCtx.drawImage(fsCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
   closeFullScreenSignature();
 }
 
-// Form open hone par chhota canvas on karna
 const autoSigOpenActionScreen = openActionScreen;
 openActionScreen = function(screenId) {
   autoSigOpenActionScreen(screenId);
@@ -2007,60 +1768,144 @@ openActionScreen = function(screenId) {
     setTimeout(() => initSignaturePad('signature-pad'), 150); 
   }
 };
+
 // ==========================================================================
-// ☁️ ROOMPE MASTER CLOUD ENGINE (Auto Sync - UPDATED)
+// 🔐 ROOMPE AUTHENTICATION ENGINE (PERFECT SYNC & AUTO-LOGIN)
+// ==========================================================================
+let isLoginMode = true;
+
+function toggleAuthMode() {
+  isLoginMode = !isLoginMode;
+  document.getElementById('auth-title').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
+  document.getElementById('auth-subtitle').innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
+  document.getElementById('auth-main-btn').innerText = isLoginMode ? 'Sign In' : 'Sign Up';
+  document.getElementById('auth-toggle-btn').innerText = isLoginMode ? 'Sign Up' : 'Log In';
+  document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Don't have an account? " : "Already have an account? ";
+}
+
+// 🚀 APP UNLOCKER (Parda hatane aur data laane ka engine)
+function unlockApp(user) {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-welcome').classList.add('hidden'); // Ekdum clean
+  localStorage.setItem('roompe_logged_in_user', user.email);
+
+  // Private data lana shuru karo
+  startCloudSync(user.uid);
+
+  // Thoda wait karo data aane ke liye, fir dashboard kholo
+  setTimeout(() => {
+    routeToDashboard();
+  }, 800);
+}
+
+async function handleGoogleLogin() {
+  try {
+    const result = await window.fbSignInPopup(window.fbAuth, window.fbGoogleProvider);
+    unlockApp(result.user);
+  } catch (error) {
+    alert("Login Failed: " + error.message);
+  }
+}
+
+async function handleEmailAuth(e) {
+  if(e) e.preventDefault(); 
+  let email = document.getElementById('auth-email').value; 
+  let pass = document.getElementById('auth-pass').value;
+  if(!email || !pass) { alert("Please enter both Email and Password!"); return; }
+
+  try {
+    if (isLoginMode) {
+      const result = await window.fbSignIn(window.fbAuth, email, pass);
+      unlockApp(result.user);
+    } else {
+      const result = await window.fbCreateUser(window.fbAuth, email, pass);
+      unlockApp(result.user);
+    }
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+}
+
+function logOutApp() {
+  if (confirm("Are you sure you want to log out?")) {
+    if (window.fbAuth && window.fbSignOut) {
+      window.fbSignOut(window.fbAuth).then(() => {
+        // 🚨 SECURE WIPE: Logout hote hi browser ki memory saaf kar do
+        localStorage.clear(); 
+        RoomPeDB.init(); // Empty arrays wapas set karo taaki error na aaye
+        
+        document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+        document.getElementById('screen-login').style.display = 'flex';
+        document.getElementById('screen-login').classList.remove('hidden');
+      }).catch((error) => console.error("Sign Out Error", error));
+    } else {
+      localStorage.clear();
+      RoomPeDB.init();
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+      document.getElementById('screen-welcome').classList.remove('hidden');
+    }
+  }
+}
+function routeToDashboard() {
+  let props = RoomPeDB.getProperties();
+  if (props.length > 0) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+    updateAppHeaders();
+    if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
+    if (typeof updateDashboardStats === 'function') updateDashboardStats();
+  } else {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-setup').classList.remove('hidden');
+  }
+}
+
+// ==========================================================================
+// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE MULTI-TENANT)
 // ==========================================================================
 let isCloudSyncing = false;
 let cloudTimer = null;
 
-// 1. Firebase pe Data Bhejne ka Engine
 async function pushToCloud() {
-  if (!window.db || isCloudSyncing) return;
+  let user = window.fbAuth ? window.fbAuth.currentUser : null;
+  if (!window.db || isCloudSyncing || !user) return;
   
-  // Document ID ab 'my_workspace' rakhenge
-  const hotelRef = window.fbDoc(window.db, "hotels", "my_workspace");
+  const userRef = window.fbDoc(window.db, "users", user.uid); // Private Lock 🔒
   
   let rooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let bookings = JSON.parse(localStorage.getItem('roompe_bookings')) || [];
   let payments = JSON.parse(localStorage.getItem('roompe_payments')) || [];
-  let properties = JSON.parse(localStorage.getItem('roompe_properties')) || []; // 🚨 NAYA ADD KIYA HUA
+  let properties = JSON.parse(localStorage.getItem('roompe_properties')) || [];
   
   try {
-    await window.fbSetDoc(hotelRef, {
+    await window.fbSetDoc(userRef, {
         rooms: rooms,
         bookings: bookings,
         payments: payments,
-        properties: properties, // 🚨 PROPERTIES BHI CLOUD PAR JAYEGI
+        properties: properties,
         lastUpdated: new Date().getTime()
     }, { merge: true });
-    console.log("☁️ All Data Saved to Firebase!");
+    console.log("☁️ Private Property Data Saved!");
   } catch (e) {
     console.error("Cloud Save Error:", e);
   }
 }
 
-// 2. LocalSave ko Override karna
 const originalSetItem = localStorage.setItem;
 localStorage.setItem = function(key, value) {
   originalSetItem.apply(this, arguments);
-  
-  // 🚨 Ab properties change hone par bhi cloud trigger hoga
   if (key === 'roompe_rooms' || key === 'roompe_bookings' || key === 'roompe_payments' || key === 'roompe_properties') {
       clearTimeout(cloudTimer);
       cloudTimer = setTimeout(pushToCloud, 1000); 
   }
 };
 
-// 3. App Start Hote Hi Cloud Se Data Lana
-function startCloudSync() {
-  if(!window.db) {
-      setTimeout(startCloudSync, 500); 
-      return;
-  }
+function startCloudSync(uid) {
+  if(!window.db) return;
   
-  const hotelRef = window.fbDoc(window.db, "hotels", "my_workspace");
+  const userRef = window.fbDoc(window.db, "users", uid); 
   
-  window.fbOnSnapshot(hotelRef, (docSnap) => {
+  window.fbOnSnapshot(userRef, (docSnap) => {
       if(docSnap.exists()) {
           isCloudSyncing = true; 
           let data = docSnap.data();
@@ -2068,35 +1913,37 @@ function startCloudSync() {
           if(data.rooms) originalSetItem.call(localStorage, 'roompe_rooms', JSON.stringify(data.rooms));
           if(data.bookings) originalSetItem.call(localStorage, 'roompe_bookings', JSON.stringify(data.bookings));
           if(data.payments) originalSetItem.call(localStorage, 'roompe_payments', JSON.stringify(data.payments));
-          if(data.properties) originalSetItem.call(localStorage, 'roompe_properties', JSON.stringify(data.properties)); // 🚨 FETCH BHI KAREGA
+          if(data.properties) originalSetItem.call(localStorage, 'roompe_properties', JSON.stringify(data.properties));
           
-          // UI Refresh
-          if(typeof renderRooms === 'function') renderRooms();
+          if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
           if(typeof renderBookingsList === 'function') renderBookingsList();
-          if(typeof updateHotelName === 'function') updateHotelName(); // Hotel ka naam bhi update hoga
+          if(typeof updateHotelName === 'function') updateHotelName();
+          if(typeof updateDashboardStats === 'function') updateDashboardStats();
           
-          console.log("🔄 Live Data Received & Screen Updated!");
           setTimeout(() => { isCloudSyncing = false; }, 1000); 
       }
   });
 }
 
-window.addEventListener('load', startCloudSync);
-let isLoginMode = true;
+// ==========================================================================
+// 🚀 APP INITIALIZATION & AUTO-LOGIN OBSERVER
+// ==========================================================================
+window.onload = function() {
+  // Database initialize (blank empty data set karega naye user ke liye)
+  RoomPeDB.init();
 
-function toggleAuthMode() {
-  isLoginMode = !isLoginMode;
-  
-  // Text elements ko update karo
-  document.querySelector('h2').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
-  document.querySelector('h2 + p').innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
-  
-  // Green button ka text badlo
-  let mainBtn = document.querySelector('.sign-in-btn'); // Apni class check kar lena agar alag ho
-  if(mainBtn) mainBtn.innerText = isLoginMode ? 'Sign In' : 'Sign Up';
-  
-  // Toggle link ka text badlo
-  let toggleBtn = document.getElementById('auth-toggle-btn');
-  toggleBtn.innerText = isLoginMode ? 'Sign Up' : 'Log In';
-  toggleBtn.previousSibling.textContent = isLoginMode ? "Don't have an account? " : "Already have an account? ";
-}
+  // Firebase Auto-Login Observer
+  setTimeout(() => {
+    if(window.fbOnAuthChange && window.fbAuth) {
+      window.fbOnAuthChange(window.fbAuth, (user) => {
+        if (user) {
+          unlockApp(user);
+       } else {
+          document.getElementById('screen-welcome').classList.add('hidden');
+          document.getElementById('screen-login').classList.remove('hidden'); // 🚨 Ise add karo
+          document.getElementById('screen-login').style.display = 'flex';
+        }
+      });
+    }
+  }, 500);
+};
