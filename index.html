@@ -172,6 +172,10 @@
         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 20px;">
         Continue with Google
       </button>
+      <!-- Sign Up Toggle Link -->
+<p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 24px;">
+  Don't have an account? <span id="auth-toggle-btn" onclick="toggleAuthMode()" style="color: #059669; font-weight: 700; cursor: pointer;">Sign Up</span>
+</p>
     </div>
 
   
@@ -1307,6 +1311,9 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
       import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+      
+      // 🚨 NAYA: Auth Imports
+      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
       // Tumhari Secret API Keys
       const firebaseConfig = {
@@ -1320,15 +1327,24 @@
 
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
+      const auth = getAuth(app); // 🚨 NAYA: Auth Initialize kiya
 
       // JS File ke liye global variables
       window.db = db;
       window.fbDoc = doc;
       window.fbSetDoc = setDoc;
       window.fbOnSnapshot = onSnapshot;
+      
+      // 🚨 NAYA: Auth functions ko global banaya
+      window.fbAuth = auth;
+      window.fbCreateUser = createUserWithEmailAndPassword;
+      window.fbSignIn = signInWithEmailAndPassword;
+      window.fbGoogleProvider = new GoogleAuthProvider();
+      window.fbSignInPopup = signInWithPopup;
+      window.fbOnAuthChange = onAuthStateChanged;
+      window.fbSignOut = signOut;
 
-      console.log("🔥 Firebase Live Sync Ready!");
-    </script>
+      console.log("🔥 Firebase Live Sync & Auth Ready!");
     </script>
   <script src="script.js"></script>
 </body>
