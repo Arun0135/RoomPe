@@ -89,35 +89,35 @@ function selectProperty(clickedCard) {
 // ==========================================================================
 var RoomPeDB = {
   init: function() {
+    // 1. Ekdum khali rooms array
     if(!localStorage.getItem('roompe_rooms')) {
-      let defaultRooms = [
-        { no: '101', floor: 'Floor 1', cat: 'Deluxe AC', price: '1500', status: 'occupied', guest: 'Rahul K.' },
-        { no: '102', floor: 'Floor 1', cat: 'Suite', price: '1200', status: 'available', guest: '' },
-        { no: '104', floor: 'Floor 1', cat: 'Standard Non-AC', price: '1000', status: 'cleaning', guest: 'Housekeeping' }
-      ];
-      localStorage.setItem('roompe_rooms', JSON.stringify(defaultRooms));
+      localStorage.setItem('roompe_rooms', JSON.stringify([]));
     }
+    // 2. Ekdum khali properties array (No Shanti Residency)
     if(!localStorage.getItem('roompe_properties')) {
-      let defaultProps = [{id: 'prop_default', name: 'Shanti Residency'}];
-      localStorage.setItem('roompe_properties', JSON.stringify(defaultProps));
+      localStorage.setItem('roompe_properties', JSON.stringify([]));
     }
+    // 3. Koi active property nahi
     if(!localStorage.getItem('roompe_active_prop')) {
-      localStorage.setItem('roompe_active_prop', 'prop_default');
+      localStorage.setItem('roompe_active_prop', '');
     }
+    // 4. Khali bookings
     if(!localStorage.getItem('roompe_bookings')) {
       localStorage.setItem('roompe_bookings', JSON.stringify([]));
     }
+    // 5. Khali payments
     if(!localStorage.getItem('roompe_payments')) {
       localStorage.setItem('roompe_payments', JSON.stringify([]));
     }
   },
-  
+
   getRooms: function() { return JSON.parse(localStorage.getItem('roompe_rooms')) || []; },
   saveRooms: function(roomsArray) { localStorage.setItem('roompe_rooms', JSON.stringify(roomsArray)); },
 
   getProperties: function() {
     let props = localStorage.getItem('roompe_properties');
-    return props ? JSON.parse(props) : [{id: 'prop_default', name: 'Shanti Residency'}];
+    // Yahan se bhi Shanti Residency ka naam hata diya
+    return props ? JSON.parse(props) : [];
   },
   saveProperties: function(propsArray) { localStorage.setItem('roompe_properties', JSON.stringify(propsArray)); },
   getActiveProperty: function() {
@@ -2082,3 +2082,21 @@ function startCloudSync() {
 }
 
 window.addEventListener('load', startCloudSync);
+let isLoginMode = true;
+
+function toggleAuthMode() {
+  isLoginMode = !isLoginMode;
+  
+  // Text elements ko update karo
+  document.querySelector('h2').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
+  document.querySelector('h2 + p').innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
+  
+  // Green button ka text badlo
+  let mainBtn = document.querySelector('.sign-in-btn'); // Apni class check kar lena agar alag ho
+  if(mainBtn) mainBtn.innerText = isLoginMode ? 'Sign In' : 'Sign Up';
+  
+  // Toggle link ka text badlo
+  let toggleBtn = document.getElementById('auth-toggle-btn');
+  toggleBtn.innerText = isLoginMode ? 'Sign Up' : 'Log In';
+  toggleBtn.previousSibling.textContent = isLoginMode ? "Don't have an account? " : "Already have an account? ";
+}
