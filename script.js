@@ -1,3 +1,54 @@
+
+// ==========================================================================
+// 🔔 CUSTOM ROOMPE POPUP ENGINE
+// ==========================================================================
+
+function showPopup(type, title, message, actionCallback = null) {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  const iconBox = document.getElementById('roompe-popup-icon');
+  const btnBox = document.getElementById('roompe-popup-buttons');
+  
+  document.getElementById('roompe-popup-title').innerText = title;
+  document.getElementById('roompe-popup-msg').innerText = message;
+
+  // Save action callback globally
+  window.tempPopupCallback = actionCallback; 
+  let okayAction = `closePopup(); if(window.tempPopupCallback) window.tempPopupCallback();`;
+
+  if (type === 'success') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#10b981; font-size:32px;">check_circle</span>';
+    iconBox.style.background = '#dcfce7';
+    btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Awesome</button>`;
+  
+  } else if (type === 'error') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#ef4444; font-size:32px;">error</span>';
+    iconBox.style.background = '#fee2e2';
+    btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#ef4444; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Okay</button>`;
+  
+  } else if (type === 'confirm') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#f59e0b; font-size:32px;">help</span>';
+    iconBox.style.background = '#fef3c7';
+    btnBox.innerHTML = `
+      <button onclick="closePopup()" style="flex:1; padding:14px; background:#f1f5f9; color:#475569; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Cancel</button>
+      <button onclick="${okayAction}" style="flex:1; padding:14px; background:#059669; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Yes, Do it</button>
+    `;
+  }
+
+  overlay.style.display = 'flex';
+  setTimeout(() => {
+    box.style.opacity = '1';
+    box.style.transform = 'scale(1)';
+  }, 10);
+}
+
+function closePopup() {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  box.style.opacity = '0';
+  box.style.transform = 'scale(0.9)';
+  setTimeout(() => { overlay.style.display = 'none'; }, 200);
+}
 // ==========================================================================
 // ROOMPE APP - FINAL MASTER JAVASCRIPT (100% UNIFIED & ERROR-FREE)
 // ==========================================================================
@@ -275,9 +326,12 @@ function renderRoomsGrid() {
         subText = room.guest;
         cardAction = `onclick="openRoomDetails('${room.no}')"`;
       } else if (room.status === 'available') {
-        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); quickBook('${room.no}')">add_circle</span>`;
-        subText = `₹${room.price}/d`;
-      } else if (room.status === 'cleaning') {
+    // Chhota icon dabane par bhi VIP form khulega
+    footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';">add_circle</span>`;
+    subText = `₹${room.price}/d`;
+    // 🚨 POORE CARD PE CLICK KARNE KA JADU YAHAN HAI 🚨
+    cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
+} else if (room.status === 'cleaning') {
         footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); markRoomClean('${room.no}')">check</span>`;
         subText = 'Housekeeping';
       }
@@ -1123,7 +1177,32 @@ function openRoomDetails(roomNo) {
   switchRoomDetailsTab('overview');
   openActionScreen('screen-room-details');
 }
+// ==========================================================================
+// 🏢 DYNAMIC PROPERTY NAME ENGINE
+// ==========================================================================
+function updateHotelName() {
+  if (typeof RoomPeDB === 'undefined' || typeof RoomPeDB.getProperties !== 'function') return;
 
+  // 1. Database se properties nikalna
+  let props = RoomPeDB.getProperties();
+  let activeId = RoomPeDB.getActiveProperty();
+  let activeProp = props.find(p => p.id === activeId) || props[0];
+  
+  // 2. Agar owner ne apna naam set nahi kiya hai, toh ek professional default dena
+  let hotelName = (activeProp && activeProp.name) ? activeProp.name : "My Property";
+  
+  // 3. App ke har screen par header update karna
+  let headers = document.querySelectorAll('.active-hotel-name');
+  headers.forEach(h => {
+      h.innerText = hotelName;
+  });
+}
+
+// 🚨 Page load hote hi isko chalao
+window.addEventListener('load', () => {
+  // Thoda delay taaki Firebase aur LocalStorage load ho jayein
+  setTimeout(updateHotelName, 300); 
+});
 // ==========================================
 // SMART CHECKOUT ENGINE (Saves to History)
 // ==========================================
@@ -1855,70 +1934,151 @@ function contactGuestAction(actionType, roomNo) {
 }
 
 // ==========================================================================
-// ✍️ SIGNATURE PAD LOGIC
+// ✍️ PRO SIGNATURE ENGINE (With Full-Screen Support)
 // ==========================================================================
-let canvas, ctx;
-let isDrawing = false;
+let sigCanvas, sigCtx;
+let isDrawingSig = false;
 
-function initSignaturePad() {
-  canvas = document.getElementById('signature-pad');
-  if(!canvas) return;
-  ctx = canvas.getContext('2d');
+function initSignaturePad(canvasId) {
+  sigCanvas = document.getElementById(canvasId);
+  if(!sigCanvas) return;
+  sigCtx = sigCanvas.getContext('2d');
   
-  // Set real width/height based on CSS
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-  
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#0f172a'; 
+  sigCanvas.width = sigCanvas.offsetWidth;
+  sigCanvas.height = sigCanvas.offsetHeight;
+  sigCtx.lineWidth = 3;
+  sigCtx.lineCap = 'round';
+  sigCtx.strokeStyle = '#0f172a'; 
 
-  canvas.addEventListener('mousedown', startPosition);
-  canvas.addEventListener('mouseup', endPosition);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPosition(e.touches[0]); }, {passive: false});
-  canvas.addEventListener('touchend', endPosition);
-  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); }, {passive: false});
+  // Remove old listeners to prevent duplicates
+  sigCanvas.onmousedown = startSig;
+  sigCanvas.onmouseup = endSig;
+  sigCanvas.onmousemove = drawSig;
+  sigCanvas.ontouchstart = (e) => { e.preventDefault(); startSig(e.touches[0]); };
+  sigCanvas.ontouchend = endSig;
+  sigCanvas.ontouchmove = (e) => { e.preventDefault(); drawSig(e.touches[0]); };
 }
 
-function startPosition(e) { isDrawing = true; draw(e); }
-function endPosition() { isDrawing = false; ctx.beginPath(); }
-function draw(e) {
-  if (!isDrawing) return;
-  let rect = canvas.getBoundingClientRect();
+function startSig(e) { isDrawingSig = true; drawSig(e); }
+function endSig() { isDrawingSig = false; sigCtx.beginPath(); }
+function drawSig(e) {
+  if (!isDrawingSig) return;
+  let rect = sigCanvas.getBoundingClientRect();
   let x = e.clientX - rect.left;
   let y = e.clientY - rect.top;
-  ctx.lineTo(x, y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x, y);
+  sigCtx.lineTo(x, y);
+  sigCtx.stroke();
+  sigCtx.beginPath();
+  sigCtx.moveTo(x, y);
 }
-function clearSignature() { if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height); }
 
-// Boot Signature Pad automatically when form opens
+function clearSignature(canvasId) { 
+  let c = document.getElementById(canvasId);
+  if(c) c.getContext('2d').clearRect(0, 0, c.width, c.height); 
+}
+
+// Full Screen Toggles
+function openFullScreenSignature() {
+  document.getElementById('fullscreen-sig-modal').style.display = 'flex';
+  setTimeout(() => initSignaturePad('fs-signature-pad'), 150);
+}
+
+function closeFullScreenSignature() {
+  document.getElementById('fullscreen-sig-modal').style.display = 'none';
+  initSignaturePad('signature-pad'); // Wapas chhote canvas ko active karo
+}
+
+function saveFSSignature() {
+  let fsCanvas = document.getElementById('fs-signature-pad');
+  let smallCanvas = document.getElementById('signature-pad');
+  let smallCtx = smallCanvas.getContext('2d');
+  
+  // Bade canvas ka data chhote me draw karo
+  smallCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
+  smallCtx.drawImage(fsCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
+  closeFullScreenSignature();
+}
+
+// Form open hone par chhota canvas on karna
 const autoSigOpenActionScreen = openActionScreen;
 openActionScreen = function(screenId) {
   autoSigOpenActionScreen(screenId);
   if(screenId === 'screen-new-booking') {
-    setTimeout(initSignaturePad, 150); 
+    setTimeout(() => initSignaturePad('signature-pad'), 150); 
   }
 };
-function toggleBookingView(view) {
-  currentBookingView = view; // 'active' ya 'history'
+// ==========================================================================
+// ☁️ ROOMPE MASTER CLOUD ENGINE (Auto Sync - UPDATED)
+// ==========================================================================
+let isCloudSyncing = false;
+let cloudTimer = null;
+
+// 1. Firebase pe Data Bhejne ka Engine
+async function pushToCloud() {
+  if (!window.db || isCloudSyncing) return;
   
-  let chipAct = document.getElementById('chip-active');
-  let chipHist = document.getElementById('chip-history');
+  // Document ID ab 'my_workspace' rakhenge
+  const hotelRef = window.fbDoc(window.db, "hotels", "my_workspace");
   
-  if (chipAct && chipHist) {
-    if (view === 'active') {
-      chipAct.classList.add('active');
-      chipHist.classList.remove('active');
-    } else {
-      chipHist.classList.add('active');
-      chipAct.classList.remove('active');
-    }
+  let rooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let bookings = JSON.parse(localStorage.getItem('roompe_bookings')) || [];
+  let payments = JSON.parse(localStorage.getItem('roompe_payments')) || [];
+  let properties = JSON.parse(localStorage.getItem('roompe_properties')) || []; // 🚨 NAYA ADD KIYA HUA
+  
+  try {
+    await window.fbSetDoc(hotelRef, {
+        rooms: rooms,
+        bookings: bookings,
+        payments: payments,
+        properties: properties, // 🚨 PROPERTIES BHI CLOUD PAR JAYEGI
+        lastUpdated: new Date().getTime()
+    }, { merge: true });
+    console.log("☁️ All Data Saved to Firebase!");
+  } catch (e) {
+    console.error("Cloud Save Error:", e);
+  }
+}
+
+// 2. LocalSave ko Override karna
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+  originalSetItem.apply(this, arguments);
+  
+  // 🚨 Ab properties change hone par bhi cloud trigger hoga
+  if (key === 'roompe_rooms' || key === 'roompe_bookings' || key === 'roompe_payments' || key === 'roompe_properties') {
+      clearTimeout(cloudTimer);
+      cloudTimer = setTimeout(pushToCloud, 1000); 
+  }
+};
+
+// 3. App Start Hote Hi Cloud Se Data Lana
+function startCloudSync() {
+  if(!window.db) {
+      setTimeout(startCloudSync, 500); 
+      return;
   }
   
-  // Ab naye wale active/history data ko render karega
-  renderBookingsList(); 
+  const hotelRef = window.fbDoc(window.db, "hotels", "my_workspace");
+  
+  window.fbOnSnapshot(hotelRef, (docSnap) => {
+      if(docSnap.exists()) {
+          isCloudSyncing = true; 
+          let data = docSnap.data();
+          
+          if(data.rooms) originalSetItem.call(localStorage, 'roompe_rooms', JSON.stringify(data.rooms));
+          if(data.bookings) originalSetItem.call(localStorage, 'roompe_bookings', JSON.stringify(data.bookings));
+          if(data.payments) originalSetItem.call(localStorage, 'roompe_payments', JSON.stringify(data.payments));
+          if(data.properties) originalSetItem.call(localStorage, 'roompe_properties', JSON.stringify(data.properties)); // 🚨 FETCH BHI KAREGA
+          
+          // UI Refresh
+          if(typeof renderRooms === 'function') renderRooms();
+          if(typeof renderBookingsList === 'function') renderBookingsList();
+          if(typeof updateHotelName === 'function') updateHotelName(); // Hotel ka naam bhi update hoga
+          
+          console.log("🔄 Live Data Received & Screen Updated!");
+          setTimeout(() => { isCloudSyncing = false; }, 1000); 
+      }
+  });
 }
+
+window.addEventListener('load', startCloudSync);
