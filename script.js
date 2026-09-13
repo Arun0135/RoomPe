@@ -944,15 +944,53 @@ function openRoomDetails(roomNo) {
 
   if(titleEl) titleEl.innerText = 'Room ' + room.no;
   if(catEl) catEl.innerText = room.cat;
-  if(floorEl) floorEl.innerText = RoomPeDB.getActiveProperty() + ' • ' + room.floor;
+  // 🚨 Property ka asli naam laane ka engine
+  let props = RoomPeDB.getProperties();
+  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+  let propName = activeProp ? activeProp.name : 'My Property';
 
+  if(floorEl) floorEl.innerText = propName + ' • ' + room.floor;
+
+  // 🚨 YAHAN SE REPLACE KARNA HAI
+  // 🚨 YAHAN SE REPLACE KARNA HAI (Line 955 se)
   if(room.status === 'occupied') {
     if(guestNameEl) guestNameEl.innerText = room.guest || 'Guest';
     if(guestInitEl) guestInitEl.innerText = room.guest ? room.guest.charAt(0).toUpperCase() : 'G';
+    
+    // NAYA: Phone, Chhota Signature aur Bada Signature (Documents tab) sab yahan hai
+    let guestPhoneEl = document.getElementById('rd-guest-phone');
+    let guestSigEl = document.getElementById('rd-guest-signature');
+    let docSigEl = document.getElementById('rd-doc-signature'); // Bada wala sign
+    let docNoSigEl = document.getElementById('rd-doc-no-sig');  // No sign text
+    
+    if(guestPhoneEl) guestPhoneEl.innerText = room.phone ? '+91 ' + room.phone : 'No Phone';
+    
+    if(room.signature) {
+        if(guestSigEl) { guestSigEl.src = room.signature; guestSigEl.style.display = 'block'; }
+        if(docSigEl) { docSigEl.src = room.signature; docSigEl.style.display = 'block'; }
+        if(docNoSigEl) { docNoSigEl.style.display = 'none'; }
+    } else {
+        if(guestSigEl) { guestSigEl.style.display = 'none'; }
+        if(docSigEl) { docSigEl.style.display = 'none'; }
+        if(docNoSigEl) { docNoSigEl.style.display = 'block'; }
+    }
   } else {
+    // Agar room khali (Vacant) hai
     if(guestNameEl) guestNameEl.innerText = 'Vacant';
     if(guestInitEl) guestInitEl.innerText = '-';
+    
+    let guestPhoneEl = document.getElementById('rd-guest-phone');
+    let guestSigEl = document.getElementById('rd-guest-signature');
+    let docSigEl = document.getElementById('rd-doc-signature');
+    let docNoSigEl = document.getElementById('rd-doc-no-sig');
+    
+    if(guestPhoneEl) guestPhoneEl.innerText = '-';
+    if(guestSigEl) guestSigEl.style.display = 'none';
+    if(docSigEl) docSigEl.style.display = 'none';
+    if(docNoSigEl) docNoSigEl.style.display = 'block';
   }
+  // 🚨 YAHAN TAK REPLACE KARNA HAI (Line 981 tak)
+  // 🚨 YAHAN TAK REPLACE KARNA HAI
 
   // Actions Assignment
   let chatBtn = document.getElementById('rd-chat-btn');
@@ -1684,15 +1722,24 @@ function saveNewBookingVIP() {
   let checkin = document.getElementById('book-checkin').value;
   let duration = document.getElementById('book-duration').value;
   let advance = document.getElementById('book-advance').value;
-  let smartMenu = document.getElementById('book-smart-menu').checked;
   
+  let smartMenuBox = document.getElementById('book-smart-menu');
+  let smartMenu = smartMenuBox ? smartMenuBox.checked : false;
+  
+  // 🚨 NAYA CODE: Signature Canvas ko Photo me badalna
+  let sigCanvas = document.getElementById('signature-pad');
+  let signatureData = '';
+  if(sigCanvas) {
+     signatureData = sigCanvas.toDataURL(); // Drawing ko Base64 Image bana diya
+  }
+
   if(guestName === "" || roomNo === "" || guestPhone === "") {
     return alert("❌ Guest Name, Phone Number, and Room Number are required!");
   }
 
   let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let activePropId = RoomPeDB.getActiveProperty();
-  let absIndex = absoluteRooms.findIndex(r => r.no === roomNo && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+  let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
   
   if(absIndex === -1) return alert("❌ Room " + roomNo + " does not exist!"); 
   if(absoluteRooms[absIndex].status === 'occupied') return alert("❌ Room " + roomNo + " is already occupied!");
@@ -1700,17 +1747,20 @@ function saveNewBookingVIP() {
   let actualCheckin = checkin || new Date().toISOString().slice(0,16); 
   let actualDuration = duration || '1';
 
+  // Room data me signature save karna
   absoluteRooms[absIndex].status = 'occupied';
   absoluteRooms[absIndex].guest = guestName;
   absoluteRooms[absIndex].phone = guestPhone; 
   absoluteRooms[absIndex].stayType = stayType; 
   absoluteRooms[absIndex].checkinDate = actualCheckin;
   absoluteRooms[absIndex].duration = actualDuration;
+  absoluteRooms[absIndex].signature = signatureData; // 🚨 Database me Save
+  
   localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
 
   let bookings = RoomPeDB.getBookings();
   bookings.push({
-    id: 'bk_' + Date.now(), propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType
+    id: 'bk_' + Date.now(), propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType, signature: signatureData
   });
   RoomPeDB.saveBookings(bookings);
 
