@@ -1105,7 +1105,7 @@
             </div>
             <!-- Yahan CALL ka action lagaya hai -->
             <p id="rd-call-btn" style="font-size: 12px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-              <span class="material-symbols-outlined" style="font-size: 14px; color: #3b82f6;">call</span> +91 98765 43210
+             <span id="rd-guest-phone" style="font-size:12px; color:#64748b;">+91 98765 43210</span>
             </p>
           </div>
         </div>
@@ -1114,11 +1114,15 @@
           <span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
         </div>
       </div>
-      <div style="border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
-        <span><span class="material-symbols-outlined" style="font-size: 12px; vertical-align: middle;">description</span> Digital Entry</span>
-        <span style="color: #cbd5e1;">•</span>
-        <span>ID Verified: <strong style="color: #059669;">Yes ✓</strong></span>
-      </div>
+     <div style="border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b;">
+  <span style="display: flex; align-items: center; gap: 6px;">
+    <span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">draw</span> 
+    Sign:
+    <img id="rd-guest-signature" src="" style="height: 22px; max-width: 80px; object-fit: contain; display: none; background: #f8fafc; padding: 2px 4px; border-radius: 4px; border: 1px solid #e2e8f0;" alt="Signature">
+  </span>
+  <span style="color: #cbd5e1;">•</span>
+  <span>ID Verified: <strong style="color: #059669;">Yes ✓</strong></span>
+</div>
     </div>
   
     <!-- TABS BUTTONS -->
@@ -1185,7 +1189,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h4 style="font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">GUEST KYC & ID</h4>
       </div>
-      
+     
       <!-- REAL UPLOAD / CAMERA BUTTON -->
       <label for="kyc-upload" style="display: block; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 12px;">
         <span class="material-symbols-outlined" style="font-size: 32px; color: #3b82f6; margin-bottom: 8px;">add_a_photo</span>
@@ -1205,6 +1209,15 @@
            <p style="margin: 0; font-size: 10px; color: #059669; font-weight: 600;">Verified Successfully</p>
          </div>
       </div>
+       <!-- Yahan se naya Signature Box shuru -->
+<div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed #e2e8f0;">
+    <h4 style="font-size: 13px; color: #475569; margin: 0 0 12px 0; font-weight: 700;">Guest Signature</h4>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; min-height: 80px; display: flex; justify-content: center; align-items: center;">
+        <img id="rd-doc-signature" src="" style="max-height: 80px; max-width: 100%; display: none; filter: contrast(1.5);" alt="Guest Signature">
+        <p id="rd-doc-no-sig" style="margin: 0; font-size: 12px; color: #94a3b8; font-weight: 500;">No signature captured</p>
+    </div>
+</div>
+<!-- Yahan tak -->
     </div>
   
   </div>
