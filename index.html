@@ -93,30 +93,31 @@
   </style>
 </head>
 <body>
-  <!-- ================= ⏳ ROOMPE GLOBAL LOADER ================= -->
-    <div id="roompe-global-loader" style="position: fixed; inset: 0; background: #ffffff; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.4s ease, visibility 0.4s ease;">
-        <div class="loader-logo-box" style="width: 72px; height: 72px; background: #ecfdf5; color: #059669; border-radius: 20px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
-            <span class="material-symbols-outlined" style="font-size: 36px;">domain</span>
-        </div>
-        <h3 style="margin: 0 0 8px; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">RoomPe</h3>
-        <p style="margin: 0; color: #64748b; font-size: 13px; font-weight: 500;">Syncing your workspace...</p>
-        
-        <!-- CSS Animation for Pulse Effect -->
-        <style>
-            .loader-logo-box {
-                animation: roompePulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
-            }
-            @keyframes roompePulse {
-                0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
-                70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(5, 150, 105, 0); }
-                100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
-            }
-        </style>
-    </div>
+  <div class="mobile-frame" style="position: relative; overflow: hidden; display: flex; flex-direction: column;">
 
-  <!-- VIRTUAL MOBILE PHONE CONTAINER -->
-  <div class="mobile-frame">
-    
+      <!-- ================= ⏳ ROOMPE GLOBAL LOADER (Perfect Fix) ================= -->
+      <div id="roompe-global-loader" style="position: absolute; inset: 0; background: #ffffff; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.4s;">
+          <div class="loader-logo-box" style="width: 72px; height: 72px; background: #ecfdf5; color: #059669; border-radius: 20px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
+              <span class="material-symbols-outlined" style="font-size: 36px;">domain</span>
+          </div>
+          <h3 style="margin: 0 0 8px; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">RoomPe</h3>
+          <p style="margin: 0; color: #64748b; font-size: 13px; font-weight: 500;">Syncing your workspace...</p>
+
+          <!-- CSS Animation for Pulse Effect -->
+          <style>
+              .loader-logo-box {
+                  animation: roompePulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+              }
+              @keyframes roompePulse {
+                  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+                  70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(5, 150, 105, 0); }
+                  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+              }
+          </style>
+      </div>
+      <!-- LOADER END -->
+
+  
    <!-- ================= SCREEN 1: WELCOME ================= -->
     <div id="screen-welcome" class="screen" style="padding: 0; background-color: #f8fafc; justify-content: center; align-items: center; text-align: center; height: 100%;">
       <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px;">
@@ -530,14 +531,18 @@
       <button class="fab-btn" style="bottom: 75px;" onclick="openActionScreen('screen-add-room')"><span class="material-symbols-outlined">add</span></button>
 
       <!-- Bottom Nav -->
+      
+   <!-- Bottom Nav -->
       <div class="bottom-nav">
-        <div class="nav-item" onclick="switchTab('dashboard')"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></div>
-        <div class="nav-item active" onclick="switchTab('rooms')"><span class="material-symbols-outlined">bed</span><span>Rooms</span></div>
+        <div class="nav-item active" onclick="switchTab('dashboard')"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></div>
+        <div class="nav-item" onclick="switchTab('rooms')"><span class="material-symbols-outlined">bed</span><span>Rooms</span></div>
         <div class="nav-item" onclick="switchTab('bookings')"><span class="material-symbols-outlined">calendar_month</span><span>Bookings</span></div>
         <div class="nav-item" onclick="switchTab('billing')"><span class="material-symbols-outlined">receipt_long</span><span>Billing</span></div>
         <div class="nav-item" onclick="switchTab('more')"><span class="material-symbols-outlined">more_horiz</span><span>More</span></div>
       </div>
     </div>
+
+
    <!-- ================= SCREEN 7: BOOKINGS ================= -->
     <div id="screen-bookings" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
       <header class="dash-header">
@@ -931,7 +936,7 @@
     </div>
 
     <!-- ================= ✏️ EDIT PROFILE SCREEN ================= -->
-    <div id="screen-edit-profile" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+    <div id="screen-edit-profile" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
       <!-- Header -->
       <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
         <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
@@ -969,7 +974,7 @@
       </div>
     </div>
     <!-- ================= 🏨 PROPERTY DETAILS SCREEN ================= -->
-    <div id="screen-property-details" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+    <div id="screen-property-details" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
       <!-- Header -->
       <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
         <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
@@ -1009,7 +1014,7 @@
     </div>
 
     <!-- ================= 💰 PRICING & TAX SETUP SCREEN ================= -->
-    <div id="screen-pricing-tax" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+    <div id="screen-pricing-tax" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
       <!-- Header -->
       <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
         <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
@@ -1058,7 +1063,7 @@
     </div>
 
     <!-- ================= 👥 STAFF & ROLES SCREEN ================= -->
-    <div id="screen-staff-roles" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+    <div id="screen-staff-roles" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
       <!-- Header -->
       <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
         <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
@@ -1104,68 +1109,151 @@
       </div>
     </div>
 
-    <!-- ================= ⚙️ APP SETTINGS SCREEN ================= -->
-    <div id="screen-app-settings" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Settings</h3>
-      </div>
+    <!-- ================= ⚙️ APP SETTINGS (PREMIUM UI) ================= -->
+    <style>
+      .premium-card { background: #fff; border-radius: 16px; padding: 0 16px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.02); }
+      .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+      .setting-row:last-child { border-bottom: none; }
+      .icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; justify-content: center; align-items: center; background: #f8fafc; color: #475569; margin-right: 16px; }
+      .icon-box.green { background: #ecfdf5; color: #059669; }
+      .section-title { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0 0 12px 8px; letter-spacing: 0.5px; }
       
-      <div style="padding: 24px 20px;">
-        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-          <!-- Theme Preference -->
-          <div style="margin-bottom: 20px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">App Theme</label>
-            <select id="pref-theme" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
-              <option value="light">Light Mode (Default)</option>
-              <option value="dark">Dark Mode (Coming Soon)</option>
-            </select>
-          </div>
-          
-          <!-- Notifications -->
-          <div style="margin-bottom: 20px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">WhatsApp & Push Notifications</label>
-            <select id="pref-notif" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
-              <option value="on">Enabled</option>
-              <option value="off">Disabled</option>
-            </select>
-          </div>
-          
-          <!-- Manual Backup -->
+      /* iOS Toggle Switch */
+      .ios-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+      .ios-switch input { opacity: 0; width: 0; height: 0; }
+      .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
+      .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+      input:checked + .slider { background-color: #059669; }
+      input:checked + .slider:before { transform: translateX(20px); }
+      
+      /* Big Save Button */
+      .giant-btn { background: #059669; color: white; border-radius: 20px; padding: 32px 16px; width: 100%; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 8px 24px rgba(5,150,105,0.25); transition: 0.2s; }
+      .giant-btn:active { transform: scale(0.98); }
+    </style>
+
+    <div id="screen-app-settings" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <!-- Header -->
+      <div style="background: transparent; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #0f172a; font-weight: 600;">arrow_back_ios</span>
           <div>
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Data Management</label>
-            <button onclick="forceCloudBackup()" style="width: 100%; padding: 12px; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">cloud_sync</span> Force Cloud Backup
-            </button>
+            <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Settings</h3>
+            <p style="margin: 0; font-size: 11px; color: #64748b;">RoomPe Workspace & System</p>
           </div>
         </div>
-        
-        <button onclick="saveAppSettings()" style="width: 100%; padding: 16px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(15,23,42,0.2);">Save Preferences</button>
+        <span style="font-size: 10px; background: #dcfce7; color: #059669; padding: 4px 8px; border-radius: 12px; font-weight: 700;">v2.4.1</span>
+      </div>
+      
+      <div style="padding: 20px;">
+        <h4 class="section-title">Display & Notifications</h4>
+        <div class="premium-card">
+          <div class="setting-row">
+            <div style="display: flex; align-items: center;">
+              <div class="icon-box"><span class="material-symbols-outlined">dark_mode</span></div>
+              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">Dark Mode</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Sync with system theme</p></div>
+            </div>
+            <label class="ios-switch"><input type="checkbox" id="toggle-dark"><span class="slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div style="display: flex; align-items: center;">
+              <div class="icon-box green"><span class="material-symbols-outlined">notifications_active</span></div>
+              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">Push Notifications</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Rent dues & alerts</p></div>
+            </div>
+            <label class="ios-switch"><input type="checkbox" id="toggle-notif" checked><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <h4 class="section-title">Localization & Language</h4>
+        <div class="premium-card" onclick="openLanguageScreen()" style="cursor: pointer;">
+          <div class="setting-row">
+            <div style="display: flex; align-items: center;">
+              <div class="icon-box" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">translate</span></div>
+              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">App Language</h5><p style="margin: 0; font-size: 12px; color: #059669; font-weight: 600;" id="stg-lang-preview">English (IN) • Default</p></div>
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center;">Change <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span></div>
+          </div>
+        </div>
+
+        <h4 class="section-title" style="display: flex; justify-content: space-between;">Data Management <span style="text-transform: none; font-weight: 500;">Last synced: Just now</span></h4>
+        <div class="premium-card" style="padding: 16px;">
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <span class="material-symbols-outlined" style="color: #0ea5e9; font-size: 28px;">cloud_sync</span>
+            <div><h5 style="margin: 0 0 4px 0; font-size: 14px;">Cloud Sync & Storage</h5><p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.4;">Automatically archives your rent ledgers and KYC to encrypted cloud.</p></div>
+          </div>
+          <div style="background: #f0f9ff; border: 1px dashed #bae6fd; border-radius: 12px; padding: 16px; text-align: center; color: #0284c7; font-weight: 700; cursor: pointer;" onclick="forceCloudBackup()">
+            <span class="material-symbols-outlined" style="font-size: 40px; margin-bottom: 8px;">cloud_upload</span><br>Force Cloud Backup
+          </div>
+        </div>
+
+        <button class="giant-btn" onclick="saveAppSettings()">
+          <span class="material-symbols-outlined" style="font-size: 64px;">check</span>
+          <span style="font-size: 18px;">Save Preferences</span>
+        </button>
       </div>
     </div>
 
-    <!-- ================= 🌐 LANGUAGE SCREEN ================= -->
-    <div id="screen-language" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Language</h3>
+    <!-- ================= 🌐 APP LANGUAGE (PREMIUM UI) ================= -->
+    <style>
+      .lang-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+      .lang-card.active { border-color: #059669; background: #f0fdf4; }
+      .circle-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cbd5e1; display: flex; justify-content: center; align-items: center; }
+      .lang-card.active .circle-check { background: #059669; border-color: #059669; color: white; }
+    </style>
+
+    <div id="screen-language" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <div style="background: transparent; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span class="material-symbols-outlined" onclick="openAppSettingsScreen()" style="cursor: pointer; color: #0f172a; font-weight: 600;">arrow_back_ios</span>
+          <div>
+            <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Language</h3>
+            <p style="margin: 0; font-size: 11px; color: #64748b;">Choose your preferred dialect</p>
+          </div>
+        </div>
+        <span style="font-size: 10px; background: #dcfce7; color: #059669; padding: 4px 8px; border-radius: 12px; font-weight: 700; border: 1px solid #bbf7d0;">4 Available</span>
       </div>
       
-      <div style="padding: 24px 20px;">
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Choose your preferred language for the application interface.</p>
-        
-        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-            <select id="pref-lang" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
-              <option value="en">English (IN)</option>
-              <option value="hi">हिंदी (Hindi)</option>
-              <option value="bn">বাংলা (Bengali)</option>
-              <option value="mr">मराठी (Marathi)</option>
-            </select>
+      <div style="padding: 20px;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px; display: flex; gap: 12px; margin-bottom: 24px;">
+          <span class="material-symbols-outlined" style="background: #059669; color: white; border-radius: 8px; padding: 4px; font-size: 16px; height: fit-content;">translate</span>
+          <div><h5 style="margin: 0 0 4px 0; font-size: 12px; color: #064e3b;">Localized Property Experience</h5><p style="margin: 0; font-size: 11px; color: #047857; line-height: 1.4;">Invoices and guest reminders will format using your selected language.</p></div>
         </div>
+
+        <h4 class="section-title">Supported Languages</h4>
         
-        <button onclick="saveLanguageSetting()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Update Language</button>
+        <!-- Language Options -->
+        <div class="lang-card active" id="lang-btn-en" onclick="selectLang('en')">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #059669;">EN</div>
+            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">English (IN) <span style="font-size: 9px; background: #059669; color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 4px;">Default</span></h5><p style="margin: 0; font-size: 12px; color: #059669;">English (India)</p></div>
+          </div>
+          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px;">check</span></div>
+        </div>
+
+        <div class="lang-card" id="lang-btn-hi" onclick="selectLang('hi')">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #475569;">हिं</div>
+            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">हिंदी</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Hindi</p></div>
+          </div>
+          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px; display:none;">check</span></div>
+        </div>
+
+        <div class="lang-card" id="lang-btn-bn" onclick="selectLang('bn')">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #475569;">বাং</div>
+            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">বাংলা</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Bengali</p></div>
+          </div>
+          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px; display:none;">check</span></div>
+        </div>
+
+        <button class="giant-btn" style="margin-top: 32px;" onclick="saveLanguageSetting()">
+          <span class="material-symbols-outlined" style="font-size: 64px;">sync</span>
+          <span style="font-size: 18px;">Update Language</span>
+        </button>
       </div>
     </div>
+
+
+  
    <!-- ================= ACTION SCREEN: NEW BOOKING (PRO VERSION) ================= -->
     <div id="screen-new-booking" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
       <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
@@ -1467,7 +1555,65 @@
     </button>
   </div>
   </div>
+<!-- ================= 🛏️ SCREEN: ROOMS LIST (Main Tab) ================= -->
+    <div id="screen-rooms" class="screen hidden" style="position: absolute; inset: 0; background: #f8f9fa; z-index: 10; overflow-y: auto; padding-bottom: 100px;">
+      <div style="background: white; padding: 16px 20px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Rooms & Guests</h3>
+        <span class="material-symbols-outlined" style="color: #059669; background: #ecfdf5; padding: 8px; border-radius: 10px; cursor: pointer;">add</span>
+      </div>
+      
+      <div style="padding: 20px;">
+        <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Occupied Rooms</p>
+        
+        <!-- Room Card 1 (Occupied) -->
+        <div onclick="openRoomDetails('101', 'Rahul Kumar', '₹6,000')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="width: 44px; height: 44px; background: #ecfdf5; color: #059669; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 16px;">101</div>
+            <div>
+              <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;">Rahul Kumar</h4>
+              <p style="margin: 0; font-size: 11px; color: #64748b;">Check-in: 12 Oct 2025</p>
+            </div>
+          </div>
+          <span class="badge-pill" style="background: #ecfdf5; color: #059669; font-size: 10px; border: 1px solid #bbf7d0;">OCCUPIED</span>
+        </div>
 
+        <!-- Room Card 2 (Occupied) -->
+        <div onclick="openRoomDetails('102', 'Amit Singh', '₹8,500')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="width: 44px; height: 44px; background: #ecfdf5; color: #059669; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 16px;">102</div>
+            <div>
+              <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;">Amit Singh</h4>
+              <p style="margin: 0; font-size: 11px; color: #64748b;">Check-in: 05 Nov 2025</p>
+            </div>
+          </div>
+          <span class="badge-pill" style="background: #ecfdf5; color: #059669; font-size: 10px; border: 1px solid #bbf7d0;">OCCUPIED</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 👤 SCREEN: ROOM DETAILS & GUEST MANAGE ================= -->
+    <div id="screen-room-details" class="screen hidden" style="position: absolute; inset: 0; background: #f8f9fa; z-index: 50; overflow-y: auto;">
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #0f172a; font-weight: 600;">arrow_back_ios</span>
+        <div>
+          <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;" id="rd-room-num">Room 101</h3>
+          <p style="margin: 0; font-size: 11px; color: #64748b;">Guest Management</p>
+        </div>
+      </div>
+      
+      <div style="padding: 20px;">
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <div style="width: 64px; height: 64px; background: #059669; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; font-weight: bold; margin: 0 auto 12px auto;">👤</div>
+          <h2 style="margin: 0 0 4px 0; font-size: 20px; color: #0f172a;" id="rd-guest-name">Rahul Kumar</h2>
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b;">Monthly Rent: <strong style="color: #0f172a;" id="rd-rent">₹6,000</strong></p>
+          
+          <!-- ASLI TRIGGER BUTTON -->
+          <button onclick="triggerCheckoutFlow()" style="width: 100%; padding: 14px; background: #fff1f2; color: #e11d48; border: 1px solid #ffe4e6; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
+            <span class="material-symbols-outlined">logout</span> Checkout & Generate Bill
+          </button>
+        </div>
+      </div>
+    </div>
    <!-- ================= NEW SCREEN: EDIT / DELETE ROOM ================= -->
   <div id="screen-edit-room" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 105;">
     <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0;">
