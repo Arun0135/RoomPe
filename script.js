@@ -2473,71 +2473,228 @@ function removeStaff(index) {
     }
 }
 // ==========================================================================
-// ⚙️ APP PREFERENCES & LANGUAGE ENGINE
+// ⚙️ APP PREFERENCES & LANGUAGE ENGINE (PREMIUM UI LOGIC)
 // ==========================================================================
 
 // --- APP SETTINGS LOGIC ---
 function openAppSettingsScreen() {
-    // Purana save kiya hua data load karo (agar nahi hai toh default)
     let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
     let savedNotif = localStorage.getItem('roompe_pref_notif') || 'on';
     
-    document.getElementById('pref-theme').value = savedTheme;
-    document.getElementById('pref-notif').value = savedNotif;
+    // Toggles ko on/off karna
+    document.getElementById('toggle-dark').checked = (savedTheme === 'dark');
+    document.getElementById('toggle-notif').checked = (savedNotif === 'on');
+    
+    // Language preview update karna
+    let savedLang = localStorage.getItem('roompe_pref_lang') || 'en';
+    let langMap = {'en': 'English (IN)', 'hi': 'हिंदी', 'bn': 'বাংলা'};
+    document.getElementById('stg-lang-preview').innerText = langMap[savedLang] + ' • Selected';
     
     openActionScreen('screen-app-settings');
 }
 
 function saveAppSettings() {
-    let theme = document.getElementById('pref-theme').value;
-    let notif = document.getElementById('pref-notif').value;
+    // Toggles se value nikalna
+    let isDark = document.getElementById('toggle-dark').checked;
+    let isNotif = document.getElementById('toggle-notif').checked;
     
-    localStorage.setItem('roompe_pref_theme', theme);
-    localStorage.setItem('roompe_pref_notif', notif);
+    localStorage.setItem('roompe_pref_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('roompe_pref_notif', isNotif ? 'on' : 'off');
     
     closeActionScreen();
-    showPopup('success', 'Settings Saved', 'App preferences have been updated successfully.');
-}
-
-function forceCloudBackup() {
-    // Ye button cloud sync wale function ko trigger karega (jo humne pehle banaya tha)
-    let user = firebase.auth().currentUser;
-    if (user) {
-        showPopup('success', 'Sync Started', 'Backing up your data to the cloud securely.');
-        startCloudSync(user.uid);
-    } else {
-        alert("You need to be logged in to sync data.");
-    }
+    showPopup('success', 'Preferences Saved', 'Your system settings have been updated.');
 }
 
 // --- LANGUAGE LOGIC ---
+let tempSelectedLang = 'en'; // Temporary selection hold karne ke liye
+
 function openLanguageScreen() {
-    let savedLang = localStorage.getItem('roompe_pref_lang') || 'en';
-    document.getElementById('pref-lang').value = savedLang;
+    tempSelectedLang = localStorage.getItem('roompe_pref_lang') || 'en';
+    selectLang(tempSelectedLang); // UI me select karo
     openActionScreen('screen-language');
 }
 
+function selectLang(langCode) {
+    tempSelectedLang = langCode;
+    
+    // Sabhi cards ko reset karo
+    ['en', 'hi', 'bn'].forEach(code => {
+        let card = document.getElementById('lang-btn-' + code);
+        if(card) {
+            card.classList.remove('active');
+            card.querySelector('.material-symbols-outlined').style.display = 'none'; // Checkmark chhupao
+            card.querySelector('p').style.color = '#64748b'; // Description gray
+            card.querySelector('.circle-check').style.background = 'transparent';
+        }
+    });
+    
+    // Jo select hua usko green/active karo
+    let activeCard = document.getElementById('lang-btn-' + langCode);
+    if(activeCard) {
+        activeCard.classList.add('active');
+        activeCard.querySelector('.material-symbols-outlined').style.display = 'block'; // Checkmark dikhao
+        activeCard.querySelector('p').style.color = '#059669'; // Description green
+        activeCard.querySelector('.circle-check').style.background = '#059669';
+    }
+}
+
 function saveLanguageSetting() {
-    let lang = document.getElementById('pref-lang').value;
-    localStorage.setItem('roompe_pref_lang', lang);
+    localStorage.setItem('roompe_pref_lang', tempSelectedLang);
     
-    // UI par Language ka naam update karna (More Tab me)
     let displayLang = "English (IN)";
-    if(lang === 'hi') displayLang = "हिंदी";
-    if(lang === 'bn') displayLang = "বাংলা";
-    if(lang === 'mr') displayLang = "मराठी";
+    if(tempSelectedLang === 'hi') displayLang = "हिंदी";
+    if(tempSelectedLang === 'bn') displayLang = "বাংলা";
     
-    // More tab me jo Language likhi aati hai usko update karna
+    // More tab ki main screen par language naam update
     let actionTexts = document.querySelectorAll('.setting-action .action-text');
     if(actionTexts.length > 0) {
-        // Find the language action text (usually the second one if version is last)
         actionTexts.forEach(el => {
-            if(el.innerText.includes('English') || el.innerText.includes('हिंदी') || el.innerText.includes('বাংলা') || el.innerText.includes('मराठी')) {
+            if(el.innerText.includes('English') || el.innerText.includes('हिंदी') || el.innerText.includes('বাংলা')) {
                 el.innerText = displayLang;
             }
         });
     }
     
-    closeActionScreen();
-    showPopup('success', 'Language Updated', `Your app language is set to ${displayLang}. UI translation will apply on next load.`);
+    // Wapas settings me bhej do (jaise real app me hota hai)
+    openAppSettingsScreen();
+    setTimeout(() => {
+        showPopup('success', 'Language Updated', `App language changed to ${displayLang}.`);
+    }, 400);
+}
+// ==========================================================================
+// 🧾 BILLING & INVOICE ENGINE (REAL MATH)
+// ==========================================================================
+
+// Ye variables calculation memory me rakhenge
+let currentBillState = {
+    baseRent: 6000, // Abhi ke liye default, real app me DB room price se aayega
+    prevReading: 1420,
+    elecRate: 10,
+    gstPercent: 0,
+    subtotal: 0,
+    totalGST: 0,
+    grandTotal: 0
+};
+
+// 1. Checkout Screen Kholna (Database se GST aur Rate uthana)
+function openCheckoutScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    
+    if(activeProp) {
+        // "Pricing & Tax Setup" se real values nikalna
+        currentBillState.elecRate = parseFloat(activeProp.electricityRate) || 10;
+        currentBillState.gstPercent = parseFloat(activeProp.gstPercent) || 0;
+        
+        // UI me Update karna
+        document.getElementById('chk-elec-rate').innerText = `⚡ ₹${currentBillState.elecRate} / unit`;
+        document.getElementById('chk-subtitle').innerText = `${activeProp.name || 'Property'} • Room 101`;
+    }
+
+    // Input fields reset
+    document.getElementById('calc-curr').value = '';
+    document.getElementById('calc-extra-amt').value = '';
+    document.getElementById('calc-extra-desc').value = '';
+    
+    liveCalculateBill(); // Pehli baar math run karo
+    
+    // Screen open karo
+    document.getElementById('screen-checkout').classList.remove('hidden');
+}
+
+// 2. LIVE MATH ENGINE (Jab bhi user type karega, ye chalega)
+function liveCalculateBill() {
+    let currReading = parseFloat(document.getElementById('calc-curr').value) || 0;
+    let extraAmt = parseFloat(document.getElementById('calc-extra-amt').value) || 0;
+    
+    // Bijli ka hisaab (Agar current reading purani se zyada hai)
+    let units = 0;
+    let elecTotal = 0;
+    if (currReading > currentBillState.prevReading) {
+        units = currReading - currentBillState.prevReading;
+        elecTotal = units * currentBillState.elecRate;
+    }
+
+    // Subtotal (Rent + Bijli + Extra)
+    currentBillState.subtotal = currentBillState.baseRent + elecTotal + extraAmt;
+    
+    // GST (Tax) calculation
+    currentBillState.totalGST = currentBillState.subtotal * (currentBillState.gstPercent / 100);
+    
+    // Grand Total
+    currentBillState.grandTotal = currentBillState.subtotal + currentBillState.totalGST;
+
+    // ----- UI KO UPDATE KARNA -----
+    // Electricity Texts
+    document.getElementById('calc-units-txt').innerText = `Units: ${units}`;
+    document.getElementById('calc-rate-txt').innerText = `Rate: ${units} x ₹${currentBillState.elecRate}`;
+    document.getElementById('calc-elec-total').innerText = `₹${elecTotal.toLocaleString('en-IN')}`;
+    
+    // Grand Total Text
+    document.getElementById('calc-grand-total').innerText = `₹${Math.round(currentBillState.grandTotal).toLocaleString('en-IN')}`;
+}
+
+// 3. INVOICE GENERATE KARNA (Checkout se data Invocie par bhejna)
+function generateFinalInvoice() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    
+    let currReading = parseFloat(document.getElementById('calc-curr').value) || currentBillState.prevReading;
+    let units = Math.max(0, currReading - currentBillState.prevReading);
+    let elecTotal = units * currentBillState.elecRate;
+    
+    let extraAmt = parseFloat(document.getElementById('calc-extra-amt').value) || 0;
+    let extraDesc = document.getElementById('calc-extra-desc').value || 'Additional Charges';
+
+    // Invoice Header & Info
+    let date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    let invNum = `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    document.getElementById('inv-header-num').innerText = invNum;
+    document.getElementById('inv-num').innerText = invNum;
+    document.getElementById('inv-date').innerText = date;
+    
+    if(activeProp) {
+        document.getElementById('inv-prop-name').innerText = activeProp.name || 'RoomPe Property';
+        document.getElementById('inv-prop-address').innerText = activeProp.address || 'Address not provided';
+        document.getElementById('inv-gst-txt').innerText = `GST Tax (${activeProp.gstPercent || 0}%) ${activeProp.gstin ? '#' + activeProp.gstin : ''}`;
+    }
+
+    // Line Items populate karna
+    document.getElementById('inv-amt-base').innerText = `₹${currentBillState.baseRent.toLocaleString('en-IN')}`;
+    
+    // Electricity Row
+    document.getElementById('inv-elec-units').innerText = `⚡ ${units} units`;
+    document.getElementById('inv-elec-desc').innerText = `Meter: ${currentBillState.prevReading} to ${currReading} @₹${currentBillState.elecRate}/unit`;
+    document.getElementById('inv-amt-elec').innerText = `₹${elecTotal.toLocaleString('en-IN')}`;
+    
+    // Extra Charges Row
+    if(extraAmt > 0) {
+        document.getElementById('inv-row-extra').style.display = 'table-row';
+        document.getElementById('inv-extra-desc').innerText = extraDesc;
+        document.getElementById('inv-amt-extra').innerText = `₹${extraAmt.toLocaleString('en-IN')}`;
+    } else {
+        document.getElementById('inv-row-extra').style.display = 'none';
+    }
+
+    // Totals
+    document.getElementById('inv-amt-subtotal').innerText = `₹${currentBillState.subtotal.toLocaleString('en-IN')}`;
+    document.getElementById('inv-amt-gst').innerText = `₹${Math.round(currentBillState.totalGST).toLocaleString('en-IN')}`;
+    document.getElementById('inv-grand-total').innerText = `₹${Math.round(currentBillState.grandTotal).toLocaleString('en-IN')}`;
+
+    // Switch Screens (Checkout band, Invoice chalu)
+    document.getElementById('screen-checkout').classList.add('hidden');
+    document.getElementById('screen-invoice').classList.remove('hidden');
+}
+
+// 4. WhatsApp Par Bill Bhejna
+function shareOnWhatsApp() {
+    let invNum = document.getElementById('inv-num').innerText;
+    let amount = document.getElementById('inv-grand-total').innerText;
+    let propName = document.getElementById('inv-prop-name').innerText;
+    
+    let msg = `Hello! 🏢\nHere is your final bill from *${propName}*.\n\n📄 Invoice: ${invNum}\n💰 Total Amount: *${amount}*\n\nThank you for staying with us! - Powered by RoomPe.`;
+    
+    let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank');
 }
