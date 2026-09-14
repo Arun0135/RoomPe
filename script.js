@@ -150,6 +150,107 @@ var RoomPeDB = {
 };
 
 // ==========================================================================
+// 🧑‍💼 MORE TAB & PROFILE EDIT ENGINE
+// ==========================================================================
+
+function updateMoreTabStats() {
+  let props = RoomPeDB.getProperties();
+  let totalProps = props.length;
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let totalRooms = allRooms.length; 
+  
+  let propCountEl = document.getElementById('more-prop-count');
+  let roomCountEl = document.getElementById('more-room-count');
+  let profileNameEl = document.getElementById('more-profile-name');
+  let profileEmailEl = document.getElementById('more-profile-email');
+  let avatar = document.getElementById('more-profile-img');
+  
+  if(propCountEl) propCountEl.innerText = totalProps;
+  if(roomCountEl) roomCountEl.innerText = totalRooms;
+  
+  let userEmail = localStorage.getItem('roompe_logged_in_user') || 'owner@roompe.com';
+  
+  // 🚨 DATABASE SE USER KA CUSTOM DATA NIKALNA
+  let savedName = localStorage.getItem('roompe_user_name');
+  let savedPhone = localStorage.getItem('roompe_user_phone');
+  let savedAvatar = localStorage.getItem('roompe_user_avatar');
+
+  // Agar naam save nahi hai, toh email se bana lo (E.g. arun@gmail.com -> Arun)
+  let userName = savedName;
+  if(!userName) {
+      userName = userEmail.split('@')[0]; 
+      userName = userName.charAt(0).toUpperCase() + userName.slice(1); 
+  }
+  
+  // Update HTML
+  if(profileNameEl) profileNameEl.innerHTML = `${userName} <span style="font-size: 9px; background: #dcfce7; color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Verified</span>`;
+  
+  // Agar phone number save kiya hai toh wo dikhao, warna email dikhao
+  if(profileEmailEl) profileEmailEl.innerText = savedPhone ? '+91 ' + savedPhone : userEmail;
+  
+  // Agar Custom Photo daali hai toh wo lagao, warna Initial wali lagao
+  if(avatar) {
+      if(savedAvatar) {
+          avatar.src = savedAvatar;
+      } else {
+          avatar.src = `https://ui-avatars.com/api/?name=${userName}&background=059669&color=fff&size=150&bold=true`;
+      }
+  }
+}
+
+// 1. Edit Screen Kholna aur purana data bharna
+function openEditProfileScreen() {
+    let savedName = localStorage.getItem('roompe_user_name');
+    let savedPhone = localStorage.getItem('roompe_user_phone') || '';
+    let savedAvatar = localStorage.getItem('roompe_user_avatar');
+    let userEmail = localStorage.getItem('roompe_logged_in_user') || 'owner@roompe.com';
+    
+    let defaultName = savedName || (userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1));
+    
+    document.getElementById('edit-profile-name').value = defaultName;
+    document.getElementById('edit-profile-phone').value = savedPhone;
+    
+    let preview = document.getElementById('edit-profile-preview');
+    preview.src = savedAvatar ? savedAvatar : `https://ui-avatars.com/api/?name=${defaultName}&background=059669&color=fff&size=150&bold=true`;
+    
+    openActionScreen('screen-edit-profile');
+}
+
+// 2. Photo Upload hone par usko Data URL (Photo) me convert karna
+function handleProfilePicUpload(input) {
+    if (input.files && input.files[0]) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let base64Image = e.target.result; 
+            document.getElementById('edit-profile-preview').src = base64Image; // Preview update
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 3. Save Button dabane par Database me data daalna
+function saveProfileDetails() {
+    let newName = document.getElementById('edit-profile-name').value.trim();
+    let newPhone = document.getElementById('edit-profile-phone').value.trim();
+    let newAvatar = document.getElementById('edit-profile-preview').src;
+    
+    if(!newName) return alert("Bhai, naam toh daalna padega!");
+    
+    // Save to LocalStorage (Database)
+    localStorage.setItem('roompe_user_name', newName);
+    localStorage.setItem('roompe_user_phone', newPhone);
+    
+    // Sirf custom photo save karna (ui-avatars wali default link nahi)
+    if(!newAvatar.includes('ui-avatars.com')) {
+        localStorage.setItem('roompe_user_avatar', newAvatar);
+    }
+
+    // Refresh UI and Close Screen
+    updateMoreTabStats();
+    closeActionScreen();
+    showPopup('success', 'Profile Updated', 'Your profile details have been saved successfully.');
+}
+// ==========================================================================
 // 3. ROOMS SCREEN LOGIC & MASTER RENDER ENGINE
 // ==========================================================================
 function updateRoomStats(rooms) {
@@ -441,7 +542,8 @@ function switchTab(tabName) {
   if(tabName === 'rooms') renderRoomsGrid();
   if(tabName === 'dashboard') updateDashboardStats();
   if(tabName === 'bookings') renderBookingsList();
-  if(tabName === 'billing') renderBillingList();
+  if(tabName === 'billing') renderBillingList(); 
+  if(tabName === 'more') updateMoreTabStats();
 }
 
 function openActionScreen(screenId) {
@@ -2175,4 +2277,267 @@ function openHistoricalBooking(bookingId) {
   
   switchRoomDetailsTab('overview');
   openActionScreen('screen-room-details');
+}
+// ==========================================================================
+// 🏢 PROPERTY DETAILS ENGINE (Option 1)
+// ==========================================================================
+
+// 1. Screen kholte waqt purana data fetch karke dikhana
+function openPropertyDetailsScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeProp = props.find(p => p.id === activeId);
+    
+    if(!activeProp) return alert("Property not found!");
+
+    // Agar property me pehle se data hai, toh form me bhar do, warna khali chhod do
+    document.getElementById('prop-detail-address').value = activeProp.address || '';
+    document.getElementById('prop-detail-wifi').value = activeProp.wifi || '';
+    document.getElementById('prop-detail-checkout').value = activeProp.checkoutTime || '11:00';
+    document.getElementById('prop-detail-rules').value = activeProp.rules || '';
+    
+    openActionScreen('screen-property-details');
+}
+
+// 2. Form bharne ke baad usko usi Property me save karna
+function savePropertyDetails() {
+    let address = document.getElementById('prop-detail-address').value.trim();
+    let wifi = document.getElementById('prop-detail-wifi').value.trim();
+    let checkout = document.getElementById('prop-detail-checkout').value;
+    let rules = document.getElementById('prop-detail-rules').value.trim();
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        // Asli magic: Sirf Active property me ye details add hongi
+        props[activeIndex].address = address;
+        props[activeIndex].wifi = wifi;
+        props[activeIndex].checkoutTime = checkout;
+        props[activeIndex].rules = rules;
+        
+        RoomPeDB.saveProperties(props); // Database me update
+        
+        closeActionScreen();
+        showPopup('success', 'Details Saved', 'Property details and house rules updated successfully!');
+    } else {
+        alert("Error saving details.");
+    }
+}
+// ==========================================================================
+// 💰 PRICING & TAX SETUP ENGINE
+// ==========================================================================
+
+// 1. Screen kholna aur purana data form me bharna
+function openPricingSetupScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeProp = props.find(p => p.id === activeId);
+    
+    if(!activeProp) return alert("Property not found!");
+
+    // Data load karo
+    document.getElementById('prop-tax-gstin').value = activeProp.gstin || '';
+    document.getElementById('prop-tax-percent').value = activeProp.gstPercent || '';
+    document.getElementById('prop-tax-electricity').value = activeProp.electricityRate || '';
+    document.getElementById('prop-tax-cycle').value = activeProp.rentCycle || '1st';
+    
+    openActionScreen('screen-pricing-tax');
+}
+
+// 2. Form ka data LocalStorage me (Active Property par) save karna
+function savePricingSetup() {
+    let gstin = document.getElementById('prop-tax-gstin').value.trim().toUpperCase();
+    let gstPercent = document.getElementById('prop-tax-percent').value.trim();
+    let electricityRate = document.getElementById('prop-tax-electricity').value.trim();
+    let rentCycle = document.getElementById('prop-tax-cycle').value;
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        // Data save karna
+        props[activeIndex].gstin = gstin;
+        props[activeIndex].gstPercent = gstPercent;
+        props[activeIndex].electricityRate = electricityRate;
+        props[activeIndex].rentCycle = rentCycle;
+        
+        RoomPeDB.saveProperties(props); 
+        
+        closeActionScreen();
+        showPopup('success', 'Pricing Saved', 'Tax and Utility settings have been updated successfully!');
+    } else {
+        alert("Error saving details.");
+    }
+}
+// ==========================================================================
+// 👥 STAFF & ROLES ENGINE
+// ==========================================================================
+
+function openStaffRolesScreen() {
+    renderStaffList(); // Pehle list load karo
+    openActionScreen('screen-staff-roles'); // Fir screen kholo
+}
+
+// 1. Staff ki List dikhane ka engine
+function renderStaffList() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let staffListContainer = document.getElementById('staff-list-container');
+    
+    // Agar koi staff nahi hai
+    if(!activeProp || !activeProp.staff || activeProp.staff.length === 0) {
+        staffListContainer.innerHTML = `<div style="text-align:center; padding: 20px; background:white; border-radius:12px; border:1px dashed #cbd5e1; color:#94a3b8; font-size:13px;">No staff added yet. Add your first team member below.</div>`;
+        return;
+    }
+    
+    // Agar staff hai toh list banao
+    let html = '';
+    activeProp.staff.forEach((s, index) => {
+        let roleColor = s.role === 'Manager' ? '#0ea5e9' : (s.role === 'Receptionist' ? '#8b5cf6' : '#f59e0b');
+        let roleBg = s.role === 'Manager' ? '#e0f2fe' : (s.role === 'Receptionist' ? '#ede9fe' : '#fef3c7');
+        
+        html += `
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #475569; font-weight: bold; font-size: 16px; border: 1px solid #e2e8f0;">
+                    ${s.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <h5 style="margin: 0 0 4px 0; font-size: 14px; color: #0f172a; font-weight: 800;">${s.name}</h5>
+                    <p style="margin: 0; font-size: 12px; color: #64748b;">+91 ${s.phone}</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span style="background: ${roleBg}; color: ${roleColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${s.role}</span>
+                <div style="margin-top: 8px; font-size: 11px; color: #ef4444; cursor: pointer; font-weight: 600;" onclick="removeStaff(${index})">Remove</div>
+            </div>
+        </div>`;
+    });
+    
+    staffListContainer.innerHTML = html;
+}
+
+// 2. Naya Staff Save karna
+function saveNewStaff() {
+    let name = document.getElementById('staff-name').value.trim();
+    let phone = document.getElementById('staff-phone').value.trim();
+    let role = document.getElementById('staff-role').value;
+    let pin = document.getElementById('staff-pin').value.trim();
+
+    if(!name || !phone || !pin) return alert("Bhai, saari details bharni zaroori hain!");
+    if(pin.length !== 4) return alert("Login PIN theek 4-digit ka hona chahiye.");
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        if(!props[activeIndex].staff) props[activeIndex].staff = [];
+        
+        // Data Push karo
+        props[activeIndex].staff.push({
+            name: name,
+            phone: phone,
+            role: role,
+            pin: pin,
+            addedAt: new Date().getTime()
+        });
+        
+        RoomPeDB.saveProperties(props);
+        
+        // Form Khali karo
+        document.getElementById('staff-name').value = '';
+        document.getElementById('staff-phone').value = '';
+        document.getElementById('staff-pin').value = '';
+        
+        renderStaffList(); // List ko turant refresh karo
+        showPopup('success', 'Staff Added', `${name} has been added as ${role}.`);
+    }
+}
+
+// 3. Staff ko Delete karna
+function removeStaff(index) {
+    if(confirm("Are you sure you want to remove this staff member? They will lose access instantly.")) {
+        let props = RoomPeDB.getProperties();
+        let activeId = RoomPeDB.getActiveProperty();
+        let activeIndex = props.findIndex(p => p.id === activeId);
+        
+        if(activeIndex !== -1 && props[activeIndex].staff) {
+            props[activeIndex].staff.splice(index, 1); // Array se delete karo
+            RoomPeDB.saveProperties(props);
+            renderStaffList(); // UI Refresh
+        }
+    }
+}
+// ==========================================================================
+// ⚙️ APP PREFERENCES & LANGUAGE ENGINE
+// ==========================================================================
+
+// --- APP SETTINGS LOGIC ---
+function openAppSettingsScreen() {
+    // Purana save kiya hua data load karo (agar nahi hai toh default)
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    let savedNotif = localStorage.getItem('roompe_pref_notif') || 'on';
+    
+    document.getElementById('pref-theme').value = savedTheme;
+    document.getElementById('pref-notif').value = savedNotif;
+    
+    openActionScreen('screen-app-settings');
+}
+
+function saveAppSettings() {
+    let theme = document.getElementById('pref-theme').value;
+    let notif = document.getElementById('pref-notif').value;
+    
+    localStorage.setItem('roompe_pref_theme', theme);
+    localStorage.setItem('roompe_pref_notif', notif);
+    
+    closeActionScreen();
+    showPopup('success', 'Settings Saved', 'App preferences have been updated successfully.');
+}
+
+function forceCloudBackup() {
+    // Ye button cloud sync wale function ko trigger karega (jo humne pehle banaya tha)
+    let user = firebase.auth().currentUser;
+    if (user) {
+        showPopup('success', 'Sync Started', 'Backing up your data to the cloud securely.');
+        startCloudSync(user.uid);
+    } else {
+        alert("You need to be logged in to sync data.");
+    }
+}
+
+// --- LANGUAGE LOGIC ---
+function openLanguageScreen() {
+    let savedLang = localStorage.getItem('roompe_pref_lang') || 'en';
+    document.getElementById('pref-lang').value = savedLang;
+    openActionScreen('screen-language');
+}
+
+function saveLanguageSetting() {
+    let lang = document.getElementById('pref-lang').value;
+    localStorage.setItem('roompe_pref_lang', lang);
+    
+    // UI par Language ka naam update karna (More Tab me)
+    let displayLang = "English (IN)";
+    if(lang === 'hi') displayLang = "हिंदी";
+    if(lang === 'bn') displayLang = "বাংলা";
+    if(lang === 'mr') displayLang = "मराठी";
+    
+    // More tab me jo Language likhi aati hai usko update karna
+    let actionTexts = document.querySelectorAll('.setting-action .action-text');
+    if(actionTexts.length > 0) {
+        // Find the language action text (usually the second one if version is last)
+        actionTexts.forEach(el => {
+            if(el.innerText.includes('English') || el.innerText.includes('हिंदी') || el.innerText.includes('বাংলা') || el.innerText.includes('मराठी')) {
+                el.innerText = displayLang;
+            }
+        });
+    }
+    
+    closeActionScreen();
+    showPopup('success', 'Language Updated', `Your app language is set to ${displayLang}. UI translation will apply on next load.`);
 }
