@@ -675,7 +675,7 @@
       </div>
     </div>
 
-   <!-- ================= SCREEN 9: MORE (PROFILE & SETTINGS) ================= -->
+  <!-- ================= SCREEN 9: MORE (PROFILE & SETTINGS) ================= -->
     <div id="screen-more" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
       <header class="dash-header">
         <div class="property-title">
@@ -683,7 +683,7 @@
           <span class="material-symbols-outlined">expand_more</span>
         </div>
         <div class="header-icons">
-          <div class="bell-icon"><span class="material-symbols-outlined">notifications</span><div class="red-dot"></div></div>
+          <div class="bell-icon" onclick="openNotifications()"><span class="material-symbols-outlined">notifications</span><div class="red-dot"></div></div>
           <div class="profile-icon-small"><span class="material-symbols-outlined">person</span></div>
         </div>
       </header>
@@ -695,21 +695,20 @@
           <div class="profile-card-header">
             <div style="display: flex; gap: 16px; align-items: center;">
               <div class="avatar-wrapper">
-                <img src="https://i.pravatar.cc/150?img=11" alt="Arun Kumar">
+                <img id="more-profile-img" src="" alt="Profile" onclick="openEditProfileScreen()" style="cursor: pointer;">
                 <div class="verified-badge"><span class="material-symbols-outlined" style="font-size: 12px;">verified</span></div>
               </div>
               <div class="profile-info-text">
-                <h2>Arun Kumar</h2>
-                <div class="verified-tag">Verified</div>
+                <h2 id="more-profile-name">Loading...</h2>
                 <p>Property Owner</p>
-                <p class="text-phone">+91 98234 56789</p>
+                <p class="text-phone" id="more-profile-email">loading@email.com</p>
               </div>
             </div>
-            <button class="edit-btn"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+           <button class="edit-btn" onclick="openEditProfileScreen()"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
           </div>
           <div class="profile-stats-row">
-            <div class="stat-box"><span class="stat-label">Properties</span><span class="stat-val">2</span></div>
-            <div class="stat-box"><span class="stat-label">Rooms</span><span class="stat-val">32</span></div>
+            <div class="stat-box"><span class="stat-label">Properties</span><span class="stat-val" id="more-prop-count">0</span></div>
+            <div class="stat-box"><span class="stat-label">Rooms</span><span class="stat-val" id="more-room-count">0</span></div>
             <div class="stat-box"><span class="stat-label" style="color: #b45309;">Tier</span><span class="stat-val" style="font-size: 13px;">Pro Member</span></div>
           </div>
         </div>
@@ -723,30 +722,30 @@
               <p style="color: #dcfce7; font-size: 12px;">Renews on 12 Nov, 2026</p>
             </div>
           </div>
-          <button class="btn-manage">Manage</button>
+          <button class="btn-manage" onclick="showPopup('success', 'Subscription', 'You are currently on the lifetime Pro plan!')">Manage</button>
         </div>
 
         <!-- Settings Section 1 -->
         <div class="settings-section">
           <h4 class="section-title">PROPERTY MANAGEMENT</h4>
           <div class="settings-card">
-            <div class="setting-item">
+           <div class="setting-item" onclick="openPropertyDetailsScreen()">
               <div class="setting-icon"><span class="material-symbols-outlined">domain</span></div>
               <div class="setting-text"><h5>Property Details</h5><p>Address, amenities, house rules</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
             </div>
-            <div class="setting-item">
+            <div class="setting-item" onclick="openStaffRolesScreen()">
               <div class="setting-icon"><span class="material-symbols-outlined">badge</span></div>
-              <div class="setting-text"><h5>Staff & Roles</h5><p>2 active caretakers, 1 manager</p></div>
+              <div class="setting-text"><h5>Staff & Roles</h5><p>Manage caretakers & managers</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
             </div>
-            <div class="setting-item">
+           <div class="setting-item" onclick="openPricingSetupScreen()">
               <div class="setting-icon"><span class="material-symbols-outlined">percent</span></div>
               <div class="setting-text"><h5>Pricing & Tax Setup</h5><p>GSTIN, rent cycles, electricity uni...</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
             </div>
             
-            <!-- Manage Properties Button -->
+            <!-- Manage Properties Button (REAL) -->
             <div class="setting-item" onclick="openManageProperties()" style="cursor: pointer; border-bottom: none; border-top: 1px solid #e2e8f0;">
               <div class="setting-icon" style="background: #fef2f2; color: #ef4444;"><span class="material-symbols-outlined">real_estate_agent</span></div>
               <div class="setting-text"><h5 style="color: #ef4444;">Manage Properties</h5><p>View or delete properties</p></div>
@@ -759,12 +758,12 @@
         <div class="settings-section">
           <h4 class="section-title">APP PREFERENCES</h4>
           <div class="settings-card">
-            <div class="setting-item">
+            <div class="setting-item" onclick="openAppSettingsScreen()">
               <div class="setting-icon"><span class="material-symbols-outlined">tune</span></div>
               <div class="setting-text"><h5>App Settings</h5><p>Notifications, dark mode, backup</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
             </div>
-            <div class="setting-item" style="border-bottom: none;">
+            <div class="setting-item" style="border-bottom: none;" onclick="openLanguageScreen()">
               <div class="setting-icon"><span class="material-symbols-outlined">language</span></div>
               <div class="setting-text"><h5>Language</h5><p>Preferred display dialect</p></div>
               <div class="setting-action"><span class="action-text">English (IN)</span><span class="material-symbols-outlined arrow-icon">chevron_right</span></div>
@@ -776,12 +775,12 @@
         <div class="settings-section">
           <h4 class="section-title">SUPPORT & LEGAL</h4>
           <div class="settings-card">
-            <div class="setting-item">
+            <div class="setting-item" onclick="window.open('https://wa.me/919823456789', '_blank')">
               <div class="setting-icon" style="background: #f1f5f9; color: #475569;"><span class="material-symbols-outlined">support_agent</span></div>
-              <div class="setting-text"><h5>Help & Support</h5><p>24/7 WhatsApp & Call assistance</p></div>
+              <div class="setting-text"><h5>Help & Support</h5><p>24/7 WhatsApp assistance</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
             </div>
-            <div class="setting-item">
+            <div class="setting-item" onclick="showPopup('success', 'Legal', 'Privacy policy and terms of service.')">
               <div class="setting-icon" style="background: #f1f5f9; color: #475569;"><span class="material-symbols-outlined">verified_user</span></div>
               <div class="setting-text"><h5>Terms & Privacy Policy</h5><p>Legal agreements and privacy</p></div>
               <span class="material-symbols-outlined arrow-icon">chevron_right</span>
@@ -794,14 +793,14 @@
           </div>
         </div>
 
-        <!-- Logout Button -->
+        <!-- Logout Button (REAL) -->
         <button class="logout-btn-main" onclick="logOutApp()">
           <span class="material-symbols-outlined">logout</span> Log Out 
         </button>
 
-      </div> <!-- CLOSING THE SCROLL AREA -->
+      </div> 
 
-      <!-- Bottom Nav (AB YE PAKKA SCREEN 9 KE ANDAR HAI) -->
+      <!-- Bottom Nav -->
       <div class="bottom-nav">
         <div class="nav-item" onclick="switchTab('dashboard')"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></div>
         <div class="nav-item" onclick="switchTab('rooms')"><span class="material-symbols-outlined">bed</span><span>Rooms</span></div>
@@ -810,7 +809,7 @@
         <div class="nav-item active" onclick="switchTab('more')"><span class="material-symbols-outlined">more_horiz</span><span>More</span></div>
       </div>
       
-    </div> <!-- PROPERLY CLOSING SCREEN 9 -->
+    </div>
 
     <!-- ================= SCREEN 11: GUEST PROFILE ================= -->
     <div id="screen-guest-profile" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
@@ -931,6 +930,242 @@
       </div>
     </div>
 
+    <!-- ================= ✏️ EDIT PROFILE SCREEN ================= -->
+    <div id="screen-edit-profile" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <!-- Header -->
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Edit Profile</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <!-- Profile Pic Upload Box -->
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div style="position: relative; display: inline-block;">
+            <!-- Real time photo preview yahan dikhega -->
+            <img id="edit-profile-preview" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #ecfdf5; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+            
+            <!-- Camera Button & Hidden Input -->
+            <label for="profile-pic-upload" style="position: absolute; bottom: 0; right: 0; background: #059669; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 6px rgba(5,150,105,0.3);">
+              <span class="material-symbols-outlined" style="font-size: 16px;">photo_camera</span>
+            </label>
+            <input type="file" id="profile-pic-upload" accept="image/*" style="display: none;" onchange="handleProfilePicUpload(this)">
+          </div>
+          <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">Tap camera to change photo</p>
+        </div>
+        
+        <!-- Form Inputs -->
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Full Name</label>
+          <input type="text" id="edit-profile-name" placeholder="E.g. Arun Kumar" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
+        </div>
+        <div style="margin-bottom: 32px;">
+          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Phone Number</label>
+          <input type="tel" id="edit-profile-phone" placeholder="E.g. 9876543210" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
+        </div>
+        
+        <!-- Save Button -->
+        <button onclick="saveProfileDetails()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Changes</button>
+      </div>
+    </div>
+    <!-- ================= 🏨 PROPERTY DETAILS SCREEN ================= -->
+    <div id="screen-property-details" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <!-- Header -->
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Property Details</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Add your property information here. This will be shared with guests during booking and checkout.</p>
+        
+        <!-- Address Box -->
+        <div style="margin-bottom: 20px;">
+          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Full Address (Map Location)</label>
+          <textarea id="prop-detail-address" rows="3" placeholder="E.g. 123 Main Street, Near Metro Station, Patna..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; resize: none; font-family: inherit;" onfocus="this.style.borderColor='#059669'"></textarea>
+        </div>
+
+        <!-- Quick Amenities -->
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">WiFi Password</label>
+            <input type="text" id="prop-detail-wifi" placeholder="e.g. FreeGuest123" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Checkout Time</label>
+            <input type="time" id="prop-detail-checkout" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; color: #0f172a;" onfocus="this.style.borderColor='#059669'">
+          </div>
+        </div>
+        
+        <!-- House Rules -->
+        <div style="margin-bottom: 32px;">
+          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">House Rules & Policies</label>
+          <textarea id="prop-detail-rules" rows="4" placeholder="1. No smoking inside rooms&#10;2. Valid ID proof mandatory&#10;3. No loud music after 10 PM" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; resize: none; font-family: inherit;" onfocus="this.style.borderColor='#059669'"></textarea>
+        </div>
+        
+        <!-- Save Button -->
+        <button onclick="savePropertyDetails()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Property Details</button>
+      </div>
+    </div>
+
+    <!-- ================= 💰 PRICING & TAX SETUP SCREEN ================= -->
+    <div id="screen-pricing-tax" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <!-- Header -->
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Pricing & Tax Setup</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Configure GST details and additional charges like electricity for this property.</p>
+        
+        <!-- GST Box -->
+        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined" style="color: #059669; font-size: 18px;">account_balance</span> Tax Details</h4>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">GSTIN Number (Optional)</label>
+            <input type="text" id="prop-tax-gstin" placeholder="E.g. 22AAAAA0000A1Z5" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; text-transform: uppercase;" onfocus="this.style.borderColor='#059669'">
+          </div>
+          
+          <div>
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Default GST Percentage (%)</label>
+            <input type="number" id="prop-tax-percent" placeholder="E.g. 12 or 18" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
+          </div>
+        </div>
+
+        <!-- Utility Box -->
+        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 32px;">
+          <h4 style="margin: 0 0 16px 0; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined" style="color: #d97706; font-size: 18px;">electric_bolt</span> Utility & Rent Settings</h4>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Electricity Rate (₹ per unit)</label>
+            <input type="number" id="prop-tax-electricity" placeholder="E.g. 10" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#d97706'">
+          </div>
+          
+          <div>
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Rent Collection Cycle</label>
+            <select id="prop-tax-cycle" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; background: white; color: #0f172a;" onfocus="this.style.borderColor='#059669'">
+              <option value="1st">1st of every month</option>
+              <option value="30days">Every 30 days from check-in</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Save Button -->
+        <button onclick="savePricingSetup()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Pricing Setup</button>
+      </div>
+    </div>
+
+    <!-- ================= 👥 STAFF & ROLES SCREEN ================= -->
+    <div id="screen-staff-roles" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <!-- Header -->
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Staff & Roles</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <!-- Active Staff List -->
+        <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #475569; font-weight: 700; text-transform: uppercase;">Active Staff</h4>
+        <div id="staff-list-container" style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px;">
+           <!-- JS automatically purane staff yahan dikhayega -->
+        </div>
+
+        <!-- Add New Staff Form -->
+        <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #475569; font-weight: 700; text-transform: uppercase;">Add New Staff</h4>
+        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0;">
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Staff Name</label>
+            <input type="text" id="staff-name" placeholder="E.g. Rahul Kumar" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#0f172a'">
+          </div>
+          <div style="margin-bottom: 16px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Mobile Number (Login ID)</label>
+            <input type="tel" id="staff-phone" placeholder="E.g. 9876543210" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#0f172a'">
+          </div>
+          
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Role</label>
+              <select id="staff-role" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white;" onfocus="this.style.borderColor='#0f172a'">
+                <option value="Manager">Manager</option>
+                <option value="Receptionist">Receptionist</option>
+                <option value="Caretaker">Caretaker</option>
+              </select>
+            </div>
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Login PIN</label>
+              <input type="password" id="staff-pin" placeholder="4-Digit" maxlength="4" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; letter-spacing: 2px;" onfocus="this.style.borderColor='#0f172a'">
+            </div>
+          </div>
+          
+          <button onclick="saveNewStaff()" style="width: 100%; padding: 16px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(15,23,42,0.2);">+ Add Staff Member</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= ⚙️ APP SETTINGS SCREEN ================= -->
+    <div id="screen-app-settings" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Settings</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+          <!-- Theme Preference -->
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">App Theme</label>
+            <select id="pref-theme" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
+              <option value="light">Light Mode (Default)</option>
+              <option value="dark">Dark Mode (Coming Soon)</option>
+            </select>
+          </div>
+          
+          <!-- Notifications -->
+          <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">WhatsApp & Push Notifications</label>
+            <select id="pref-notif" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
+              <option value="on">Enabled</option>
+              <option value="off">Disabled</option>
+            </select>
+          </div>
+          
+          <!-- Manual Backup -->
+          <div>
+            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Data Management</label>
+            <button onclick="forceCloudBackup()" style="width: 100%; padding: 12px; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <span class="material-symbols-outlined" style="font-size: 18px;">cloud_sync</span> Force Cloud Backup
+            </button>
+          </div>
+        </div>
+        
+        <button onclick="saveAppSettings()" style="width: 100%; padding: 16px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(15,23,42,0.2);">Save Preferences</button>
+      </div>
+    </div>
+
+    <!-- ================= 🌐 LANGUAGE SCREEN ================= -->
+    <div id="screen-language" class="screen hidden" style="position: fixed; inset: 0; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
+      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
+        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Language</h3>
+      </div>
+      
+      <div style="padding: 24px 20px;">
+        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Choose your preferred language for the application interface.</p>
+        
+        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
+            <select id="pref-lang" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white; color: #0f172a;">
+              <option value="en">English (IN)</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="bn">বাংলা (Bengali)</option>
+              <option value="mr">मराठी (Marathi)</option>
+            </select>
+        </div>
+        
+        <button onclick="saveLanguageSetting()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Update Language</button>
+      </div>
+    </div>
    <!-- ================= ACTION SCREEN: NEW BOOKING (PRO VERSION) ================= -->
     <div id="screen-new-booking" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
       <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
