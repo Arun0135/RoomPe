@@ -1,27 +1,23 @@
-const CACHE_NAME = 'roompe-cache-v1';
+const CACHE_NAME = 'roompe-cache-v2';
+// Yahan sabse zaroori paths hain, sabme dot-slash hona chahiye
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js'
+  './',
+  './index.html',
+  './style.css',
+  './script.js'
 ];
 
-// Install Service Worker
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Naye version ko turant active karne ke liye
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Fetch events (Network fallback)
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        return response || fetch(event.request);
-      })
+      .then(response => response || fetch(event.request))
   );
 });
