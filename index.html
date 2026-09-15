@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
 
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#059669">
   
   <link rel="stylesheet" href="style.css">
@@ -1781,6 +1781,22 @@
 
       console.log("🔥 Firebase Live Sync & Auth Ready!");
     </script>
+  
   <script src="script.js"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Yahan bhi dot-slash hona chahiye
+      navigator.serviceWorker.register('./sw.js')
+        .then(registration => {
+          console.log('PWA ServiceWorker registered successfully!');
+          registration.update(); 
+        })
+        .catch(err => {
+          console.log('PWA Error: ', err);
+        });
+    });
+  }
+</script>
 </body>
 </html>
