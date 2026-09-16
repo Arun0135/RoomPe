@@ -23,27 +23,38 @@
   --orange: #ea580c;
 }
 
+/* --- APP RESPONSIVE LOGIC --- */
 body {
-  background-color: #e5e7eb;
+  background-color: #cbd5e1; /* Laptop par dark background dikhega */
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
+  margin: 0;
+  overflow: hidden; /* Laptop par bahar ka scroll hide karne ke liye */
 }
 
-/* --- VIRTUAL MOBILE FRAME --- */
-.mobile-frame {
-  width: 400px;
-  height: 800px;
-  max-width: 100%;
-  background-color: var(--white);
-  border-radius: 40px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+/* THE SMART RESPONSIVE FRAME (Mobile First) */
+.responsive-app-frame {
+  width: 100%;
+  height: 100vh;
+  background-color: var(--bg-color);
   position: relative;
   overflow: hidden;
-  border: 8px solid #1e293b;
   display: flex;
   flex-direction: column;
+}
+
+/* LAPTOP & IPAD VIEW (Sleek Phone/Tablet Frame) */
+@media (min-width: 600px) {
+  .responsive-app-frame {
+    width: 420px; /* Perfect mobile width */
+    height: 90vh;
+    max-height: 850px;
+    border-radius: 32px;
+    border: 8px solid #0f172a; /* Laptop par mobile jaisa black border/frame */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4); /* 3D Shadow effect */
+  }
 }
 
 /* --- SCREEN TRANSITION ANIMATION (THE MAGIC) --- */
@@ -624,3 +635,99 @@ body {
 .rem-guest-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
 .rem-due-box { background: #fef2f2; border: 1px dashed #fca5a5; padding: 12px; border-radius: 8px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center; }
 .rem-msg-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; font-size: 13px; color: var(--text-dark); line-height: 1.5; }
+
+/* ==========================================================================
+   💻 DESKTOP & LAPTOP PRO UI (SAAS DASHBOARD)
+   ========================================================================== */
+@media (min-width: 1024px) {
+  /* 1. Badi Screen Par App Center Mein Rahega */
+  .responsive-app-frame {
+    max-width: 1440px;
+    margin: 0 auto;
+    border-left: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 0 0 40px rgba(0,0,0,0.03);
+  }
+
+  /* 2. Main Screens ko thoda Right khiskana (Sidebar ke liye jagah) */
+  .screen {
+    padding-left: 260px; /* Sidebar Width */
+  }
+  
+  /* Login aur Setup screen ko full hi rakhna hai */
+  #screen-welcome, #screen-login, #screen-setup, #screen-otp {
+    padding-left: 0;
+  }
+
+  /* 3. MAGIC: Bottom Nav Ban Gaya Left Sidebar! */
+  .bottom-nav {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 260px !important;
+    height: 100% !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 32px 20px !important;
+    border-right: 1px solid #e2e8f0 !important;
+    border-top: none !important;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.02) !important;
+  }
+
+  /* Sidebar ke buttons ki styling */
+  .nav-item {
+    flex-direction: row !important;
+    gap: 16px !important;
+    padding: 16px 20px !important;
+    width: 100% !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+    justify-content: flex-start !important;
+  }
+
+  .nav-item span:first-child { font-size: 24px !important; }
+  .nav-item span:last-child { font-size: 15px !important; font-weight: 700 !important; }
+  
+  .nav-item.active { background: #f0fdf4 !important; }
+
+  /* 4. Dashboard Grid Fixes (Stretching Rokne ke liye) */
+  .room-grid-layout { grid-template-columns: repeat(5, 1fr) !important; gap: 16px !important; }
+  .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  .property-grid { grid-template-columns: repeat(4, 1fr) !important; }
+
+  /* 5. PRO FEATURE: Right Slide-out Drawer (Notion / Slack Jaisa) */
+  /* Ye screens ab full screen nahi, right side se panel ban kar aayengi */
+  #screen-room-details, 
+  #screen-guest-profile, 
+  #screen-new-booking, 
+  #screen-add-payment, 
+  #screen-notifications,
+  #screen-add-room,
+  #screen-send-reminder {
+    width: 450px !important;
+    left: auto !important;
+    right: 0 !important;
+    padding-left: 0 !important;
+    border-left: 1px solid #e2e8f0 !important;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.08) !important;
+    animation: slideInRight 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) forwards !important;
+  }
+
+  /* Drawer ki animation */
+  @keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  
+  /* Floating buttons ki position fix */
+  .fab-btn, .fab-pill { bottom: 32px !important; right: 32px !important; }
+}
+
+/* ==========================================================================
+   📱 TABLET VIEW (iPad - Medium Screens)
+   ========================================================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-app-frame { max-width: 100%; }
+  .room-grid-layout { grid-template-columns: repeat(4, 1fr) !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
