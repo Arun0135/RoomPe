@@ -102,38 +102,38 @@ var RoomPeDB = {
   },
 
   getRooms: function() { return JSON.parse(localStorage.getItem('roompe_rooms')) || []; },
-  saveRooms: function(roomsArray) { localStorage.setItem('roompe_rooms', JSON.stringify(roomsArray)); },
+  saveRooms: function(roomsArray) { 
+    localStorage.setItem('roompe_rooms', JSON.stringify(roomsArray)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
 
   getProperties: function() {
     let props = localStorage.getItem('roompe_properties');
     return props ? JSON.parse(props) : [];
   },
-  saveProperties: function(propsArray) { localStorage.setItem('roompe_properties', JSON.stringify(propsArray)); },
+  saveProperties: function(propsArray) { 
+    localStorage.setItem('roompe_properties', JSON.stringify(propsArray)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
   
-  // 🚨 THE FIX: SMART ACTIVE PROPERTY FINDER
   getActiveProperty: function() {
     let active = localStorage.getItem('roompe_active_prop');
     let props = this.getProperties();
-    
-    // Check 1: Agar stored active ID asli mein hamari list mein exists karti hai
-    if (active && props.some(p => p.id === active)) {
-      return active;
-    }
-    
-    // Check 2: Agar ID bhool gaya hai ya match nahi hui, toh pehli property ko Active bana do (Data Wapas Layega!)
+    if (active && props.some(p => p.id === active)) return active;
     if (props.length > 0) {
       localStorage.setItem('roompe_active_prop', props[0].id);
       return props[0].id;
     }
-    
-    // Agar koi property hi nahi hai
     return 'prop_default';
   },
   
   setActiveProperty: function(propId) { localStorage.setItem('roompe_active_prop', propId); },
 
   getBookings: function() { return JSON.parse(localStorage.getItem('roompe_bookings')) || []; },
-  saveBookings: function(b) { localStorage.setItem('roompe_bookings', JSON.stringify(b)); },
+  saveBookings: function(b) { 
+    localStorage.setItem('roompe_bookings', JSON.stringify(b)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
   getActivePropertyBookings: function() {
     let all = this.getBookings();
     let activeId = this.getActiveProperty();
@@ -141,14 +141,16 @@ var RoomPeDB = {
   },
 
   getPayments: function() { return JSON.parse(localStorage.getItem('roompe_payments')) || []; },
-  savePayments: function(p) { localStorage.setItem('roompe_payments', JSON.stringify(p)); },
+  savePayments: function(p) { 
+    localStorage.setItem('roompe_payments', JSON.stringify(p)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
   getActivePropertyPayments: function() {
     let all = this.getPayments();
     let activeId = this.getActiveProperty();
     return all.filter(p => p.propId === activeId || (!p.propId && activeId === 'prop_default'));
   }
 };
-
 // ==========================================================================
 // 🧑‍💼 MORE TAB & PROFILE EDIT ENGINE
 // ==========================================================================
@@ -824,7 +826,40 @@ function setBillingFilter(filterName) {
 }
 
 function downloadStatement() {
-  alert("📄 Generating PDF Statement for this month...");
+  // 1. PDF kis area ka banana hai? (Humne Billing Summary card ko select kiya)
+  const element = document.querySelector('.billing-summary');
+  
+  if(!element) {
+    alert("Error: Billing summary not found!");
+    return;
+  }
+
+  // 2. PDF ki settings set karo
+  const opt = {
+    margin:       10,
+    filename:     'RoomPe_Billing_Statement.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  // 3. UX Magic: Button ka text change karke 'Downloading...' dikhao
+  let btn = document.querySelector('.bs-statement');
+  let oldHTML = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">hourglass_empty</span> Wait...`;
+  btn.style.pointerEvents = 'none'; // Jab tak ban raha hai, button disable kar do
+  
+  // 4. Library ko call karke PDF Generate & Download karo
+  html2pdf().set(opt).from(element).save().then(() => {
+      // 5. PDF banne ke baad button normal kardo aur Success Popup dikhao
+      btn.innerHTML = oldHTML;
+      btn.style.pointerEvents = 'auto';
+      showPopup('success', 'PDF Downloaded!', 'Your billing statement has been saved successfully.');
+  }).catch(err => {
+      btn.innerHTML = oldHTML;
+      btn.style.pointerEvents = 'auto';
+      showPopup('error', 'Download Failed', 'Something went wrong. Please try again.');
+  });
 }
 
 function selectPayMode(mode) {
@@ -2093,17 +2128,25 @@ function routeToDashboard() {
 }
 
 // ==========================================================================
-// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE MULTI-TENANT)
+// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE & CONFLICT-FREE)
 // ==========================================================================
-let isCloudSyncing = false;
+let isReceivingCloudData = false;
 let cloudTimer = null;
+
+// Naya Smart Trigger: Ye tabhi push karega jab local user koi data change karega
+window.triggerCloudSync = function() {
+  if (isReceivingCloudData) return; // Agar Firebase se data download ho raha hai, toh wapas upload mat karo
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(pushToCloud, 1000); // 1 sec delay taaki ek sath multiple changes push ho sakein
+};
 
 async function pushToCloud() {
   let user = window.fbAuth ? window.fbAuth.currentUser : null;
-  if (!window.db || isCloudSyncing || !user) return;
+  if (!window.db || !user) return;
   
-  const userRef = window.fbDoc(window.db, "users", user.uid); // Private Lock 🔒
+  const userRef = window.fbDoc(window.db, "users", user.uid);
   
+  // Jo current updated local data hai, usko lo
   let rooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let bookings = JSON.parse(localStorage.getItem('roompe_bookings')) || [];
   let payments = JSON.parse(localStorage.getItem('roompe_payments')) || [];
@@ -2117,20 +2160,11 @@ async function pushToCloud() {
         properties: properties,
         lastUpdated: new Date().getTime()
     }, { merge: true });
-    console.log("☁️ Private Property Data Saved!");
+    console.log("☁️ Private Property Data Safely Saved to Cloud!");
   } catch (e) {
     console.error("Cloud Save Error:", e);
   }
 }
-
-const originalSetItem = localStorage.setItem;
-localStorage.setItem = function(key, value) {
-  originalSetItem.apply(this, arguments);
-  if (key === 'roompe_rooms' || key === 'roompe_bookings' || key === 'roompe_payments' || key === 'roompe_properties') {
-      clearTimeout(cloudTimer);
-      cloudTimer = setTimeout(pushToCloud, 1000); 
-  }
-};
 
 function startCloudSync(uid) {
   if(!window.db) return;
@@ -2139,31 +2173,28 @@ function startCloudSync(uid) {
   
   window.fbOnSnapshot(userRef, (docSnap) => {
       if(docSnap.exists()) {
-          isCloudSyncing = true; 
+          isReceivingCloudData = true; // 🔒 Lock laga diya
           let data = docSnap.data();
           
-          if(data.rooms) originalSetItem.call(localStorage, 'roompe_rooms', JSON.stringify(data.rooms));
-          if(data.bookings) originalSetItem.call(localStorage, 'roompe_bookings', JSON.stringify(data.bookings));
-          if(data.payments) originalSetItem.call(localStorage, 'roompe_payments', JSON.stringify(data.payments));
-          if(data.properties) originalSetItem.call(localStorage, 'roompe_properties', JSON.stringify(data.properties));
+          // Cloud data ko local mein dalo (Bina interceptor ke!)
+          if(data.rooms) localStorage.setItem('roompe_rooms', JSON.stringify(data.rooms));
+          if(data.bookings) localStorage.setItem('roompe_bookings', JSON.stringify(data.bookings));
+          if(data.payments) localStorage.setItem('roompe_payments', JSON.stringify(data.payments));
+          if(data.properties) localStorage.setItem('roompe_properties', JSON.stringify(data.properties));
           
-          if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
-          if(typeof renderBookingsList === 'function') renderBookingsList();
-          if(typeof updateHotelName === 'function') updateHotelName();
-          if(typeof updateDashboardStats === 'function') updateDashboardStats();
-
-        // Data aate hi UI refresh
+          // Data aate hi UI refresh
           if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
           if(typeof renderBookingsList === 'function') renderBookingsList();
           if(typeof updateHotelName === 'function') updateHotelName();
           if(typeof updateDashboardStats === 'function') updateDashboardStats();
           
+          // Thodi der baad lock kholo aur loader hatao
           setTimeout(() => { 
-              isCloudSyncing = false; 
-              hideAppLoader(); // 🚨 YAHAN LOADER HIDE KARNA HAI
-          }, 1000);
-          
-          setTimeout(() => { isCloudSyncing = false; }, 1000); 
+              isReceivingCloudData = false; // 🔓 Lock khol diya
+              hideAppLoader(); 
+          }, 800);
+      } else {
+          hideAppLoader(); // Agar user ka pehla din hai (Koi data nahi cloud par)
       }
   });
 }
