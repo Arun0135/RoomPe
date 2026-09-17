@@ -1,4 +1,4 @@
-const CACHE_NAME = "roompe-v4";
+const CACHE_NAME = "roompe-v3"; // Version update
 const urlsToCache = [
   "./",
   "./index.html",
@@ -6,8 +6,9 @@ const urlsToCache = [
   "./script.js"
 ];
 
-// App install hone par files cache me save karna
+// 1. Install & Force Active (Turant naya update lagao)
 self.addEventListener("install", event => {
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(urlsToCache);
@@ -15,11 +16,33 @@ self.addEventListener("install", event => {
   );
 });
 
-// Fast loading ke liye cache se file uthana
+// 2. Delete Old Caches (Purani files ko kachre me dalo)
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log("Deleting old cache:", cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    })
+  );
+});
+
+// 3. NETWORK FIRST STRATEGY (Hamesha naya code pehle laao)
 self.addEventListener("fetch", event => {
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then(response => {
+        // Agar internet hai aur code mil gaya, toh naya code dikhao
+        return response;
+      })
+      .catch(() => {
+        // Agar internet nahi hai, tabhi phone ki memory se purana dikhao
+        return caches.match(event.request);
+      })
   );
 });
