@@ -527,6 +527,8 @@ function handleBookingSearch(val) {
 // 4. NAVIGATION & ANIMATION ENGINE
 // ==========================================================================
 function switchTab(tabName) {
+ let globalNav = document.getElementById('global-nav');
+if(globalNav) globalNav.classList.remove('hidden');
   currentMainTab = tabName; 
 
   document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
@@ -1535,8 +1537,7 @@ function saveNewProperty() {
   document.getElementById('setup-prop-name').value = ''; 
   updateAppHeaders(); 
   
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById('screen-dashboard').classList.remove('hidden');
+  switchTab('dashboard');
   
   alert(propName + " added successfully as a " + propType + " property!");
 }
@@ -2117,7 +2118,11 @@ function routeToDashboard() {
   let props = RoomPeDB.getProperties();
   if (props.length > 0) {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-dashboard').classList.remove('hidden');
+    
+    // 🌟 MAGIC FIX: Manual screen show karne ki jagah switchTab call karo
+    // Ye dashboard screen AUR bottom navbar dono ko ek sath show kar dega!
+    switchTab('dashboard'); 
+    
     updateAppHeaders();
     if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
     if (typeof updateDashboardStats === 'function') updateDashboardStats();
