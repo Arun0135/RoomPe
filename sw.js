@@ -1,4 +1,4 @@
-const CACHE_NAME = "roompe-v3";
+const CACHE_NAME = "roompe-v4";
 const urlsToCache = [
   "./",
   "./index.html",
