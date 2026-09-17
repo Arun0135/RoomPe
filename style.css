@@ -637,41 +637,50 @@ body {
 .rem-msg-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; font-size: 13px; color: var(--text-dark); line-height: 1.5; }
 
 /* ==========================================================================
-   💻 DESKTOP & LAPTOP PRO UI (FIXED PREMIUM SAAS DASHBOARD)
+   💻 RESPONSIVE FIX: MOBILE & DESKTOP (BULLETPROOF)
    ========================================================================== */
+
+/* Ensure mobile bottom nav stays fixed at the bottom and on top of everything */
+#global-nav {
+  z-index: 999 !important; 
+}
+
 @media (min-width: 1024px) {
-  /* 1. App Background & Container Style (Mac Window Jaisa) */
   body {
-    background-color: #cbd5e1 !important;
+    background-color: #cbd5e1 !important; 
   }
   
-  .responsive-app-frame {
+  #app-container {
+    width: 100% !important; /* 🌟 FIX: Prevent container from collapsing */
     max-width: 1280px !important;
-    margin: 40px auto !important;
-    border-radius: 24px !important;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.15) !important;
-    border: 1px solid #94a3b8 !important;
-    height: 90vh !important; /* Laptop par strict height */
+    margin: 4vh auto !important;
+    height: 92vh !important;
+    border-radius: 20px !important;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25) !important;
     overflow: hidden !important;
+    position: relative !important;
+    background: #f8f9fa !important;
+    border: 1px solid #94a3b8 !important;
   }
 
-  /* 2. Content Area Fix (Data dikhane ke liye Sidebar ki jagah chhodo) */
+  /* 🌟 FIX: Push screen from left using absolute positioning */
   .screen {
-    padding-left: 260px !important;
-    box-sizing: border-box !important;
-  }
-  
-  /* Login/Welcome screen ko full width rakhna hai */
-  #screen-welcome, #screen-login, #screen-setup, #screen-otp {
+    left: 260px !important; 
+    margin-left: 0 !important; 
+    width: calc(100% - 260px) !important;
     padding-left: 0 !important;
   }
+  
+  #screen-welcome, #screen-login, #screen-setup, #screen-otp {
+    left: 0 !important;
+    width: 100% !important;
+  }
 
-  /* 3. The Perfect Fixed Sidebar */
-  .bottom-nav {
+  #global-nav {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
-    bottom: auto !important;
+    bottom: 0 !important;
     width: 260px !important;
     height: 100% !important;
     flex-direction: column !important;
@@ -679,35 +688,23 @@ body {
     background-color: #ffffff !important;
     border-right: 1px solid #e2e8f0 !important;
     padding: 32px 16px !important;
-    box-sizing: border-box !important;
-    box-shadow: none !important;
-    z-index: 100 !important;
+    border-top: none !important;
   }
 
-  /* Sidebar Buttons Styling */
   .nav-item {
     flex-direction: row !important;
-    gap: 16px !important;
+    gap: 12px !important;
     padding: 14px 16px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
     border-radius: 12px !important;
     margin-bottom: 8px !important;
-    justify-content: flex-start !important;
-    transition: all 0.2s ease !important;
+    width: 100% !important;
   }
-
   .nav-item span:first-child { font-size: 22px !important; }
   .nav-item span:last-child { font-size: 15px !important; font-weight: 600 !important; }
   
-  .nav-item:hover { background-color: #f8fafc !important; }
-  .nav-item.active { background-color: #f0fdf4 !important; color: #059669 !important; }
-
-  /* 4. Grid Constraints (Taaki Cards stretch na hon) */
   .room-grid-layout { grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
   .stats-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 16px !important; }
 
-  /* 5. Right Slide-out Drawer Panel (Premium feature) */
   #screen-room-details, 
   #screen-guest-profile, 
   #screen-new-booking, 
@@ -716,11 +713,10 @@ body {
   #screen-add-room,
   #screen-send-reminder {
     width: 480px !important;
-    left: auto !important;
+    left: auto !important; 
     right: 0 !important;
-    padding-left: 0 !important;
     border-left: 1px solid #e2e8f0 !important;
-    box-shadow: -15px 0 40px rgba(0,0,0,0.1) !important;
+    box-shadow: -10px 0 40px rgba(0,0,0,0.08) !important;
     animation: slideInRight 0.3s ease-out forwards !important;
   }
 
