@@ -550,14 +550,30 @@ if(globalNav) globalNav.classList.remove('hidden');
   if(tabName === 'more') updateMoreTabStats();
 }
 
+// --- SMART SCREEN SWITCHER (Hides Nav on Forms) ---
 function openActionScreen(screenId) {
+  // Saari screens chhupao
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  let target = document.getElementById(screenId);
-  if(target) target.classList.remove('hidden');
+  // Jo screen maangi hai, wo dikhao
+  document.getElementById(screenId).classList.remove('hidden');
+
+  // 🚨 SMART NAV HIDER 🚨
+  // Agar ye screen main tab nahi hai, toh bottom nav hata do taaki space mile
+  const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
+  
+  if (!mainTabs.includes(screenId)) {
+    document.getElementById('global-nav').classList.add('hidden');
+  }
 }
 
-function closeActionScreen() { 
-  switchTab(currentMainTab); 
+function closeActionScreen() {
+  // Wapas dashboard (ya active tab) par le jao
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  
+  // Tu chah to last active tab yaad rakh sakta hai, abhi default 'dashboard' bhej rahe hain.
+  // Lekin nav bar zaroor dikha do.
+  document.getElementById('screen-dashboard').classList.remove('hidden');
+  document.getElementById('global-nav').classList.remove('hidden'); 
 }
 
 function openGuestProfile() { 
@@ -696,38 +712,40 @@ function updateDashboardStats() {
 // ==========================================================================
 // 5. FORMS & DATA ACTIONS (Rooms)
 // ==========================================================================
-function saveNewRoom() {
-  let activeId = RoomPeDB.getActiveProperty();
-  let roomInput = document.getElementById('new-room-no').value.trim();
-  let floorName = document.getElementById('new-room-floor').value;
-  let category = document.getElementById('new-room-cat').value;
-  let price = document.getElementById('new-room-price').value;
-  
-  if(roomInput === "") { alert("Please enter Room Number(s)!"); return; }
-  if(price === "") price = "0";
+// --- UPDATED SAVE ROOM LOGIC ---
+async function saveNewRoom() {
+  const roomNo = document.getElementById('new-room-no').value.trim();
+  const floor = document.getElementById('new-room-floor').value;
+  const category = document.getElementById('new-room-cat').value;
+  const priceDaily = Number(document.getElementById('new-room-price-daily').value) || 0;
+  const priceMonthly = Number(document.getElementById('new-room-price-monthly').value) || 0;
 
-  let roomsToProcess = [];
-  if (roomInput.includes('-')) {
-    let parts = roomInput.split('-');
-    let start = parseInt(parts[0].trim()), end = parseInt(parts[1].trim());
-    if (!isNaN(start) && !isNaN(end) && start <= end) {
-      for (let i = start; i <= end; i++) roomsToProcess.push(i.toString());
-    }
-  } else if (roomInput.includes(',')) {
-    roomInput.split(',').forEach(p => { if(p.trim() !== "") roomsToProcess.push(p.trim()); });
-  } else {
-    roomsToProcess.push(roomInput);
+  if (!roomNo || (!priceDaily && !priceMonthly)) {
+    showCustomPopup('danger', 'Missing Details', 'Please enter Room Number and at least one Rent Price (Daily or Monthly).');
+    return;
   }
 
-  let allRooms = RoomPeDB.getRooms();
-  roomsToProcess.forEach(no => {
-    allRooms.push({ no: no, floor: floorName, cat: category, price: price, status: 'available', guest: '', propertyId: activeId });
-  });
+  // Firebase me save karne ka code (Tera baki ka logic yahan aayega)
+  const roomData = {
+    roomNo: roomNo,
+    floor: floor,
+    category: category,
+    priceDaily: priceDaily,
+    priceMonthly: priceMonthly,
+    status: 'Vacant',
+    createdAt: new Date().toISOString()
+  };
 
-  RoomPeDB.saveRooms(allRooms);
-  document.getElementById('new-room-no').value = '';
-  document.getElementById('new-room-price').value = '';
-  switchTab('rooms');
+  try {
+    const activePropertyId = localStorage.getItem('activePropertyId');
+    await window.fbSetDoc(window.fbDoc(window.db, "properties", activePropertyId, "rooms", roomNo), roomData);
+    
+    showCustomPopup('success', 'Room Added', `Room ${roomNo} has been saved successfully.`);
+    closeActionScreen(); // Form band kardo
+  } catch (error) {
+    console.error("Error saving room: ", error);
+    showCustomPopup('danger', 'Error', 'Failed to save room. Try again.');
+  }
 }
 
 // ==========================================
@@ -2053,51 +2071,134 @@ function unlockApp(user) {
   }, 800);
 }
 
+// --- GOOGLE LOGIN FIX ---
 async function handleGoogleLogin() {
+  const errorBox = document.getElementById('auth-error-msg');
+  const errorText = document.getElementById('auth-error-text');
+  errorBox.style.display = 'none'; // reset errors
+
   try {
+    // Ye line Firebase ka Google popup open karti hai
     const result = await window.fbSignInPopup(window.fbAuth, window.fbGoogleProvider);
-    unlockApp(result.user);
-  } catch (error) {
-    alert("Login Failed: " + error.message);
-  }
-}
-
-async function handleEmailAuth(e) {
-  if(e) e.preventDefault(); 
-  let email = document.getElementById('auth-email').value; 
-  let pass = document.getElementById('auth-pass').value;
-  if(!email || !pass) { alert("Please enter both Email and Password!"); return; }
-
-  try {
-    if (isLoginMode) {
-      const result = await window.fbSignIn(window.fbAuth, email, pass);
-      unlockApp(result.user);
-    } else {
-      const result = await window.fbCreateUser(window.fbAuth, email, pass);
-      unlockApp(result.user);
-    }
-  } catch (error) {
-    alert("Error: " + error.message);
-  }
-}
-
-// 1. INSTANT LOGOUT ENGINE
-function logOutApp() {
-  if (confirm("Are you sure you want to log out?")) {
-    // 🚨 Server ka wait kiye bina pehle Parda gira do (Instant feel)
-    document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
-    document.getElementById('screen-login').style.display = 'flex';
-    document.getElementById('screen-login').classList.remove('hidden');
+    const user = result.user;
     
-    if (window.fbAuth && window.fbSignOut) {
-      window.fbSignOut(window.fbAuth).then(() => {
-        localStorage.clear();
-        RoomPeDB.init();
-      }).catch((error) => console.error("Sign Out Error", error));
+    console.log("Google Login Success:", user.displayName);
+    
+    // Seedha Dashboard me bhej do
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+    document.getElementById('global-nav').classList.remove('hidden');
+    
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    errorText.innerText = "Google Sign-In failed or cancelled.";
+    errorBox.style.display = 'flex';
+  }
+}
+
+// --- BULLETPROOF EMAIL LOGIN / SIGNUP LOGIC ---
+async function handleEmailAuth(event) {
+  if(event) event.preventDefault();
+  
+  const emailInput = document.getElementById('auth-email');
+  const passInput = document.getElementById('auth-pass');
+  const errorBox = document.getElementById('auth-error-msg');
+  const errorText = document.getElementById('auth-error-text');
+  const btn = document.getElementById('auth-main-btn');
+
+  const email = emailInput.value.trim();
+  const pass = passInput.value.trim();
+
+  // Smart Check: Button par "Up" likha hai ya nahi (Sign Up vs Sign In)
+  const isSignUp = btn.innerText.includes('Up');
+
+  // Reset errors
+  if(errorBox) errorBox.style.display = 'none';
+  emailInput.style.borderColor = 'var(--border-color)';
+  passInput.style.borderColor = 'var(--border-color)';
+
+  // Agar khali chhod diya
+  if(!email || !pass) {
+    if(errorText) errorText.innerText = "Please enter both email and password.";
+    if(errorBox) errorBox.style.display = 'flex';
+    emailInput.style.borderColor = 'var(--red)';
+    passInput.style.borderColor = 'var(--red)';
+    return;
+  }
+
+  // Button ko lock karo taaki user baar baar click na kare
+  btn.disabled = true;
+  btn.innerHTML = 'Please wait...';
+  
+  try {
+    // Check agar Firebase load hone me time le raha hai
+    if (!window.fbAuth) throw new Error("Firebase connection loading... Try again in 2 seconds.");
+
+    if(isSignUp) {
+      await window.fbCreateUser(window.fbAuth, email, pass);
     } else {
-      localStorage.clear();
-      RoomPeDB.init();
+      await window.fbSignIn(window.fbAuth, email, pass);
     }
+    
+    // Agar successful hua:
+    btn.innerHTML = 'Success!';
+    btn.style.background = '#10b981'; // Green
+    
+    setTimeout(() => {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById('screen-dashboard').classList.remove('hidden');
+      document.getElementById('global-nav').classList.remove('hidden');
+      
+      // Button wapas normal karo
+      btn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+      btn.style.background = 'var(--primary-dark)';
+      btn.disabled = false;
+    }, 1000);
+
+  } catch (error) {
+    // AGAR GALAT PASSWORD HUA YA ERROR AAYA
+    console.error("Auth Error:", error);
+    
+    // Button wapas normal karo
+    btn.disabled = false;
+    btn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+    
+    // Inputs ko lal (Red) karo
+    emailInput.style.borderColor = 'var(--red)';
+    passInput.style.borderColor = 'var(--red)';
+    if(errorBox) errorBox.style.display = 'flex';
+    
+    // Smart Error Messages
+    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      if(errorText) errorText.innerText = "Incorrect email or password.";
+    } else if(error.code === 'auth/email-already-in-use') {
+      if(errorText) errorText.innerText = "This email is already registered. Please log in.";
+    } else if(error.code === 'auth/weak-password') {
+      if(errorText) errorText.innerText = "Password must be at least 6 characters.";
+    } else if(error.code === 'auth/invalid-email') {
+      if(errorText) errorText.innerText = "Invalid email format. E.g. name@roompe.com";
+    } else {
+      if(errorText) errorText.innerText = error.message; // Koi aur issue hoga toh exact error dikhayega
+    }
+  }
+}
+
+function logOutApp() {
+  // Ab koi 'confirm' nahi, sidha logout karo!
+  
+  // 1. Navigation chupao
+  const nav = document.getElementById('global-nav');
+  if(nav) nav.classList.add('hidden');
+  
+  // 2. Login screen par bhejo
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById('screen-login').classList.remove('hidden');
+  
+  // 3. Agar Firebase hai toh usko bhi sign out kar do
+  if (window.fbSignOut && window.fbAuth) {
+    window.fbSignOut(window.fbAuth).then(() => {
+      console.log("Logged out successfully");
+    });
   }
 }
 
@@ -2733,4 +2834,189 @@ function shareOnWhatsApp() {
     
     let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, '_blank');
+}
+/* ==========================================================================
+   🚀 ROOMPE CUSTOM POPUP ENGINE
+   ========================================================================== */
+function showCustomPopup(type, title, message, confirmCallback = null) {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  const iconBox = document.getElementById('roompe-popup-icon');
+  const titleEl = document.getElementById('roompe-popup-title');
+  const msgEl = document.getElementById('roompe-popup-msg');
+  const btnBox = document.getElementById('roompe-popup-buttons');
+
+  // 1. Text Set Karo
+  titleEl.innerText = title;
+  msgEl.innerText = message;
+
+  // 2. Theme & Buttons Set Karo (Danger/Logout/Success)
+  if (type === 'danger' || type === 'logout') {
+    iconBox.style.background = '#fef2f2';
+    iconBox.style.color = '#ef4444';
+    iconBox.innerHTML = `<span class="material-symbols-outlined" style="font-size:32px;">${type === 'logout' ? 'logout' : 'delete'}</span>`;
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="flex:1; padding:14px; border-radius:12px; background:#f1f5f9; color:#475569; border:none; font-weight:700; font-size:15px; cursor:pointer;">Cancel</button>
+      <button id="popup-confirm-btn" style="flex:1; padding:14px; border-radius:12px; background:#ef4444; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">${type === 'logout' ? 'Yes, Logout' : 'Delete'}</button>
+    `;
+  } 
+  else if (type === 'success') {
+    iconBox.style.background = '#ecfdf5';
+    iconBox.style.color = '#059669';
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="font-size:32px;">check_circle</span>';
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="width:100%; padding:14px; border-radius:12px; background:#059669; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">Okay, Done</button>
+    `;
+  }
+
+  // 3. Agar 'Yes' button dabaya, toh agla function chalao (Callback)
+  if (confirmCallback) {
+    setTimeout(() => {
+      const confirmBtn = document.getElementById('popup-confirm-btn');
+      if (confirmBtn) {
+        confirmBtn.onclick = () => {
+          closeCustomPopup();
+          confirmCallback(); // Jaise: logOutApp() ya deleteRoom()
+        };
+      }
+    }, 50);
+  }
+
+  // 4. Popup Screen Par Dikhao (With smooth animation)
+  overlay.style.display = 'flex';
+  setTimeout(() => {
+    box.classList.add('popup-active');
+  }, 10);
+}
+
+function closeCustomPopup() {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  
+  box.classList.remove('popup-active');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 200); // 200ms animation timer
+}
+// --- PASSWORD VISIBILITY TOGGLE ---
+function togglePasswordVisibility() {
+  const passInput = document.getElementById('auth-pass');
+  const eyeIcon = document.getElementById('toggle-password-eye');
+  
+  if (passInput.type === 'password') {
+    passInput.type = 'text';
+    eyeIcon.innerText = 'visibility';
+    eyeIcon.style.color = 'var(--primary-dark)'; // Green color when visible
+  } else {
+    passInput.type = 'password';
+    eyeIcon.innerText = 'visibility_off';
+    eyeIcon.style.color = 'var(--text-light)'; // Grey color when hidden
+  }
+}
+/* ==========================================================================
+   🚀 SMART RENT CALCULATOR (Pro-Rata Engine)
+   ========================================================================== */
+function calculateSmartRent(stayType, durationDays, dailyRate, monthlyRate) {
+  // Fallbacks: Agar kisi ne ek box khali chhod diya ho
+  const safeDaily = dailyRate > 0 ? dailyRate : Math.round(monthlyRate / 30);
+  const safeMonthly = monthlyRate > 0 ? monthlyRate : (dailyRate * 30);
+
+  if (stayType === "Daily") {
+    // Hotel Style: Seedha multiply
+    return durationDays * safeDaily;
+  } 
+  else if (stayType === "Monthly") {
+    // PG Style: Mahine alag, extra din alag (Pro-Rata)
+    const totalMonths = Math.floor(durationDays / 30);
+    const extraDays = durationDays % 30;
+    
+    // Per day of monthly rent (e.g. 6000/30 = 200 per day)
+    const proRataDailyRate = Math.round(safeMonthly / 30); 
+    
+    return (totalMonths * safeMonthly) + (extraDays * proRataDailyRate);
+  }
+  
+  return 0;
+}
+/* ==========================================================================
+   🚀 PAYMENT & CHECKOUT ENGINE
+   ========================================================================== */
+
+// --- 1. OPEN PAYMENT MODAL ---
+// Tere '+' icon ke onclick me ye call karna: onclick="openPaymentModal()"
+function openPaymentModal() {
+  document.getElementById('pay-amount-input').value = ''; // Purana amount hatao
+  document.getElementById('modal-add-payment').style.display = 'flex'; // Modal dikhao
+}
+
+// --- 2. SUBMIT PAYMENT & AUTO-DEDUCT LOGIC ---
+async function submitNewPayment() {
+  const amount = Number(document.getElementById('pay-amount-input').value);
+  const mode = document.getElementById('pay-mode-input').value;
+  
+  if(amount <= 0) {
+    showCustomPopup('danger', 'Invalid Amount', 'Please enter an amount greater than 0.');
+    return;
+  }
+
+  // 1. Modal band karo
+  document.getElementById('modal-add-payment').style.display = 'none';
+
+  // 2. 🟢 AUTO-DEDUCTION LOGIC (UI MATH)
+  // Note: HTML me Amount Paid ko id="ui-amount-paid" aur Net Payable ko id="ui-net-payable" de dena
+  const paidEl = document.getElementById('ui-amount-paid');
+  const payableEl = document.getElementById('ui-net-payable');
+  
+  if(paidEl && payableEl) {
+    // Purana text utha kar usme se comma/₹ hata kar Number me badlo
+    let currentPaid = Number(paidEl.innerText.replace(/[^0-9.-]+/g,""));
+    let currentPayable = Number(payableEl.innerText.replace(/[^0-9.-]+/g,""));
+
+    // Calculation
+    currentPaid += amount;
+    currentPayable -= amount;
+    if(currentPayable < 0) currentPayable = 0; // Negative me na jaye
+
+    // Wapas UI me update karo instantly
+    paidEl.innerText = `₹${currentPaid.toLocaleString('en-IN')}`;
+    payableEl.innerText = `₹${currentPayable.toLocaleString('en-IN')}`;
+  }
+
+  // 3. Success Popup Dikhao
+  showCustomPopup('success', 'Payment Added', `₹${amount} successfully received via ${mode}.`);
+
+  // 4. (Backend) Yahan tu Firebase me save karne ka code likh dena
+  // e.g., await window.fbAddDoc(collection(db, "bookings", bookingId, "payments"), { amount, mode, date: new Date() });
+}
+
+// --- 3. CHECKOUT GUEST ---
+// Checkout button ke onclick me ye dalna: onclick="triggerCheckout('Room 202')"
+function triggerCheckout(roomNo) {
+  // Apna custom popup use kar rahe hain (Alert nahi!)
+  showCustomPopup(
+    'danger', 
+    'Checkout Guest?', 
+    `Are you sure you want to checkout the guest from ${roomNo}? This will free up the room and lock their ledger.`, 
+    () => processCheckoutAction(roomNo) // Agar Yes dabaya toh ye function chalega
+  );
+}
+
+// Asli Checkout ka code
+async function processCheckoutAction(roomNo) {
+  console.log(`${roomNo} is being checked out...`);
+  
+  // (Backend) Yahan tu Firebase me Update marega:
+  // 1. Room ka status 'Vacant' set karega
+  // 2. Room ki currentBookingId ko null/empty karega
+  
+  // Success popup aur screen refresh
+  showCustomPopup('success', 'Checkout Complete', `${roomNo} is now vacant and ready for new guests.`);
+  
+  // Thodi der baad Dashboard ya Rooms list par wapas bhej do
+  setTimeout(() => {
+    // Apni close screen wali function yahan call kar dena
+    // closeActionScreen(); 
+  }, 1500);
 }
