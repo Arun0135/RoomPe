@@ -527,6 +527,7 @@ function handleBookingSearch(val) {
 // 4. NAVIGATION & ANIMATION ENGINE
 // ==========================================================================
 function switchTab(tabName) {
+  screenHistory = [];
  let globalNav = document.getElementById('global-nav');
 if(globalNav) globalNav.classList.remove('hidden');
   currentMainTab = tabName; 
@@ -550,32 +551,61 @@ if(globalNav) globalNav.classList.remove('hidden');
   if(tabName === 'more') updateMoreTabStats();
 }
 
-// --- SMART SCREEN SWITCHER (Hides Nav on Forms) ---
+/* ==========================================================================
+   🚀 SMART NAVIGATION & HISTORY ENGINE
+   ========================================================================== */
+let screenHistory = []; // Ye array tere app ki memory hai
+
 function openActionScreen(screenId) {
-  // Saari screens chhupao
+  // 1. Abhi jo screen khuli hai, uska pata lagao aur memory (history) me save karo
+  const currentScreen = document.querySelector('.screen:not(.hidden)');
+  if (currentScreen && currentScreen.id !== screenId) {
+    screenHistory.push(currentScreen.id);
+  }
+
+  // 2. Sab chhupao, naya dikhao
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  // Jo screen maangi hai, wo dikhao
   document.getElementById(screenId).classList.remove('hidden');
 
-  // 🚨 SMART NAV HIDER 🚨
-  // Agar ye screen main tab nahi hai, toh bottom nav hata do taaki space mile
+  // 3. Nav bar chupane ka logic
   const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
-  
   if (!mainTabs.includes(screenId)) {
     document.getElementById('global-nav').classList.add('hidden');
+  } else {
+    document.getElementById('global-nav').classList.remove('hidden');
   }
 }
 
 function closeActionScreen() {
-  // Wapas dashboard (ya active tab) par le jao
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  
-  // Tu chah to last active tab yaad rakh sakta hai, abhi default 'dashboard' bhej rahe hain.
-  // Lekin nav bar zaroor dikha do.
-  document.getElementById('screen-dashboard').classList.remove('hidden');
-  document.getElementById('global-nav').classList.remove('hidden'); 
-}
+  // 1. Check karo ki pichhe jane ke liye koi page memory me hai ya nahi
+  if (screenHistory.length > 0) {
+    // History se sabse aakhiri (pichla) page nikalo
+    const previousScreenId = screenHistory.pop();
+    
+    // Sab chhupao aur pichla page dikhao
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    const prevScreen = document.getElementById(previousScreenId);
+    
+    if (prevScreen) {
+      prevScreen.classList.remove('hidden');
+    } else {
+      document.getElementById('screen-dashboard').classList.remove('hidden');
+    }
 
+    // Agar pichla page main tab tha, toh Nav Bar wapas laao
+    const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
+    if (mainTabs.includes(previousScreenId)) {
+      document.getElementById('global-nav').classList.remove('hidden');
+    } else {
+      document.getElementById('global-nav').classList.add('hidden');
+    }
+  } else {
+    // Agar history khali hai toh default Dashboard par bhej do
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+    document.getElementById('global-nav').classList.remove('hidden');
+  }
+}
 function openGuestProfile() { 
   openActionScreen('screen-guest-profile'); 
 }
@@ -1651,20 +1681,23 @@ function goToAddProperty() {
   setTimeout(() => {
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('screen-setup').classList.remove('hidden');
+    // Setup screen par nav bar nahi dikhna chahiye!
+document.getElementById('global-nav').classList.add('hidden');
   }, 300);
 }
 
+// --- CANCEL SETUP & GO TO DASHBOARD ---
 function cancelSetup() {
-  let props = RoomPeDB.getProperties();
-  if (props.length > 1 || (props.length === 1 && props[0].id !== 'prop_default')) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-  } else {
-    if(confirm("You need to setup at least one property to use RoomPe. Do you want to cancel and go back to the home screen?")) {
-      localStorage.removeItem('roompe_logged_in_user');
-      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-      document.getElementById('screen-welcome').classList.remove('hidden');
-    }
+  // 1. Setup screen ko wapas chhupao
+  document.getElementById('screen-setup').classList.add('hidden');
+  
+  // 2. Dashboard screen ko samne laao
+  document.getElementById('screen-dashboard').classList.remove('hidden');
+  
+  // 3. 🚨 MAGIC FIX: Bottom Navigation Bar ko wapas zinda (un-hide) karo
+  const navBar = document.getElementById('global-nav');
+  if (navBar) {
+    navBar.classList.remove('hidden');
   }
 }
 
@@ -3020,3 +3053,4 @@ async function processCheckoutAction(roomNo) {
     // closeActionScreen(); 
   }, 1500);
 }
+ 
