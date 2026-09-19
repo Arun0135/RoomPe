@@ -725,3 +725,8 @@ body {
     to { transform: translateX(0); opacity: 1; }
   }
 }
+/* ================= CUSTOM POPUP ANIMATION ================= */
+.popup-active {
+  opacity: 1 !important;
+  transform: scale(1) !important;
+}
