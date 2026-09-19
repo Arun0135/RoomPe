@@ -298,25 +298,37 @@ function quickBook(roomNo) {
   if (roomInput) roomInput.value = roomNo;
 }
 
+// --- MARK ROOM AS CLEAN ENGINE (Custom Popup Added) ---
 function markRoomClean(roomNo) {
-  if (confirm(`Mark Room ${roomNo} as Clean & Available?`)) {
+  // Purana 'confirm()' hata kar apna naya Premium Confirm lagaya
+  showCustomPopup('confirm', 'Room Cleaned?', `Mark Room ${roomNo} as Clean & Available?`, function() {
+    
     let rooms = RoomPeDB.getRooms(); 
     let activeId = RoomPeDB.getActiveProperty();
     
-    // 🚨 SMART LOCK: Sirf current active property ka room dhoondhega
+    // SMART LOCK: Sirf current active property ka room dhoondhega
     let roomIndex = rooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activeId || (!r.propertyId && activeId === 'prop_default')));
     
     if (roomIndex !== -1) {
+      // Room ko Available kar do
       rooms[roomIndex].status = 'available';
       rooms[roomIndex].guest = '';
       RoomPeDB.saveRooms(rooms);
       
+      // UI Refresh karo
       if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
       if(typeof updateDashboardStats === 'function') updateDashboardStats();
+      
+      // Success Message
+      setTimeout(() => {
+        showPopup('success', 'Room Ready', `Room ${roomNo} is now clean and available for booking.`);
+      }, 400);
+
     } else {
-      alert("Error: Room not found in current property!");
+      // Error ko bhi alert() ki jagah apne popup me dikhao
+      showPopup('error', 'Error', 'Room not found in current property!');
     }
-  }
+  });
 }
 
 function handleRoomSearch(query) {
@@ -358,12 +370,20 @@ function setRoomFilter(filterName) {
   renderRoomsGrid(); 
 }
 
+// ==========================================================================
+// 3. ROOMS SCREEN LOGIC & MASTER RENDER ENGINE (FIXED DISPLAY & DELETE)
+// ==========================================================================
 function renderRoomsGrid() {
   let allRooms = RoomPeDB.getRooms();
   let scrollArea = document.querySelector('#screen-rooms .rooms-scroll-area');
   if(!scrollArea) return;
 
   if (typeof updateRoomStats === 'function') updateRoomStats(allRooms);
+
+  // 🧠 SMART CHECK: Property Daily (Hotel) hai ya Monthly (PG)?
+  let props = RoomPeDB.getProperties();
+  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+  let isMonthlyProp = activeProp && activeProp.type === 'Monthly';
 
   let filteredRooms = allRooms.filter(room => {
     let matchesFilter = true;
@@ -438,8 +458,9 @@ function renderRoomsGrid() {
         subText = room.guest;
         cardAction = `onclick="openRoomDetails('${room.no}')"`;
       } else if (room.status === 'available') {
-        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';">add_circle</span>`;
-        subText = `₹${room.price}/d`;
+        // 🚨 NAYA UPDATE: Yahan Delete ke liye Edit Icon aur Price Format (/mo ya /d) theek kiya gaya hai!
+        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openEditRoom('${room.no}')" style="font-size: 18px; color: #94a3b8;">edit</span>`;
+        subText = isMonthlyProp ? `₹${room.priceMonthly}/mo` : `₹${room.priceDaily}/d`;
         cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
       } else if (room.status === 'cleaning') {
         footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); markRoomClean('${room.no}')">check</span>`;
@@ -622,7 +643,6 @@ function updateDashboardStats() {
   
   let props = RoomPeDB.getProperties();
   let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty()) || props[0];
-  let isMonthlyProperty = activeProp && activeProp.type === 'Monthly';
 
   let totalRooms = rooms.length;
   let occupiedRooms = rooms.filter(r => r.status === 'occupied');
@@ -637,36 +657,42 @@ function updateDashboardStats() {
   let pendingRoomsList = [];
 
   occupiedRooms.forEach(r => {
-    let roomTotalPaid = payments.filter(p => String(p.room) === String(r.no)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
     
-    let basePrice = parseInt(r.price || 0);
-    let duration = parseInt(r.duration || 1); 
-    let expectedRent = basePrice; 
-    
+    // 🚨 DASHBOARD SMART MATH START
+    let isMonthlyStay = r.stayType === 'Monthly';
+    let priceDaily = parseInt(r.priceDaily || r.price || 0);
+    let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
+    let duration = parseInt(r.duration || 1);
+
+    let expectedRent = 0;
+    let expectedCheckoutDate = new Date(r.checkinDate || new Date());
+    expectedCheckoutDate.setHours(0,0,0,0);
+
+    if (isMonthlyStay) {
+      expectedRent = priceMonthly * duration;
+      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+    } else {
+      expectedRent = priceDaily * duration;
+      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+    }
+
     let isOverstay = false;
     let extraFine = 0;
+    let today = new Date();
+    today.setHours(0,0,0,0);
 
-    if (r.checkinDate) {
-      expectedRent = basePrice * duration;
-      let checkinDate = new Date(r.checkinDate);
-      let expectedCheckoutDate = new Date(checkinDate);
-      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
-
-      let today = new Date();
-      today.setHours(0,0,0,0);
-      expectedCheckoutDate.setHours(0,0,0,0);
-
-      if (today > expectedCheckoutDate) {
-        let diffTime = Math.abs(today - expectedCheckoutDate);
-        let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let perDayFine = isMonthlyProperty ? Math.round(basePrice / 30) : basePrice;
-        extraFine = extraDays * perDayFine;
-        
-        expectedRent += extraFine;
-        isOverstay = true;
-      }
+    if (today > expectedCheckoutDate) {
+      let diffTime = Math.abs(today - expectedCheckoutDate);
+      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+      extraFine = extraDays * perDayFine;
+      
+      expectedRent += extraFine;
+      isOverstay = true;
     }
+    // 🚨 DASHBOARD SMART MATH END
 
     totalExpected += expectedRent;
     let remainingDue = expectedRent - roomTotalPaid;
@@ -743,39 +769,101 @@ function updateDashboardStats() {
 // ==========================================================================
 // 5. FORMS & DATA ACTIONS (Rooms)
 // ==========================================================================
-// --- UPDATED SAVE ROOM LOGIC ---
-async function saveNewRoom() {
-  const roomNo = document.getElementById('new-room-no').value.trim();
+// --- UPDATED SAVE ROOM LOGIC (WITH BULK ADD & AUTO-MATH) ---
+function saveNewRoom() {
+  const roomInput = document.getElementById('new-room-no').value.trim();
   const floor = document.getElementById('new-room-floor').value;
   const category = document.getElementById('new-room-cat').value;
   const priceDaily = Number(document.getElementById('new-room-price-daily').value) || 0;
   const priceMonthly = Number(document.getElementById('new-room-price-monthly').value) || 0;
 
-  if (!roomNo || (!priceDaily && !priceMonthly)) {
-    showCustomPopup('danger', 'Missing Details', 'Please enter Room Number and at least one Rent Price (Daily or Monthly).');
+  if (!roomInput) {
+    showPopup('error', 'Missing Details', 'Please enter Room Number(s).');
     return;
   }
 
-  // Firebase me save karne ka code (Tera baki ka logic yahan aayega)
-  const roomData = {
-    roomNo: roomNo,
-    floor: floor,
-    category: category,
-    priceDaily: priceDaily,
-    priceMonthly: priceMonthly,
-    status: 'Vacant',
-    createdAt: new Date().toISOString()
-  };
+  // 🪄 AUTO-MATH: Ek price daalo, dusra khud nikal jayega
+  const finalDaily = priceDaily > 0 ? priceDaily : Math.round(priceMonthly / 30);
+  const finalMonthly = priceMonthly > 0 ? priceMonthly : (priceDaily * 30);
 
-  try {
-    const activePropertyId = localStorage.getItem('activePropertyId');
-    await window.fbSetDoc(window.fbDoc(window.db, "properties", activePropertyId, "rooms", roomNo), roomData);
+  const activePropId = RoomPeDB.getActiveProperty();
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+
+  // 🚀 BULK PARSING ENGINE (Comma aur Hyphen ko samajhna)
+  let roomsToAdd = [];
+  let inputParts = roomInput.split(','); // Pehle comma se alag karo (e.g. "101, 201-205")
+
+  for (let part of inputParts) {
+    part = part.trim();
+    if (part.includes('-')) {
+      // Agar Hyphen (-) hai, toh range banao (e.g. 201-205)
+      let rangeParts = part.split('-');
+      let start = parseInt(rangeParts[0].trim());
+      let end = parseInt(rangeParts[1].trim());
+
+      // Number check karo aur loop chalao
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        for (let i = start; i <= end; i++) {
+          roomsToAdd.push(String(i));
+        }
+      } else {
+         roomsToAdd.push(part); // Agar kisine galat format dala
+      }
+    } else if (part !== "") {
+      // Single room number (e.g. 201)
+      roomsToAdd.push(part);
+    }
+  }
+
+  // 💾 DUPLICATE CHECK & SAVE
+  let addedCount = 0;
+  let duplicateCount = 0;
+
+  roomsToAdd.forEach((rNo, index) => {
+    // Check karo ki ye specific room pehle se toh nahi hai
+    let exists = allRooms.find(r => String(r.no) === String(rNo) && r.propertyId === activePropId);
     
-    showCustomPopup('success', 'Room Added', `Room ${roomNo} has been saved successfully.`);
-    closeActionScreen(); // Form band kardo
-  } catch (error) {
-    console.error("Error saving room: ", error);
-    showCustomPopup('danger', 'Error', 'Failed to save room. Try again.');
+    if (!exists) {
+      allRooms.push({
+        id: 'room_' + Date.now() + '_' + index, // Loop ke liye unique ID
+        propertyId: activePropId,
+        no: String(rNo),
+        floor: floor,
+        cat: category,
+        price: finalMonthly, // Default display rent
+        priceDaily: finalDaily,
+        priceMonthly: finalMonthly,
+        status: 'available',
+        guest: '',
+        createdAt: new Date().getTime()
+      });
+      addedCount++;
+    } else {
+      duplicateCount++;
+    }
+  });
+
+  // Final Action & Messages
+  if (addedCount > 0) {
+    RoomPeDB.saveRooms(allRooms);
+    
+    // Form Inputs Clear karo
+    document.getElementById('new-room-no').value = '';
+    document.getElementById('new-room-price-daily').value = '';
+    document.getElementById('new-room-price-monthly').value = '';
+    
+    let msg = `Successfully added ${addedCount} room(s).`;
+    if (duplicateCount > 0) msg += ` (${duplicateCount} skipped because they already exist).`;
+    
+    showPopup('success', 'Rooms Added', msg);
+    closeActionScreen();
+    switchTab('rooms');
+  } 
+  else if (duplicateCount > 0) {
+    showPopup('error', 'Rooms Exist', 'All entered rooms already exist in this property.');
+  } 
+  else {
+    showPopup('error', 'Invalid Input', 'Please enter valid room numbers.');
   }
 }
 
@@ -947,6 +1035,9 @@ function saveNewPayment() {
   let allRooms = RoomPeDB.getActivePropertyRooms();
   let room = allRooms.find(r => String(r.no) === String(roomNo));
   let guestName = room && room.guest ? room.guest : "Unknown Guest";
+  
+  // 🚨 SMART FETCH: Room ki current Booking ID nikalo
+  let currentBookingId = room && room.currentBookingId ? room.currentBookingId : null;
 
   let payments = RoomPeDB.getPayments();
   payments.push({
@@ -954,6 +1045,7 @@ function saveNewPayment() {
     propId: activePropId,
     room: roomNo,
     guest: guestName,
+    bookingId: currentBookingId, // 🔐 Locked to ID
     amount: amount,
     mode: mode,
     date: new Date().getTime()
@@ -1132,6 +1224,7 @@ function openRoomDetails(roomNo) {
 
   if(titleEl) titleEl.innerText = 'Room ' + room.no;
   if(catEl) catEl.innerText = room.cat;
+  
   // 🚨 Property ka asli naam laane ka engine
   let props = RoomPeDB.getProperties();
   let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
@@ -1139,8 +1232,6 @@ function openRoomDetails(roomNo) {
 
   if(floorEl) floorEl.innerText = propName + ' • ' + room.floor;
 
-  // 🚨 YAHAN SE REPLACE KARNA HAI
-  // 🚨 YAHAN SE REPLACE KARNA HAI (Line 955 se)
   if(room.status === 'occupied') {
     if(guestNameEl) guestNameEl.innerText = room.guest || 'Guest';
     if(guestInitEl) guestInitEl.innerText = room.guest ? room.guest.charAt(0).toUpperCase() : 'G';
@@ -1177,8 +1268,6 @@ function openRoomDetails(roomNo) {
     if(docSigEl) docSigEl.style.display = 'none';
     if(docNoSigEl) docNoSigEl.style.display = 'block';
   }
-  // 🚨 YAHAN TAK REPLACE KARNA HAI (Line 981 tak)
-  // 🚨 YAHAN TAK REPLACE KARNA HAI
 
   // Actions Assignment
   let chatBtn = document.getElementById('rd-chat-btn');
@@ -1214,22 +1303,36 @@ function openRoomDetails(roomNo) {
     let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
     if(daysStaying === 0) daysStaying = 1;
 
-    let basePrice = parseInt(room.price || 0);
+    // 🚨 FIXED SMART MATH LOGIC START
+    let isMonthlyStay = room.stayType === 'Monthly';
+    let priceDaily = parseInt(room.priceDaily || room.price || 0);
+    let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
     let duration = parseInt(room.duration || 1);
-    let totalRoomRent = basePrice * duration;
 
+    let totalRoomRent = 0;
     let expectedCheckoutDate = new Date(checkinDate);
-    expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+
+    if (isMonthlyStay) {
+      totalRoomRent = priceMonthly * duration;
+      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+    } else {
+      totalRoomRent = priceDaily * duration;
+      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+    }
 
     let isOverstay = false;
     let extraFine = 0;
     if (today > expectedCheckoutDate) {
       let diffTime = Math.abs(today - expectedCheckoutDate);
       let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      extraFine = extraDays * basePrice;
+      
+      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+      extraFine = extraDays * perDayFine;
+      
       totalRoomRent += extraFine;
       isOverstay = true;
     }
+    // 🚨 FIXED SMART MATH LOGIC END
 
     let extrasTotal = 0;
     let extrasHTML = '';
@@ -1252,7 +1355,7 @@ function openRoomDetails(roomNo) {
     }
 
     let grandTotal = totalRoomRent + extrasTotal;
-    let roomTotalPaid = payments.filter(p => String(p.room) === String(roomNo)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
     let remainingDue = grandTotal - roomTotalPaid;
 
     let checkinEl = document.getElementById('rd-checkin-date');
@@ -1278,15 +1381,15 @@ function openRoomDetails(roomNo) {
     let dueIcon = document.getElementById('rd-due-icon');
 
     // Naya Master Calculation Engine
-  calculateNetPayable();
+    calculateNetPayable();
 
-  // Agar Overstay fine hai toh text add kar do
-  if (isOverstay) {
-    let dueStatus = document.getElementById('rd-due-status');
-    if (dueStatus) {
-      dueStatus.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
+    // Agar Overstay fine hai toh text add kar do
+    if (isOverstay) {
+      let dueStatus = document.getElementById('rd-due-status');
+      if (dueStatus) {
+        dueStatus.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
+      }
     }
-  }
   }
 
   // PAYMENTS TAB UPDATE
@@ -1322,7 +1425,7 @@ function openRoomDetails(roomNo) {
   if (docPreview) docPreview.classList.add('hidden');
   let uploadInput = document.getElementById('kyc-upload');
   if (uploadInput) uploadInput.value = '';
-if(document.getElementById('rd-edit-btn')) document.getElementById('rd-edit-btn').style.display = '';
+  if(document.getElementById('rd-edit-btn')) document.getElementById('rd-edit-btn').style.display = '';
   if(document.getElementById('rd-checkout-btn')) document.getElementById('rd-checkout-btn').style.display = '';
   if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = '';
   if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = '';
@@ -1349,65 +1452,73 @@ function updateHotelName() {
 }
 
 // ==========================================
-// SMART CHECKOUT ENGINE (Saves to History)
+// SMART CHECKOUT ENGINE (Fixed Math, Cloud Sync & Custom Popup)
 // ==========================================
 function checkoutGuest(roomNo) {
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
+  
+  // 🚨 FIX 1: String matching taaki room hamesha mile
   let room = rooms.find(r => String(r.no) === String(roomNo));
   if (!room) return;
 
-  // 🧠 Check type of property
-  let props = RoomPeDB.getProperties();
-  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty()) || props[0];
-  let isMonthlyProperty = activeProp && activeProp.type === 'Monthly';
-
-  let roomTotalPaid = payments.filter(p => String(p.room) === String(roomNo)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
-  let basePrice = parseInt(room.price || 0);
-  let duration = parseInt(room.duration || 1);
+  // 🧠 Checkout Math (Updated with Smart Hybrid Logic)
+  let isMonthlyStay = room.stayType === 'Monthly';
+let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
   
-  // Agar monthly hai, toh duration ka matlab 'Months' hoga (e.g. 1 Month = ₹6000)
-  let expectedRent = basePrice * duration; 
+  let priceDaily = parseInt(room.priceDaily || room.price || 0);
+  let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
+  let duration = parseInt(room.duration || 1);
 
-  if (room.checkinDate) {
-    let checkinDate = new Date(room.checkinDate);
-    let expectedCheckoutDate = new Date(checkinDate);
-    
-    // Monthly property me 30 din add hote hain per duration, Hotel me 1 din add hota hai
-    if(isMonthlyProperty) {
-        expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
-    } else {
-        expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
-    }
-    
-    let today = new Date();
-    today.setHours(0,0,0,0);
-    expectedCheckoutDate.setHours(0,0,0,0);
+  let expectedRent = 0;
+  let expectedCheckoutDate = new Date(room.checkinDate || new Date());
+  expectedCheckoutDate.setHours(0,0,0,0);
 
-    if (today > expectedCheckoutDate) {
-      let diffTime = Math.abs(today - expectedCheckoutDate);
-      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      // 🧠 Dual Math: Hotel me full price per day, PG me month price / 30
-      let perDayFine = isMonthlyProperty ? Math.round(basePrice / 30) : basePrice;
-      expectedRent += (extraDays * perDayFine);
-    }
+  if (isMonthlyStay) {
+    expectedRent = priceMonthly * duration;
+    expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+  } else {
+    expectedRent = priceDaily * duration;
+    expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
   }
+
+  let today = new Date();
+  today.setHours(0,0,0,0);
+
+  if (today > expectedCheckoutDate) {
+    let diffTime = Math.abs(today - expectedCheckoutDate);
+    let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+    expectedRent += (extraDays * perDayFine);
+  }
+
+  // Extras add karo
+  let extrasTotal = 0;
+  if (room.extras && room.extras.length > 0) {
+    room.extras.forEach(ext => extrasTotal += ext.price);
+  }
+  expectedRent += extrasTotal;
 
   let remainingDue = expectedRent - roomTotalPaid;
 
+  // Agar paise baki hain toh Custom Popup dikhao aur form par bhejo
   if (remainingDue > 0) {
-    alert(`🚨 CHECKOUT BLOCKED!\n\nRoom ${roomNo} has a pending due of ₹${remainingDue}.\nPlease collect the payment before checking out the guest.`);
-    openActionScreen('screen-add-payment');
-    document.getElementById('pay-room-no').value = roomNo;
-    document.getElementById('pay-amount').value = remainingDue;
+    showCustomPopup('danger', 'Checkout Blocked!', `Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}.\nPlease collect the payment first.`, function() {
+      openActionScreen('screen-add-payment');
+      document.getElementById('pay-room-no').value = roomNo;
+      document.getElementById('pay-amount').value = remainingDue;
+    });
     return; 
   }
 
-  if (confirm(`Checkout guest from Room ${roomNo}? Record will be saved to History.`)) {
-    let allBookings = RoomPeDB.getBookings();
-    let activeBookingIndex = allBookings.findIndex(b => String(b.room) === String(roomNo) && b.status === 'confirmed' && b.propId === RoomPeDB.getActiveProperty());
+  // 🚨 FIX 2: Premium Custom Popup for Checkout confirmation
+  showCustomPopup('confirm', 'Checkout Guest?', `Are you sure you want to checkout the guest from Room ${roomNo}?`, function() {
     
+    let activePropId = RoomPeDB.getActiveProperty();
+    let allBookings = RoomPeDB.getBookings();
+    let activeBookingIndex = allBookings.findIndex(b => String(b.room) === String(roomNo) && b.status === 'confirmed' && b.propId === activePropId);
+    
+    // Booking History Update
     if(activeBookingIndex !== -1) {
       allBookings[activeBookingIndex].status = 'completed'; 
       allBookings[activeBookingIndex].checkoutDate = new Date().getTime(); 
@@ -1416,9 +1527,10 @@ function checkoutGuest(roomNo) {
     }
 
     let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
-    let absIndex = absoluteRooms.findIndex(r => r.no === roomNo && (r.propertyId === RoomPeDB.getActiveProperty() || (!r.propertyId && RoomPeDB.getActiveProperty() === 'prop_default')));
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
     
     if (absIndex !== -1) {
+      // Room Reset
       absoluteRooms[absIndex].status = 'cleaning';
       absoluteRooms[absIndex].guest = ''; 
       absoluteRooms[absIndex].phone = ''; 
@@ -1426,13 +1538,23 @@ function checkoutGuest(roomNo) {
       absoluteRooms[absIndex].checkinDate = ''; 
       absoluteRooms[absIndex].duration = '';
       absoluteRooms[absIndex].extras = [];
-      localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
+      absoluteRooms[absIndex].signature = ''; 
+      absoluteRooms[absIndex].currentBookingId = ''; // 🚨 NAYA: ID Clear kar do
+      
+      // 🚨 FIX 3: RoomPeDB.saveRooms use kiya taaki Cloud par bhi update ho
+      RoomPeDB.saveRooms(absoluteRooms);
       
       closeActionScreen(); 
       switchTab('rooms'); 
-      if(typeof renderBookingsList === 'function') renderBookingsList(); 
+      if(typeof renderBookingsList === 'function') renderBookingsList();
+      if(typeof updateDashboardStats === 'function') updateDashboardStats();
+      
+      // Success feedback
+      setTimeout(() => {
+        showPopup('success', 'Checkout Complete', `Room ${roomNo} is now vacant and needs cleaning.`);
+      }, 400);
     }
-  }
+  });
 }
 function openEditRoom(roomNo) {
   let rooms = RoomPeDB.getRooms();
@@ -1470,17 +1592,36 @@ function saveRoomEdits() {
   }
 }
 
+// --- PERFECT DELETE ROOM ENGINE (Cloud Sync Fixed) ---
 function deleteRoom() {
   let originalNo = document.getElementById('edit-original-room-no').value;
-  if(confirm(`Permanently delete Room ${originalNo}?`)) {
-    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
-    let updatedRooms = absoluteRooms.filter(r => !(r.no === originalNo && r.propertyId === RoomPeDB.getActiveProperty()));
-    localStorage.setItem('roompe_rooms', JSON.stringify(updatedRooms));
-    
-    closeActionScreen();
-    closeActionScreen();
-    switchTab('rooms');
-  }
+
+  // 1. Apna Custom Premium Popup call karo
+  showCustomPopup(
+    'danger', 
+    'Delete Room?', 
+    `Are you sure you want to permanently delete Room ${originalNo}? All data for this room will be lost.`, 
+    function() {
+      // 2. Database (Local + Cloud) se room filter karke nikal do
+      let activePropId = RoomPeDB.getActiveProperty();
+      let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+      
+      let updatedRooms = absoluteRooms.filter(r => !(String(r.no) === String(originalNo) && r.propertyId === activePropId));
+      
+      // 🚨 MASTER FIX: Yahan RoomPeDB.saveRooms use karna hai!
+      // Ye local storage ke sath-sath Cloud (Firebase) par bhi automatically delete sync mar dega.
+      RoomPeDB.saveRooms(updatedRooms);
+      
+      // 3. Edit screen ko band karo aur list refresh karo
+      closeActionScreen();
+      switchTab('rooms');
+      
+      // 4. Delete hone ke 0.4 second baad ek Success message dikha do
+      setTimeout(() => {
+         showPopup('success', 'Room Deleted', `Room ${originalNo} has been removed successfully.`);
+      }, 400);
+    }
+  );
 }
 
 function switchRoomDetailsTab(tabName) {
@@ -1884,7 +2025,7 @@ function clearAllNotifications() {
 }
 
 // ==========================================================================
-// 🚀 VIP BOOKING ENGINE & DIGITAL SIGNATURE
+// 🚀 VIP BOOKING ENGINE & DIGITAL SIGNATURE (Unique ID Architecture)
 // ==========================================================================
 
 function toggleGSTBox() {
@@ -1904,48 +2045,58 @@ function saveNewBookingVIP() {
   let smartMenuBox = document.getElementById('book-smart-menu');
   let smartMenu = smartMenuBox ? smartMenuBox.checked : false;
   
-  // 🚨 NAYA CODE: Signature Canvas ko Photo me badalna
   let sigCanvas = document.getElementById('signature-pad');
   let signatureData = '';
-  if(sigCanvas) {
-     signatureData = sigCanvas.toDataURL(); // Drawing ko Base64 Image bana diya
-  }
+  if(sigCanvas) signatureData = sigCanvas.toDataURL(); 
 
   if(guestName === "" || roomNo === "" || guestPhone === "") {
-    return alert("❌ Guest Name, Phone Number, and Room Number are required!");
+    return showPopup('error', 'Missing Details', 'Guest Name, Phone Number, and Room Number are required!');
   }
 
   let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let activePropId = RoomPeDB.getActiveProperty();
   let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
   
-  if(absIndex === -1) return alert("❌ Room " + roomNo + " does not exist!"); 
-  if(absoluteRooms[absIndex].status === 'occupied') return alert("❌ Room " + roomNo + " is already occupied!");
+  if(absIndex === -1) return showPopup('error', 'Invalid Room', `Room ${roomNo} does not exist in this property!`); 
+  if(absoluteRooms[absIndex].status === 'occupied') return showPopup('error', 'Room Occupied', `Room ${roomNo} is already occupied!`);
 
   let actualCheckin = checkin || new Date().toISOString().slice(0,16); 
   let actualDuration = duration || '1';
 
-  // Room data me signature save karna
+  // 🚨 MASTER ENGINE: Generate Unique Booking ID
+  let randomString = Math.random().toString(36).substring(2, 6).toUpperCase();
+  let uniqueBookingId = `bk_${activePropId}_${Date.now()}_${randomString}`;
+
+  // Room data me sab save karna + Unique ID lagana
   absoluteRooms[absIndex].status = 'occupied';
   absoluteRooms[absIndex].guest = guestName;
   absoluteRooms[absIndex].phone = guestPhone; 
   absoluteRooms[absIndex].stayType = stayType; 
   absoluteRooms[absIndex].checkinDate = actualCheckin;
   absoluteRooms[absIndex].duration = actualDuration;
-  absoluteRooms[absIndex].signature = signatureData; // 🚨 Database me Save
+  absoluteRooms[absIndex].signature = signatureData; 
+  absoluteRooms[absIndex].currentBookingId = uniqueBookingId; // 🔐 ID Locked to Room
   
-  localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
+  RoomPeDB.saveRooms(absoluteRooms);
 
   let bookings = RoomPeDB.getBookings();
   bookings.push({
-    id: 'bk_' + Date.now(), propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType, signature: signatureData
+    id: uniqueBookingId, // 🔐 Same ID for History
+    propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType, signature: signatureData
   });
   RoomPeDB.saveBookings(bookings);
 
   if (advance && parseInt(advance) > 0) {
     let payments = RoomPeDB.getPayments();
     payments.push({
-      id: 'pay_' + Date.now(), propId: activePropId, room: roomNo, guest: guestName, amount: advance, mode: 'UPI', date: new Date().getTime()
+      id: 'pay_' + Date.now(), 
+      propId: activePropId, 
+      room: roomNo, 
+      guest: guestName, 
+      bookingId: uniqueBookingId, // 🔐 Payment locked to this specific booking
+      amount: advance, 
+      mode: 'UPI', 
+      date: new Date().getTime()
     });
     RoomPeDB.savePayments(payments);
   }
@@ -1956,16 +2107,14 @@ function saveNewBookingVIP() {
   document.getElementById('book-advance').value = '';
   clearSignature('signature-pad');
 
-  if (smartMenu) {
-    alert(`✅ BOOKING SAVED & WHATSAPP SENT!\n\nMessage delivered to ${guestPhone}:\n"Hi ${guestName}, welcome to RoomPe! Scan or click this link to open your 3D Smart Menu!"`);
-  } else {
-    alert("✅ Booking Saved Successfully!");
-  }
-
   closeActionScreen();
   switchTab('rooms');
-}
 
+  setTimeout(() => {
+    if (smartMenu) showPopup('success', 'Booking & WhatsApp Sent!', `Message delivered to +91 ${guestPhone}. Guest has been successfully checked in.`);
+    else showPopup('success', 'Booking Saved', 'Guest booking has been confirmed successfully!');
+  }, 400);
+}
 // Ensure the HTML button calls the right function
 window.saveNewBooking = saveNewBookingVIP;
 
@@ -2858,7 +3007,7 @@ function shareOnWhatsApp() {
     window.open(whatsappUrl, '_blank');
 }
 /* ==========================================================================
-   🚀 ROOMPE CUSTOM POPUP ENGINE
+   🚀 ROOMPE CUSTOM POPUP ENGINE (Fixed Confirm Buttons)
    ========================================================================== */
 function showCustomPopup(type, title, message, confirmCallback = null) {
   const overlay = document.getElementById('roompe-popup-overlay');
@@ -2872,7 +3021,7 @@ function showCustomPopup(type, title, message, confirmCallback = null) {
   titleEl.innerText = title;
   msgEl.innerText = message;
 
-  // 2. Theme & Buttons Set Karo (Danger/Logout/Success)
+  // 2. Theme & Buttons Set Karo
   if (type === 'danger' || type === 'logout') {
     iconBox.style.background = '#fef2f2';
     iconBox.style.color = '#ef4444';
@@ -2892,6 +3041,17 @@ function showCustomPopup(type, title, message, confirmCallback = null) {
       <button onclick="closeCustomPopup()" style="width:100%; padding:14px; border-radius:12px; background:#059669; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">Okay, Done</button>
     `;
   }
+  // 🚨 FIX: YAHAN 'confirm' WALA MISSING CODE ADD KIYA HAI
+  else if (type === 'confirm') {
+    iconBox.style.background = '#fef3c7'; // Warning Yellow Background
+    iconBox.style.color = '#d97706'; // Warning Yellow Text
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="font-size:32px;">help</span>';
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="flex:1; padding:14px; border-radius:12px; background:#f1f5f9; color:#475569; border:none; font-weight:700; font-size:15px; cursor:pointer;">Cancel</button>
+      <button id="popup-confirm-btn" style="flex:1; padding:14px; border-radius:12px; background:#059669; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">Yes, Do it</button>
+    `;
+  }
 
   // 3. Agar 'Yes' button dabaya, toh agla function chalao (Callback)
   if (confirmCallback) {
@@ -2900,7 +3060,7 @@ function showCustomPopup(type, title, message, confirmCallback = null) {
       if (confirmBtn) {
         confirmBtn.onclick = () => {
           closeCustomPopup();
-          confirmCallback(); // Jaise: logOutApp() ya deleteRoom()
+          confirmCallback(); // Jaise: logOutApp() ya checkoutGuest()
         };
       }
     }, 50);
@@ -2912,7 +3072,6 @@ function showCustomPopup(type, title, message, confirmCallback = null) {
     box.classList.add('popup-active');
   }, 10);
 }
-
 function closeCustomPopup() {
   const overlay = document.getElementById('roompe-popup-overlay');
   const box = document.getElementById('roompe-popup-box');
