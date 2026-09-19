@@ -124,23 +124,10 @@
    <!-- ================= SCREEN 1: WELCOME ================= -->
     <div id="screen-welcome" class="screen" style="padding: 0; background-color: #f8fafc; justify-content: center; align-items: center; text-align: center; height: 100%;">
       <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px;">
-        <div style="margin-bottom: 40px; display: flex; justify-content: center;">
-          <svg width="220" height="220" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="90" fill="#ecfdf5" />
-            <path d="M60 140 V70 Q60 60 70 60 H130 Q140 60 140 70 V140" fill="none" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
-            <rect x="75" y="80" width="15" height="20" fill="#059669" rx="2"/>
-            <rect x="110" y="80" width="15" height="20" fill="#059669" rx="2"/>
-            <rect x="110" y="115" width="15" height="20" fill="#059669" rx="2"/>
-            <rect x="75" y="115" width="15" height="20" fill="#059669" rx="2"/>
-            <rect x="45" y="100" width="35" height="50" rx="4" fill="#ffffff" stroke="#059669" stroke-width="4"/>
-            <line x1="53" y1="112" x2="72" y2="112" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
-            <line x1="53" y1="122" x2="63" y2="122" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="155" cy="75" r="16" fill="#f59e0b" />
-            <path d="M155 90 V115" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
-            <path d="M155 105 H165" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-            <path d="M155 112 H162" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-          </svg>
-        </div>
+       <div style="margin-bottom: 40px; display: flex; justify-content: center;">
+      <!-- Apni Image ka Link 'src' ke andar daal dena -->
+      <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe Logo" style="width: 140px; height: 140px; border-radius: 32px; object-fit: cover; box-shadow: 0 12px 35px rgba(5, 150, 105, 0.15);">
+    </div>
         <h1 style="font-size: 38px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 16px;">
           Manage Every<br>Room.<br>Simply.
         </h1>
@@ -162,9 +149,10 @@
     <div id="screen-login" class="screen hidden" style="padding: 24px; text-align: center; background-color: white; height: 100vh; display: flex; flex-direction: column; justify-content: center;">
 
         <div style="margin-bottom: 40px;">
-            <div style="width: 64px; height: 64px; background: #ecfdf5; color: #059669; border-radius: 16px; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px;">
-                <span class="material-symbols-outlined" style="font-size: 32px;">domain</span>
-            </div>
+            <div style="text-align: center; margin-bottom: 16px;">
+  <!-- Apni Image ka Link yahan 'src' me daal -->
+  <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe Logo" style="width: 80px; height: 80px; border-radius: 20px; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+</div>
             <h2 id="auth-title" style="margin: 0 0 8px; color: #0f172a; font-size: 24px; font-weight: 800;">Welcome Back</h2>
             <p id="auth-subtitle" style="margin: 0; color: #64748b; font-size: 14px;">Log in to manage your properties</p>
         </div>
@@ -186,10 +174,10 @@
             </div>
             
             <!-- Inline Error Message (Hidden by default) -->
-            <p id="auth-error-msg" style="color: var(--red); font-size: 12px; font-weight: 600; margin-top: 8px; display: none; display: flex; align-items: center; gap: 4px;">
-                <span class="material-symbols-outlined" style="font-size: 14px;">error</span>
-                <span id="auth-error-text">Incorrect email or password.</span>
-            </p>
+            <p id="auth-error-msg" style="color: #ef4444; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; gap: 4px;">
+  <span class="material-symbols-outlined" style="font-size: 16px;">error</span>
+  <span id="auth-error-text">Incorrect email or password.</span>
+</p>
         </div>
 
         <!-- Sign In / Sign Up Button -->
