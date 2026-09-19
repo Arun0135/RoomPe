@@ -549,6 +549,7 @@ if(globalNav) globalNav.classList.remove('hidden');
   if(tabName === 'bookings') renderBookingsList();
   if(tabName === 'billing') renderBillingList(); 
   if(tabName === 'more') updateMoreTabStats();
+  document.getElementById('global-nav').classList.remove('hidden');
 }
 
 /* ==========================================================================
@@ -1260,7 +1261,7 @@ function openRoomDetails(roomNo) {
     if(durationEl) durationEl.innerText = daysStaying + ' days staying';
     let rentEl = document.getElementById('rd-room-rent');
     if(rentEl) rentEl.innerText = '₹' + grandTotal.toLocaleString('en-IN');
-    let advEl = document.getElementById('rd-adv-paid');
+    let advEl = document.getElementById('ui-amount-paid');
     if(advEl) advEl.innerText = '₹' + roomTotalPaid.toLocaleString('en-IN');
     let extrasListEl = document.getElementById('rd-extras-list');
     if(extrasListEl) extrasListEl.innerHTML = extrasHTML;
@@ -1276,27 +1277,16 @@ function openRoomDetails(roomNo) {
     let dueStatus = document.getElementById('rd-due-status');
     let dueIcon = document.getElementById('rd-due-icon');
 
-    if (remainingDue > 0) {
-      if(dueCard) { dueCard.style.background = '#fff1f2'; dueCard.style.borderColor = '#fecdd3'; }
-      if(dueTitle) dueTitle.style.color = '#e11d48';
-      if(dueDate) { dueDate.style.color = '#e11d48'; dueDate.innerText = '₹' + remainingDue.toLocaleString('en-IN'); }
-      if(dueStatus) {
-        dueStatus.style.color = '#e11d48';
-        dueStatus.innerText = 'Total Pending Due';
-        if(isOverstay) dueStatus.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
-      }
-      if(dueIcon) { dueIcon.style.color = '#e11d48'; dueIcon.innerText = 'receipt_long'; }
-    } else {
-      if(dueCard) { dueCard.style.background = '#ecfdf5'; dueCard.style.borderColor = '#a7f3d0'; }
-      if(dueTitle) dueTitle.style.color = '#059669';
-      if(dueDate) { dueDate.style.color = '#059669'; dueDate.innerText = 'Cleared'; }
-      if(dueStatus) {
-        dueStatus.style.color = '#059669';
-        let advanceSurplus = roomTotalPaid - grandTotal;
-        dueStatus.innerText = advanceSurplus > 0 ? `₹${advanceSurplus.toLocaleString('en-IN')} Extra Paid` : 'All Dues Settled';
-      }
-      if(dueIcon) { dueIcon.style.color = '#059669'; dueIcon.innerText = 'check_circle'; }
+    // Naya Master Calculation Engine
+  calculateNetPayable();
+
+  // Agar Overstay fine hai toh text add kar do
+  if (isOverstay) {
+    let dueStatus = document.getElementById('rd-due-status');
+    if (dueStatus) {
+      dueStatus.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
     }
+  }
   }
 
   // PAYMENTS TAB UPDATE
@@ -1686,18 +1676,17 @@ document.getElementById('global-nav').classList.add('hidden');
   }, 300);
 }
 
-// --- CANCEL SETUP & GO TO DASHBOARD ---
 function cancelSetup() {
-  // 1. Setup screen ko wapas chhupao
-  document.getElementById('screen-setup').classList.add('hidden');
-  
-  // 2. Dashboard screen ko samne laao
-  document.getElementById('screen-dashboard').classList.remove('hidden');
-  
-  // 3. 🚨 MAGIC FIX: Bottom Navigation Bar ko wapas zinda (un-hide) karo
-  const navBar = document.getElementById('global-nav');
-  if (navBar) {
-    navBar.classList.remove('hidden');
+  let props = RoomPeDB.getProperties();
+  if (props.length > 1 || (props.length === 1 && props[0].id !== 'prop_default')) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+  } else {
+    if(confirm("You need to setup at least one property to use RoomPe. Do you want to cancel and go back to the home screen?")) {
+      localStorage.removeItem('roompe_logged_in_user');
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById('screen-welcome').classList.remove('hidden');
+    }
   }
 }
 
@@ -3015,6 +3004,7 @@ async function submitNewPayment() {
     // Wapas UI me update karo instantly
     paidEl.innerText = `₹${currentPaid.toLocaleString('en-IN')}`;
     payableEl.innerText = `₹${currentPayable.toLocaleString('en-IN')}`;
+    calculateNetPayable(); // Naya amount aate hi color aur status update karega
   }
 
   // 3. Success Popup Dikhao
@@ -3053,4 +3043,60 @@ async function processCheckoutAction(roomNo) {
     // closeActionScreen(); 
   }, 1500);
 }
- 
+/* ==========================================================================
+   💰 SMART FINANCE ENGINE (Net Payable Calculator)
+   ========================================================================== */
+function calculateNetPayable() {
+  // 1. UI se text uthao aur sirf Numbers nikalo (₹ aur comma hata kar)
+  const rentEl = document.getElementById('rd-room-rent');
+  const paidEl = document.getElementById('ui-amount-paid');
+  const payableEl = document.getElementById('ui-net-payable');
+  const statusEl = document.getElementById('rd-due-status');
+  const dueCard = document.getElementById('rd-due-card');
+  const dueIcon = document.getElementById('rd-due-icon');
+  const dueTitle = document.getElementById('rd-due-title');
+
+  if (!rentEl || !paidEl || !payableEl) return; // Agar elements nahi hain toh ruk jao
+
+  let totalRent = Number(rentEl.innerText.replace(/[^0-9]/g, '')) || 0;
+  let amountPaid = Number(paidEl.innerText.replace(/[^0-9]/g, '')) || 0;
+  
+  // 2. The Core Math 
+  let netPayable = totalRent - amountPaid;
+  
+  // 3. UI Updates (Premium Dynamic Colors)
+  if (netPayable > 0) {
+    // 🔴 PENDING DUE (Lal Rang)
+    payableEl.innerText = `₹${netPayable.toLocaleString('en-IN')}`;
+    statusEl.innerText = "Total Pending Due";
+    dueTitle.innerText = "Net Payable";
+    dueCard.style.background = "#fff1f2";
+    dueCard.style.borderColor = "#fecdd3";
+    payableEl.style.color = "#e11d48";
+    dueIcon.style.color = "#e11d48";
+    dueTitle.style.color = "#e11d48";
+  } 
+  else if (netPayable === 0) {
+    // 🟢 CLEARED (Hara Rang)
+    payableEl.innerText = "₹0";
+    statusEl.innerText = "All Dues Cleared ✓";
+    dueTitle.innerText = "Settled";
+    dueCard.style.background = "#ecfdf5";
+    dueCard.style.borderColor = "#bbf7d0";
+    payableEl.style.color = "#059669";
+    dueIcon.style.color = "#059669";
+    dueTitle.style.color = "#059669";
+  } 
+  else {
+    // 🔵 ADVANCE (Neela Rang - Agar minus me chala gaya)
+    let advanceAmount = Math.abs(netPayable);
+    payableEl.innerText = `₹${advanceAmount.toLocaleString('en-IN')}`;
+    statusEl.innerText = "Advance / Refundable";
+    dueTitle.innerText = "Extra Paid";
+    dueCard.style.background = "#eff6ff";
+    dueCard.style.borderColor = "#bfdbfe";
+    payableEl.style.color = "#2563eb";
+    dueIcon.style.color = "#2563eb";
+    dueTitle.style.color = "#2563eb";
+  }
+}
