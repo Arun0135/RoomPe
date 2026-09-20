@@ -1277,19 +1277,25 @@
             <option value="Passport">Passport</option>
           </select>
 
-          <!-- Camera/Photo Upload Buttons -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-            <label style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 8px; background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; cursor: pointer;">
-              <span class="material-symbols-outlined" style="color: #3b82f6;">photo_camera</span>
-              <span style="font-size: 11px; font-weight: 600; color: #475569;">Front Photo</span>
-              <input type="file" accept="image/*" capture="environment" hidden onchange="alert('📸 Front ID Captured!')">
-            </label>
-            <label style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 8px; background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; cursor: pointer;">
-              <span class="material-symbols-outlined" style="color: #3b82f6;">photo_camera</span>
-              <span style="font-size: 11px; font-weight: 600; color: #475569;">Back Photo</span>
-              <input type="file" accept="image/*" capture="environment" hidden onchange="alert('📸 Back ID Captured!')">
-            </label>
-          </div>
+          <!-- 🚨 SMART KYC HIDDEN INPUTS -->
+<input type="file" id="id-front-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'front-preview', 'front')">
+<input type="file" id="id-back-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'back-preview', 'back')">
+
+<div style="display: flex; gap: 12px; margin-bottom: 16px;">
+  <!-- FRONT PHOTO BOX -->
+  <div onclick="document.getElementById('id-front-input').click()" style="flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; background: #f8fafc; position: relative; overflow: hidden;">
+    <img id="front-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+    <span class="material-symbols-outlined" style="color: #3b82f6; font-size: 28px; margin-bottom: 8px; position: relative; z-index: 1;">photo_camera</span>
+    <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 600; position: relative; z-index: 1;">Front Photo</p>
+  </div>
+
+  <!-- BACK PHOTO BOX -->
+  <div onclick="document.getElementById('id-back-input').click()" style="flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; background: #f8fafc; position: relative; overflow: hidden;">
+    <img id="back-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+    <span class="material-symbols-outlined" style="color: #3b82f6; font-size: 28px; margin-bottom: 8px; position: relative; z-index: 1;">photo_camera</span>
+    <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 600; position: relative; z-index: 1;">Back Photo</p>
+  </div>
+</div>
 
           <!-- Digital Signature Pad -->
           <p style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 8px;">Guest Signature</p>
@@ -1495,11 +1501,15 @@
       <div id="rd-payments-list"></div>
     </div>
 
-    <!-- TAB 3: DOCUMENTS (Hidden by default) -->
-    <div id="rd-tab-documents" class="hidden">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h4 style="font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">GUEST KYC & ID</h4>
-      </div>
+    <!-- 🚨 REAL SMART KYC CONTAINER -->
+<h5 style="font-size: 11px; color: #64748b; font-weight: 800; letter-spacing: 1px; margin: 24px 0 16px 0; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">GUEST KYC & ID</h5>
+
+<div id="rd-kyc-display-box">
+  <!-- JavaScript yahan automatically asli photo render karega -->
+</div>
+
+<!-- Hidden Camera/File Input (Direct room details se photo lene ke liye) -->
+<input type="file" id="rd-kyc-upload-input" accept="image/*" style="display:none;" onchange="uploadKycFromRoomDetails(this)">
      
       <!-- REAL UPLOAD / CAMERA BUTTON -->
       <label for="kyc-upload" style="display: block; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 12px;">
