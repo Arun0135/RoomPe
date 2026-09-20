@@ -1717,11 +1717,21 @@ function switchRoomDetailsTab(tabName) {
 
   let activeBtn = document.getElementById('rd-btn-' + tabName);
   let activeContent = document.getElementById('rd-tab-' + tabName);
-  
+
   if(activeBtn && activeContent) {
     activeBtn.style.background = '#059669';
     activeBtn.style.color = 'white';
     activeContent.classList.remove('hidden');
+  }
+
+  // 🚨 SMART KYC & SIGNATURE TAB VISIBILITY CONTROLLER (Naya Code Yahan Aaya Hai)
+  let kycWrapper = document.getElementById('kyc-and-signature-wrapper');
+  if (kycWrapper) {
+    if (tabName === 'documents') {
+      kycWrapper.style.display = 'block'; // Sirf Documents tab par dikhega
+    } else {
+      kycWrapper.style.display = 'none';  // Baaki sab jagah chup jayega
+    }
   }
 }
 
