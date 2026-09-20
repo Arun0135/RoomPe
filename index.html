@@ -1501,43 +1501,27 @@
       <div id="rd-payments-list"></div>
     </div>
 
-    <!-- 🚨 REAL SMART KYC CONTAINER -->
-<h5 style="font-size: 11px; color: #64748b; font-weight: 800; letter-spacing: 1px; margin: 24px 0 16px 0; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">GUEST KYC & ID</h5>
+    <!-- TAB 3: DOCUMENTS (Hidden by default) -->
+<div id="rd-tab-documents" class="hidden">
 
-<div id="rd-kyc-display-box">
-  <!-- JavaScript yahan automatically asli photo render karega -->
-</div>
+    <h5 style="font-size: 11px; color: #64748b; font-weight: 800; letter-spacing: 1px; margin: 24px 0 16px 0; border-bottom: 1px dashed #e2e8f0; padding-bottom: 8px;">GUEST KYC & ID</h5>
 
-<!-- Hidden Camera/File Input (Direct room details se photo lene ke liye) -->
-<input type="file" id="rd-kyc-upload-input" accept="image/*" style="display:none;" onchange="uploadKycFromRoomDetails(this)">
-     
-      <!-- REAL UPLOAD / CAMERA BUTTON -->
-      <label for="kyc-upload" style="display: block; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 12px;">
-        <span class="material-symbols-outlined" style="font-size: 32px; color: #3b82f6; margin-bottom: 8px;">add_a_photo</span>
-        <h4 style="margin: 0; font-size: 14px; color: #0f172a;">Upload / Capture ID</h4>
-        <p style="margin: 4px 0 0; font-size: 11px; color: #64748b;">Tap to take a photo of Aadhaar/ID</p>
-        <!-- accept="image/*" capture="environment" phone ka camera open karta hai -->
-        <input type="file" id="kyc-upload" accept="image/*" capture="environment" style="display: none;" onchange="handleFileUpload(this)">
-      </label>
+    <!-- 🚨 Yahan JS automatically asli photo render karega ya Camera/Upload button dikhayega -->
+    <div id="rd-kyc-display-box"></div>
 
-      <!-- Upload hone ke baad ye box dikhega -->
-      <div id="uploaded-doc-preview" class="hidden" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px;">
-         <div style="width: 40px; height: 40px; background: #ecfdf5; border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #059669;">
-           <span class="material-symbols-outlined">verified</span>
-         </div>
-         <div style="flex: 1;">
-           <h5 id="uploaded-file-name" style="margin: 0; font-size: 13px; color: #0f172a;">ID_Document.jpg</h5>
-           <p style="margin: 0; font-size: 10px; color: #059669; font-weight: 600;">Verified Successfully</p>
-         </div>
-      </div>
-       <!-- Yahan se naya Signature Box shuru -->
-<div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed #e2e8f0;">
-    <h4 style="font-size: 13px; color: #475569; margin: 0 0 12px 0; font-weight: 700;">Guest Signature</h4>
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; min-height: 80px; display: flex; justify-content: center; align-items: center;">
-        <img id="rd-doc-signature" src="" style="max-height: 80px; max-width: 100%; display: none; filter: contrast(1.5);" alt="Guest Signature">
-        <p id="rd-doc-no-sig" style="margin: 0; font-size: 12px; color: #94a3b8; font-weight: 500;">No signature captured</p>
+    <!-- Hidden Camera/File Input (Direct room details se photo lene ke liye) -->
+    <input type="file" id="rd-kyc-upload-input" accept="image/*" style="display:none;" onchange="uploadKycFromRoomDetails(this)">
+
+    <!-- Yahan se naya Signature Box shuru -->
+    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed #e2e8f0;">
+        <h4 style="font-size: 13px; color: #475569; margin: 0 0 12px 0; font-weight: 700;">Guest Signature</h4>
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; min-height: 80px; display: flex; justify-content: center; align-items: center;">
+            <img id="rd-doc-signature" src="" style="max-height: 80px; max-width: 100%; display: none; filter: contrast(1.5);" alt="Guest Signature">
+            <p id="rd-doc-no-sig" style="margin: 0; font-size: 12px; color: #94a3b8; font-weight: 500;">No signature captured</p>
+        </div>
     </div>
-</div>
+
+</div> <!-- DOCUMENTS TAB END -->
 <!-- Yahan tak -->
     </div>
   
