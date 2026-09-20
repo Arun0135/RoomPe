@@ -1487,6 +1487,27 @@ function openRoomDetails(roomNo) {
   if(document.getElementById('rd-checkout-btn')) document.getElementById('rd-checkout-btn').style.display = '';
   if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = '';
   if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = '';
+  // 🚨 DISPLAY KYC DOCUMENTS IN ROOM DETAILS
+  let kycDisplayBox = document.getElementById('rd-kyc-display-box');
+  if(kycDisplayBox) {
+    if (room.idFront || room.idBack) {
+      kycDisplayBox.innerHTML = `
+        <div style="display:flex; gap:12px; margin-top:10px; width: 100%;">
+          ${room.idFront ? `<div style="flex:1;"><img src="${room.idFront}" style="width:100%; height:120px; object-fit:cover; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.05);"><p style="text-align:center; font-size:11px; margin-top:4px; color:#64748b; font-weight:600;">Front</p></div>` : ''}
+          ${room.idBack ? `<div style="flex:1;"><img src="${room.idBack}" style="width:100%; height:120px; object-fit:cover; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.05);"><p style="text-align:center; font-size:11px; margin-top:4px; color:#64748b; font-weight:600;">Back</p></div>` : ''}
+        </div>
+      `;
+    } else {
+      kycDisplayBox.innerHTML = `
+        <div style="border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 30px 20px; text-align: center; color: #64748b; background: #f8fafc;">
+          <span class="material-symbols-outlined" style="font-size: 32px; color: #3b82f6; margin-bottom: 8px;">add_a_photo</span>
+          <h5 style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 700;">No ID Uploaded</h5>
+          <p style="margin: 4px 0 0 0; font-size: 12px;">Documents are pending for this guest.</p>
+        </div>
+      `;
+    }
+  }
+  
   switchRoomDetailsTab('overview');
   openActionScreen('screen-room-details');
 }
@@ -2127,6 +2148,8 @@ function saveNewBookingVIP() {
 
   // Room data me sab save karna + Unique ID lagana
   absoluteRooms[absIndex].status = 'occupied';
+  absoluteRooms[absIndex].idFront = currentKycFront;
+  absoluteRooms[absIndex].idBack = currentKycBack;
   absoluteRooms[absIndex].guest = guestName;
   absoluteRooms[absIndex].phone = guestPhone; 
   absoluteRooms[absIndex].stayType = stayType; 
@@ -2134,6 +2157,7 @@ function saveNewBookingVIP() {
   absoluteRooms[absIndex].duration = actualDuration;
   absoluteRooms[absIndex].signature = signatureData; 
   absoluteRooms[absIndex].currentBookingId = uniqueBookingId; // 🔐 ID Locked to Room
+  
   
   RoomPeDB.saveRooms(absoluteRooms);
 
@@ -2163,6 +2187,12 @@ function saveNewBookingVIP() {
   document.getElementById('book-guest-phone').value = '';
   document.getElementById('book-room-no').value = '';
   document.getElementById('book-advance').value = '';
+  currentKycFront = "";
+  currentKycBack = "";
+  if(document.getElementById('front-preview')) document.getElementById('front-preview').style.display = 'none';
+  if(document.getElementById('back-preview')) document.getElementById('back-preview').style.display = 'none';
+  if(document.getElementById('id-front-input')) document.getElementById('id-front-input').value = '';
+  if(document.getElementById('id-back-input')) document.getElementById('id-back-input').value = '';
   clearSignature('signature-pad');
 
   closeActionScreen();
@@ -3316,4 +3346,84 @@ function calculateNetPayable() {
     dueIcon.style.color = "#2563eb";
     dueTitle.style.color = "#2563eb";
   }
+}
+// ==========================================
+// 📸 KYC DOCUMENT UPLOAD ENGINE
+// ==========================================
+let currentKycFront = "";
+let currentKycBack = "";
+
+function handleKycUpload(input, previewId, side) {
+  let file = input.files[0];
+  if (!file) return;
+
+  // File size check (Max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showPopup('error', 'File Too Large', 'Please upload a clear photo under 2MB.');
+    input.value = ""; 
+    return;
+  }
+
+  // FileReader se image ko Base64 me convert karo taaki DB me save ho sake
+  let reader = new FileReader();
+  reader.onload = function(e) {
+    let base64Image = e.target.result;
+    
+    // UI me preview dikhao
+    let previewImg = document.getElementById(previewId);
+    if(previewImg) {
+      previewImg.src = base64Image;
+      previewImg.style.display = 'block';
+    }
+
+    // Memory me save karo taaki Booking Save hote time DB me ja sake
+    if (side === 'front') currentKycFront = base64Image;
+    if (side === 'back') currentKycBack = base64Image;
+    
+    // Premium Success Popup
+    showPopup('success', 'Document Attached', `${side.charAt(0).toUpperCase() + side.slice(1)} photo added successfully.`);
+  };
+  reader.readAsDataURL(file);
+}
+// ==========================================
+// 📸 ROOM DETAILS DIRECT KYC UPLOAD ENGINE
+// ==========================================
+function uploadKycFromRoomDetails(input) {
+  let file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    showPopup('error', 'File Too Large', 'Please upload a photo under 2MB.');
+    input.value = '';
+    return;
+  }
+
+  // Room number dhoondho (Header se)
+  let roomTitle = document.getElementById('rd-room-title').innerText; // e.g. "Room 207"
+  let roomNoStr = roomTitle.replace('Room', '').trim();
+  
+  let activePropId = RoomPeDB.getActiveProperty();
+  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNoStr) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+
+  if(absIndex === -1) return;
+
+  let reader = new FileReader();
+  reader.onload = function(e) {
+    let base64Image = e.target.result;
+    
+    // Asli Image Database me save karo (Pehle front, agar hai toh back)
+    if (!absoluteRooms[absIndex].idFront) {
+        absoluteRooms[absIndex].idFront = base64Image;
+    } else {
+        absoluteRooms[absIndex].idBack = base64Image;
+    }
+
+    RoomPeDB.saveRooms(absoluteRooms);
+    showPopup('success', 'Document Saved', 'Guest ID uploaded successfully.');
+    
+    // Screen ko turant refresh karo taaki photo dikh jaye
+    openRoomDetails(roomNoStr); 
+  };
+  reader.readAsDataURL(file);
 }
