@@ -545,13 +545,16 @@ function handleBookingSearch(val) {
 }
 
 // ==========================================================================
-// 4. NAVIGATION & ANIMATION ENGINE
+// 4. NAVIGATION & ANIMATION ENGINE (PWA HARDWARE BACK FIX)
 // ==========================================================================
 function switchTab(tabName) {
-  screenHistory = [];
- let globalNav = document.getElementById('global-nav');
-if(globalNav) globalNav.classList.remove('hidden');
+  screenHistory = []; // Reset screen memory
+  let globalNav = document.getElementById('global-nav');
+  if(globalNav) globalNav.classList.remove('hidden');
   currentMainTab = tabName; 
+
+  // 🚨 PWA FIX: Phone ko batao ki naya tab open hua hai
+  window.history.pushState({ tab: tabName }, "", "");
 
   document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
   
@@ -576,20 +579,20 @@ if(globalNav) globalNav.classList.remove('hidden');
 /* ==========================================================================
    🚀 SMART NAVIGATION & HISTORY ENGINE
    ========================================================================== */
-let screenHistory = []; // Ye array tere app ki memory hai
+let screenHistory = []; 
 
 function openActionScreen(screenId) {
-  // 1. Abhi jo screen khuli hai, uska pata lagao aur memory (history) me save karo
   const currentScreen = document.querySelector('.screen:not(.hidden)');
   if (currentScreen && currentScreen.id !== screenId) {
     screenHistory.push(currentScreen.id);
+    
+    // 🚨 PWA FIX: Phone ki memory me ek step aage badho taaki back button detect ho
+    window.history.pushState({ page: screenId }, "", "");
   }
 
-  // 2. Sab chhupao, naya dikhao
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   document.getElementById(screenId).classList.remove('hidden');
 
-  // 3. Nav bar chupane ka logic
   const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
   if (!mainTabs.includes(screenId)) {
     document.getElementById('global-nav').classList.add('hidden');
@@ -598,13 +601,11 @@ function openActionScreen(screenId) {
   }
 }
 
-function closeActionScreen() {
-  // 1. Check karo ki pichhe jane ke liye koi page memory me hai ya nahi
+// 🚨 PWA FIX: isPopState flag add kiya taaki double back ka loop na bane
+function closeActionScreen(isPopState = false) {
   if (screenHistory.length > 0) {
-    // History se sabse aakhiri (pichla) page nikalo
     const previousScreenId = screenHistory.pop();
     
-    // Sab chhupao aur pichla page dikhao
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const prevScreen = document.getElementById(previousScreenId);
     
@@ -614,20 +615,34 @@ function closeActionScreen() {
       document.getElementById('screen-dashboard').classList.remove('hidden');
     }
 
-    // Agar pichla page main tab tha, toh Nav Bar wapas laao
     const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
     if (mainTabs.includes(previousScreenId)) {
       document.getElementById('global-nav').classList.remove('hidden');
     } else {
       document.getElementById('global-nav').classList.add('hidden');
     }
+
+    // 🚨 PWA FIX: Agar app ke andar wala custom back button dabaya hai, toh browser/phone ki history bhi ek kadam back karo
+    if (!isPopState) {
+      window.history.back();
+    }
   } else {
-    // Agar history khali hai toh default Dashboard par bhej do
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById('screen-dashboard').classList.remove('hidden');
     document.getElementById('global-nav').classList.remove('hidden');
   }
 }
+
+// 🚨 PWA FIX: PHONE KA HARDWARE BACK BUTTON LISTENER
+window.addEventListener('popstate', function(event) {
+  if (screenHistory.length > 0) {
+    // Agar koi modal ya room details screen khuli hai, toh ek step pichhe jao
+    closeActionScreen(true);
+  } else if (currentMainTab !== 'dashboard') {
+    // Agar history khali hai par tu Rooms ya Billing tab me hai, toh Dashboard par jao (Exit mat karo)
+    switchTab('dashboard');
+  }
+});
 function openGuestProfile() { 
   openActionScreen('screen-guest-profile'); 
 }
@@ -1069,29 +1084,72 @@ function renderBillingList() {
   let occupiedRooms = rooms.filter(r => r.status === 'occupied');
 
   let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
-  let totalExpected = occupiedRooms.reduce((sum, r) => sum + parseInt(r.price || 0), 0);
-  let pendingAmount = totalExpected > totalReceived ? totalExpected - totalReceived : 0;
-
+  
+  // 🚨 NAYA SMART CALCULATION ENGINE START 🚨
+  let totalExpected = 0;
+  let totalPendingAmount = 0; 
   let pendingRooms = [];
+
   occupiedRooms.forEach(r => {
+    // 1. Unique Booking ID wala filter (Purane bugs na aayein)
     let roomTotalPaid = payments
-      .filter(p => String(p.room) === String(r.no))
+      .filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest))
       .reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
     
-    let expectedRent = parseInt(r.price || 0);
-    let remainingDue = expectedRent - roomTotalPaid;
+    // 2. Smart Math (Daily/Monthly)
+    let isMonthlyStay = r.stayType === 'Monthly';
+    let priceDaily = parseInt(r.priceDaily || r.price || 0);
+    let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
+    let duration = parseInt(r.duration || 1);
+
+    let expectedRent = 0;
+    let expectedCheckoutDate = new Date(r.checkinDate || new Date());
+    expectedCheckoutDate.setHours(0,0,0,0);
+
+    if (isMonthlyStay) {
+      expectedRent = priceMonthly * duration;
+      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+    } else {
+      expectedRent = priceDaily * duration;
+      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+    }
+
+    let today = new Date();
+    today.setHours(0,0,0,0);
+
+    // 3. Overstay Fine
+    let extraFine = 0;
+    if (today > expectedCheckoutDate) {
+      let diffTime = Math.abs(today - expectedCheckoutDate);
+      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+      extraFine = extraDays * perDayFine;
+    }
+
+    // 4. Extras Calculation
+    let extrasTotal = 0;
+    if (r.extras && r.extras.length > 0) {
+      r.extras.forEach(ext => extrasTotal += parseInt(ext.price || 0));
+    }
+
+    let finalExpectedRent = expectedRent + extraFine + extrasTotal;
+    totalExpected += finalExpectedRent;
+
+    let remainingDue = finalExpectedRent - roomTotalPaid;
 
     if (remainingDue > 0) {
+      totalPendingAmount += remainingDue;
       pendingRooms.push({ ...r, remainingDue: remainingDue, totalPaid: roomTotalPaid });
     }
   });
+  // 🚨 NAYA SMART CALCULATION ENGINE END 🚨
 
   let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   let currentMonthStr = monthNames[new Date().getMonth()] + " " + new Date().getFullYear();
   
   if(document.getElementById('billing-month-display')) document.getElementById('billing-month-display').innerHTML = `<span class="material-symbols-outlined">account_balance_wallet</span> ${currentMonthStr}`;
   if(document.getElementById('billing-received-amt')) document.getElementById('billing-received-amt').innerText = '₹' + totalReceived.toLocaleString('en-IN');
-  if(document.getElementById('billing-pending-amt')) document.getElementById('billing-pending-amt').innerText = '₹' + pendingAmount.toLocaleString('en-IN');
+  if(document.getElementById('billing-pending-amt')) document.getElementById('billing-pending-amt').innerText = '₹' + totalPendingAmount.toLocaleString('en-IN');
   if(document.getElementById('billing-pending-count')) document.getElementById('billing-pending-count').innerText = pendingRooms.length + ' left';
 
   if(document.getElementById('count-received')) document.getElementById('count-received').innerText = payments.length;
