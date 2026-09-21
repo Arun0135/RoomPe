@@ -10,6 +10,120 @@
   
   <link rel="stylesheet" href="style.css">
   <style>
+    /* 🚀 PREMIUM ROOMPE LOADER CSS */
+#roompe-global-loader {
+  position: fixed;
+  inset: 0;
+  background: #ffffff;
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+}
+
+#roompe-global-loader.hide-loader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 🚨 GOL LOGO AUR SPINNING RING KA CSS */
+  .premium-logo-box {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  /* Bahar gol ghoomne wali loading ring */
+  .spinner-ring {
+    position: absolute;
+    inset: 0;
+    border: 3px solid #ecfdf5; /* Halki green track */
+    border-top: 3px solid #059669; /* Dark green ghoomne wala hissa */
+    border-radius: 50%;
+    animation: spinRing 1s linear infinite;
+  }
+
+  /* Tera asli logo jo perfect circle me rahega */
+  .premium-logo-box img {
+    width: 78px; /* Ring se thoda chhota taaki gap dikhe */
+    height: 78px;
+    border-radius: 50%; /* Ekdum gol */
+    object-fit: cover;
+    background: white;
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+  }
+
+  @keyframes spinRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+.loader-text {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+  margin: 0 0 8px 0;
+}
+
+.loader-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+    /* 🚨 DASHBOARD ENTRY ANIMATION */
+.screen-enter {
+  animation: screenFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes screenFadeUp {
+  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+    
+
+/* Premium Flashing Dots */
+.dot-flashing {
+  position: relative;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #059669;
+  animation: dot-flashing 1s infinite linear alternate;
+  animation-delay: 0.5s;
+  margin-left: 16px;
+}
+.dot-flashing::before, .dot-flashing::after {
+  content: '';
+  display: inline-block;
+  position: absolute;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: #059669;
+  animation: dot-flashing 1s infinite alternate;
+}
+.dot-flashing::before { left: -10px; animation-delay: 0s; }
+.dot-flashing::after { left: 10px; animation-delay: 1s; }
+
+@keyframes dot-flashing {
+  0% { background-color: #059669; }
+  50%, 100% { background-color: rgba(5, 150, 105, 0.2); }
+}
+/* 🚀 PREMIUM LOADER CSS END */
     /* Force elements to stay inside the mobile frame */
     .mobile-frame {
       overflow: hidden !important;
@@ -98,27 +212,22 @@
   
   <div id="app-container" class="w-full min-h-screen relative flex flex-col pb-24 max-w-7xl mx-auto bg-[#f8f9fa]">
 
-      <!-- ================= ⏳ ROOMPE GLOBAL LOADER (Perfect Fix) ================= -->
-      <div id="roompe-global-loader" style="position: absolute; inset: 0; background: #ffffff; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.4s;">
-          <div class="loader-logo-box" style="width: 72px; height: 72px; background: #ecfdf5; color: #059669; border-radius: 20px; display: flex; justify-content: center; align-items: center; margin-bottom: 20px;">
-              <span class="material-symbols-outlined" style="font-size: 36px;">domain</span>
-          </div>
-          <h3 style="margin: 0 0 8px; color: #0f172a; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">RoomPe</h3>
-          <p style="margin: 0; color: #64748b; font-size: 13px; font-weight: 500;">Syncing your workspace...</p>
-
-          <!-- CSS Animation for Pulse Effect -->
-          <style>
-              .loader-logo-box {
-                  animation: roompePulse 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
-              }
-              @keyframes roompePulse {
-                  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
-                  70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(5, 150, 105, 0); }
-                  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
-              }
-          </style>
-      </div>
-      <!-- LOADER END -->
+     <!-- 🚀 PREMIUM ROUND LOADER -->
+<div id="roompe-global-loader">
+    
+    <div class="premium-logo-box">
+        <!-- 🚨 Ye div gol-gol ghumega -->
+        <div class="spinner-ring"></div>
+        
+        <!-- 🚨 Tera asli logo ekdum center me -->
+        <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe">
+    </div>
+    
+    <h3 class="loader-text">RoomPe</h3>
+    <div class="loader-subtitle">
+        Syncing your workspace <div class="dot-flashing"></div>
+    </div>
+</div>
 
   
    <!-- ================= SCREEN 1: WELCOME ================= -->
@@ -1347,7 +1456,7 @@
     </div>
 
    <!-- ================= SCREEN 14: ADD PAYMENT FORM ================= -->
-    <<div id="screen-add-payment" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
+    <div id="screen-add-payment" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
       <header class="dash-header" style="justify-content: flex-start; gap: 16px;">
         <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
         <h3 style="flex: 1; font-size: 18px;">Record Payment</h3>
@@ -1461,7 +1570,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; margin-bottom: 8px;">
             <span style="font-size: 11px;">Amount Paid</span>
             <!-- YAHAN HAI TERA PLUS ICON JO POPUP KHOLEGA -->
-            <button onclick="openPaymentModal()" style="background: #ecfdf5; border: none; border-radius: 6px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669;">
+            <button onclick="openActionScreen('screen-add-payment')" style="background: #ecfdf5; border: none; border-radius: 6px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669;">
               <span class="material-symbols-outlined" style="font-size: 14px; font-weight: bold;">add</span>
             </button>
           </div>
