@@ -576,77 +576,104 @@ function switchTab(tabName) {
   document.getElementById('global-nav').classList.remove('hidden');
 }
 
-/* ==========================================================================
-   🚀 SMART NAVIGATION & HISTORY ENGINE
-   ========================================================================== */
-let screenHistory = []; 
+// ==========================================================================
+// 🚀 SMART NATIVE NAVIGATION ENGINE (STEP-BY-STEP BACK)
+// ==========================================================================
+let screenStack = []; // Ye array memory me yaad rakhega hum kahan se aaye hain
 
 function openActionScreen(screenId) {
+  // 1. Jo screen abhi khuli hai, usko history stack me save karo
   const currentScreen = document.querySelector('.screen:not(.hidden)');
   if (currentScreen && currentScreen.id !== screenId) {
-    screenHistory.push(currentScreen.id);
-    
-    // 🚨 PWA FIX: Phone ki memory me ek step aage badho taaki back button detect ho
-    window.history.pushState({ page: screenId }, "", "");
+    screenStack.push(currentScreen.id);
   }
 
+  // 2. Sab hide karke target screen dikhao
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById(screenId).classList.remove('hidden');
+  let target = document.getElementById(screenId);
+  if (target) target.classList.remove('hidden');
 
+  // 3. Action screens par bottom nav chhupao
   const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
-  if (!mainTabs.includes(screenId)) {
-    document.getElementById('global-nav').classList.add('hidden');
-  } else {
-    document.getElementById('global-nav').classList.remove('hidden');
+  let globalNav = document.getElementById('global-nav');
+  if (globalNav) {
+    if (!mainTabs.includes(screenId)) {
+      globalNav.classList.add('hidden');
+    } else {
+      globalNav.classList.remove('hidden');
+    }
   }
+
+  // 4. Phone ke system history me ek step badhao
+  window.history.pushState({ page: screenId }, "", "");
 }
 
-// 🚨 PWA FIX: isPopState flag add kiya taaki double back ka loop na bane
-function closeActionScreen(isPopState = false) {
-  if (screenHistory.length > 0) {
-    const previousScreenId = screenHistory.pop();
+function closeActionScreen() {
+  // 🚨 MAGIC FIX: Ab ye function khud koi screen change nahi karega!
+  // Ye bas phone ke hardware ko bolega "1 step back aao".
+  // Screen change karne ka kaam neeche wala 'popstate' khud sambhalega. (No Double Jumps)
+  window.history.back();
+}
+
+// 🚨 MASTER HARDWARE LISTENER (Phone Back aur App Back dono yahin hit honge)
+window.addEventListener('popstate', function(event) {
+  if (screenStack.length > 0) {
+    // Array se theek ek step pichla screen nikalo
+    const previousScreenId = screenStack.pop(); 
     
+    // UI update karo
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const prevScreen = document.getElementById(previousScreenId);
-    
-    if (prevScreen) {
-      prevScreen.classList.remove('hidden');
-    } else {
-      document.getElementById('screen-dashboard').classList.remove('hidden');
-    }
+    if (prevScreen) prevScreen.classList.remove('hidden');
 
+    // Bottom Nav check
     const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
-    if (mainTabs.includes(previousScreenId)) {
-      document.getElementById('global-nav').classList.remove('hidden');
-    } else {
-      document.getElementById('global-nav').classList.add('hidden');
-    }
-
-    // 🚨 PWA FIX: Agar app ke andar wala custom back button dabaya hai, toh browser/phone ki history bhi ek kadam back karo
-    if (!isPopState) {
-      window.history.back();
+    let globalNav = document.getElementById('global-nav');
+    if (globalNav) {
+      if (mainTabs.includes(previousScreenId)) {
+        globalNav.classList.remove('hidden');
+      } else {
+        globalNav.classList.add('hidden');
+      }
     }
   } else {
+    // Agar history bilkul khali hai (app ke root par), toh hamesha safely Dashboard dikhao
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-    document.getElementById('global-nav').classList.remove('hidden');
-  }
-}
-
-// 🚨 PWA FIX: PHONE KA HARDWARE BACK BUTTON LISTENER
-window.addEventListener('popstate', function(event) {
-  if (screenHistory.length > 0) {
-    // Agar koi modal ya room details screen khuli hai, toh ek step pichhe jao
-    closeActionScreen(true);
-  } else if (currentMainTab !== 'dashboard') {
-    // Agar history khali hai par tu Rooms ya Billing tab me hai, toh Dashboard par jao (Exit mat karo)
-    switchTab('dashboard');
+    let dash = document.getElementById('screen-dashboard');
+    if (dash) dash.classList.remove('hidden');
+    
+    let globalNav = document.getElementById('global-nav');
+    if (globalNav) globalNav.classList.remove('hidden');
   }
 });
-function openGuestProfile() { 
-  openActionScreen('screen-guest-profile'); 
-}
 
+// Tab switch karne par purani history clean karna zaroori hai
+function switchTab(tabName) {
+  screenStack = []; // Tab badalte hi memory reset
+  currentMainTab = tabName; 
+  
+  document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+  let targetScreen = document.getElementById('screen-' + tabName);
+  if (targetScreen) targetScreen.classList.remove('hidden');
+
+  let globalNav = document.getElementById('global-nav');
+  if(globalNav) globalNav.classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') === `switchTab('${tabName}')`) {
+      item.classList.add('active');
+    }
+  });
+
+  if(tabName === 'rooms' && typeof renderRoomsGrid === 'function') renderRoomsGrid();
+  if(tabName === 'dashboard' && typeof updateDashboardStats === 'function') updateDashboardStats();
+  if(tabName === 'bookings' && typeof renderBookingsList === 'function') renderBookingsList();
+  if(tabName === 'billing' && typeof renderBillingList === 'function') renderBillingList(); 
+  if(tabName === 'more' && typeof updateMoreTabStats === 'function') updateMoreTabStats();
+  
+  window.history.pushState({ page: tabName }, "", "");
+}
 // ==========================================================================
 // REAL-TIME DASHBOARD ENGINE
 // ==========================================================================
@@ -1268,6 +1295,27 @@ function addRoomExtra(roomNo) {
 }
 
 function openRoomDetails(roomNo) {
+  // 🚨 1. SMART MEMORY (Pichli screen ko yaad rakho taaki Back sahi jagah jaye)
+  let currentVisible = document.querySelector('.screen:not(.hidden)');
+  if (currentVisible && currentVisible.id !== 'screen-room-details') {
+     if(typeof screenStack !== 'undefined') screenStack.push(currentVisible.id);
+  }
+
+  // 🚨 2. UI CLEANUP (Baaki sab chupao, sirf Room Details dikhao bina kisi blink ke)
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  let rdScreen = document.getElementById('screen-room-details');
+  if (rdScreen) {
+     rdScreen.classList.remove('hidden');
+     rdScreen.classList.add('screen'); 
+  }
+
+  // 🚨 3. BROWSER HISTORY (Phone ko batao ki naya page aa gaya hai)
+  window.history.pushState({ screen: 'screen-room-details' }, "", "");
+
+  // 🚨 4. BOTTOM NAV HIDE (Room details me niche ka menu nahi dikhna chahiye)
+  let globalNav = document.getElementById('global-nav');
+  if (globalNav) globalNav.classList.add('hidden');
+
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
   let room = rooms.find(r => String(r.no) === String(roomNo));
@@ -1283,7 +1331,7 @@ function openRoomDetails(roomNo) {
   if(titleEl) titleEl.innerText = 'Room ' + room.no;
   if(catEl) catEl.innerText = room.cat;
   
-  // 🚨 Property ka asli naam laane ka engine
+  // Property ka asli naam laane ka engine
   let props = RoomPeDB.getProperties();
   let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
   let propName = activeProp ? activeProp.name : 'My Property';
@@ -1361,7 +1409,7 @@ function openRoomDetails(roomNo) {
     let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
     if(daysStaying === 0) daysStaying = 1;
 
-    // 🚨 FIXED SMART MATH LOGIC START
+    // SMART MATH LOGIC START
     let isMonthlyStay = room.stayType === 'Monthly';
     let priceDaily = parseInt(room.priceDaily || room.price || 0);
     let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
@@ -1390,7 +1438,7 @@ function openRoomDetails(roomNo) {
       totalRoomRent += extraFine;
       isOverstay = true;
     }
-    // 🚨 FIXED SMART MATH LOGIC END
+    // SMART MATH LOGIC END
 
     let extrasTotal = 0;
     let extrasHTML = '';
@@ -1438,14 +1486,12 @@ function openRoomDetails(roomNo) {
     let dueStatus = document.getElementById('rd-due-status');
     let dueIcon = document.getElementById('rd-due-icon');
 
-    // Naya Master Calculation Engine
-    calculateNetPayable();
+    if(typeof calculateNetPayable === 'function') calculateNetPayable();
 
-    // Agar Overstay fine hai toh text add kar do
     if (isOverstay) {
-      let dueStatus = document.getElementById('rd-due-status');
-      if (dueStatus) {
-        dueStatus.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
+      let dueStatusElement = document.getElementById('rd-due-status');
+      if (dueStatusElement) {
+        dueStatusElement.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
       }
     }
   }
@@ -1487,7 +1533,8 @@ function openRoomDetails(roomNo) {
   if(document.getElementById('rd-checkout-btn')) document.getElementById('rd-checkout-btn').style.display = '';
   if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = '';
   if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = '';
-  // 🚨 DISPLAY KYC DOCUMENTS IN ROOM DETAILS
+  
+  // DISPLAY KYC DOCUMENTS IN ROOM DETAILS
   let kycDisplayBox = document.getElementById('rd-kyc-display-box');
   if(kycDisplayBox) {
     if (room.idFront || room.idBack) {
@@ -1509,9 +1556,8 @@ function openRoomDetails(roomNo) {
   }
   
   switchRoomDetailsTab('overview');
-  openActionScreen('screen-room-details');
+  // 🚨 YAHAN SE 'openActionScreen' HATA DIYA GAYA HAI TAAKI DOUBLE JUMP/BLINK NA HO
 }
-
 // ==========================================================================
 // 🏢 DYNAMIC PROPERTY NAME ENGINE
 // ==========================================================================
