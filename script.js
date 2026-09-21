@@ -1,14 +1,37 @@
 
+// ==========================================================================
+// 🚀 PREMIUM LOADER ENGINE (With Animation Fix)
+// ==========================================================================
 function hideAppLoader() {
-  let loader = document.getElementById('roompe-global-loader');
-  if(loader) {
-    loader.style.opacity = '0';
-    setTimeout(() => { 
-      loader.style.visibility = 'hidden'; 
-      loader.style.display = 'none'; 
-    }, 400); // 0.4 second ka smooth fade-out
-  }
+    let loader = document.getElementById('roompe-global-loader');
+    
+    // 🚨 SMART LOGIC: Loader hatne se pehle hi Dashboard ko ready kar lo taaki Gray screen na aaye
+    let activeScreen = document.querySelector('.screen:not(.hidden)');
+    if (!activeScreen) {
+        let dash = document.getElementById('screen-dashboard');
+        let nav = document.getElementById('global-nav');
+        
+        if (dash) {
+            dash.classList.remove('hidden');
+            dash.classList.add('screen-enter'); // Ye wahi CSS magic hai jo slide-up karega
+        }
+        if (nav) nav.classList.remove('hidden');
+    }
+
+    if(loader) {
+        setTimeout(() => {
+            loader.classList.add('hide-loader'); 
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500); 
+        }, 800); 
+    }
 }
+
+window.addEventListener('load', hideAppLoader);
+// 🚨 SMART TRIGGER: Page ka saara CSS/Images load hone par hi ye trigger hoga
+window.addEventListener('load', hideAppLoader);
 // ==========================================================================
 // 🔔 CUSTOM ROOMPE POPUP ENGINE
 // ==========================================================================
