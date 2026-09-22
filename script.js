@@ -1242,7 +1242,7 @@ function renderBillingList() {
           <div class="bill-footer" style="background: #fff1f2; padding: 12px 16px; border-top: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">error</span> Due this month</div>
             <div style="display:flex; gap:8px;">
-              <button onclick="openActionScreen('screen-send-reminder')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
+            <button onclick="openReminderScreen('${r.guest}', '${r.no}', '${r.remainingDue}', '${r.phone}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
               <button onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
             </div>
           </div>
@@ -2409,29 +2409,49 @@ function unlockApp(user) {
   }, 800);
 }
 
-// --- GOOGLE LOGIN FIX ---
+// ==========================================
+// 🚀 SMART GOOGLE LOGIN ENGINE
+// ==========================================
 async function handleGoogleLogin() {
-  const errorBox = document.getElementById('auth-error-msg');
-  const errorText = document.getElementById('auth-error-text');
-  errorBox.style.display = 'none'; // reset errors
+    try {
+        const provider = window.fbGoogleProvider; 
+        const auth = window.fbAuth;
 
-  try {
-    // Ye line Firebase ka Google popup open karti hai
-    const result = await window.fbSignInPopup(window.fbAuth, window.fbGoogleProvider);
-    const user = result.user;
-    
-    console.log("Google Login Success:", user.displayName);
-    
-    // Seedha Dashboard me bhej do
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById('screen-dashboard').classList.remove('hidden');
-    document.getElementById('global-nav').classList.remove('hidden');
-    
-  } catch (error) {
-    console.error("Google Auth Error:", error);
-    errorText.innerText = "Google Sign-In failed or cancelled.";
-    errorBox.style.display = 'flex';
-  }
+        // Google Popup kholo aur login karwao
+        const result = await window.fbSignInPopup(auth, provider);
+        const user = result.user;
+        
+        console.log("Login Success! Email:", user.email);
+        
+        // 🚨 FIX 1: Login hote hi purana saara cache clean kar do taaki data mix na ho
+        localStorage.removeItem('activeProperty');
+        localStorage.removeItem('roompe_rooms');
+        // (Tu chahe toh seedha localStorage.clear() bhi likh sakta hai)
+
+        // Login screen ko hide karo
+        document.getElementById('screen-login').classList.add('hidden');
+
+        // 🚨 FIX 2: Naye user ko "Property Setup" par bhejo
+        // Note: Asli app mein hum Firebase se check karenge ki user ki property hai ya nahi.
+        // Abhi ke liye hum assume kar rahe hain ki ye naya user hai.
+        
+        let isNewUser = true; // Isko baad mein Firebase database se link karenge
+
+        if (isNewUser) {
+            // Naya Gmail: Seedha 'Setup Your Property' (Screen 4) dikhao
+            document.getElementById('screen-setup').classList.remove('hidden');
+            document.getElementById('screen-setup').classList.add('screen-enter');
+        } else {
+            // Purana Gmail jisko property already assigned hai: Dashboard dikhao
+            document.getElementById('screen-dashboard').classList.remove('hidden');
+            document.getElementById('global-nav').classList.remove('hidden');
+            document.getElementById('screen-dashboard').classList.add('screen-enter');
+        }
+
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        alert("Login failed: " + error.message);
+    }
 }
 
 // --- BULLETPROOF EMAIL LOGIN / SIGNUP LOGIC ---
@@ -2521,23 +2541,33 @@ async function handleEmailAuth(event) {
   }
 }
 
-function logOutApp() {
-  // Ab koi 'confirm' nahi, sidha logout karo!
-  
-  // 1. Navigation chupao
-  const nav = document.getElementById('global-nav');
-  if(nav) nav.classList.add('hidden');
-  
-  // 2. Login screen par bhejo
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  document.getElementById('screen-login').classList.remove('hidden');
-  
-  // 3. Agar Firebase hai toh usko bhi sign out kar do
-  if (window.fbSignOut && window.fbAuth) {
-    window.fbSignOut(window.fbAuth).then(() => {
-      console.log("Logged out successfully");
-    });
-  }
+// ==========================================
+// 🚀 SECURE LOGOUT ENGINE
+// ==========================================
+async function logOutApp() {
+    try {
+        // Firebase se sach me logout karo
+        if (window.fbAuth) {
+            await window.fbSignOut(window.fbAuth);
+        }
+        
+        // 🚨 MAIN FIX: Browser ki memory se purane user ka saara data uda do
+        localStorage.clear(); 
+        
+        // Saari screens hide karo aur sirf Welcome/Login screen dikhao
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.add('hidden');
+            screen.classList.remove('screen-enter');
+        });
+        
+        document.getElementById('global-nav').classList.add('hidden');
+        document.getElementById('screen-welcome').classList.remove('hidden');
+        
+        console.log("User Logged Out Successfully! Memory Cleared.");
+        
+    } catch (error) {
+        console.error("Logout Error:", error);
+    }
 }
 
 // 2. INSTANT PROPERTY SWITCHER
@@ -3505,4 +3535,98 @@ function uploadKycFromRoomDetails(input) {
     openRoomDetails(roomNoStr); 
   };
   reader.readAsDataURL(file);
+}
+// ==========================================================================
+// 🚀 DYNAMIC RENT REMINDER ENGINE (WITH WORKING TEMPLATES & UNDEFINED FIX)
+// ==========================================================================
+
+// Ye variables data ko yaad rakhenge taaki template change karte time use ho sake
+let currentRemData = { name: '', room: '', amount: '', phone: '' };
+
+function openReminderScreen(name, room, amount, phone) {
+    // 🚨 UNDEFINED FIX: Agar galti se data nahi mila, toh 'Tenant' dikhayega
+    if (!name || name === 'undefined' || name === 'null') {
+        name = 'Tenant';
+    }
+
+    currentRemData = { name, room, amount, phone };
+
+    // Initial aur Paise set karo
+    let initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    let formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
+
+    // UI me Asli Data bharo
+    document.getElementById('rem-initials').innerText = initials;
+    document.getElementById('rem-name').innerText = name;
+    document.getElementById('rem-room').innerHTML = `<span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">door_front</span> Room ${room} • Active Tenant`;
+    document.getElementById('rem-amount').innerText = formattedAmount;
+
+    // Default template load karo (Standard Due)
+    switchReminderTemplate('standard');
+
+    openActionScreen('screen-send-reminder');
+}
+
+// 🚨 NAYA FUNCTION: Ye templates change karega aur Message/WhatsApp link update karega
+function switchReminderTemplate(type) {
+    let { name, room, amount, phone } = currentRemData;
+    let formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
+
+    // Saare buttons se color hatao
+    document.getElementById('chip-standard').className = 'chip';
+    document.getElementById('chip-gentle').className = 'chip';
+    document.getElementById('chip-urgent').className = 'chip';
+    document.getElementById('chip-standard').innerText = 'Standard Due';
+    document.getElementById('chip-urgent').style = ''; // Reset inline styles
+
+    let msgPreview = '';
+    let plainTextMessage = '';
+
+    if (type === 'standard') {
+        // Standard Button Color
+        document.getElementById('chip-standard').className = 'chip active-green';
+        document.getElementById('chip-standard').innerText = 'Standard Due ✓';
+        
+        msgPreview = `<p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red);">due today</span>.</p><br>
+        <p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p><br>
+        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
+        
+        plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is due today. Kindly pay via UPI/Card to avoid late penalty charges: https://pay.roompe.in/r/${room}`;
+        
+    } else if (type === 'gentle') {
+        // Gentle Button Color
+        document.getElementById('chip-gentle').className = 'chip active-green';
+        
+        msgPreview = `<p>Hi <strong>${name}</strong>, just a gentle reminder that your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is due.</p><br>
+        <p>Please clear it at your earliest convenience. Have a great day!</p><br>
+        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
+        
+        plainTextMessage = `Hi *${name}*, just a gentle reminder that your rent of *${formattedAmount}* for *Room ${room}* is due. Please clear it at your earliest convenience: https://pay.roompe.in/r/${room}`;
+        
+    } else if (type === 'urgent') {
+        // Urgent Button Color (Red effect)
+        let urgentChip = document.getElementById('chip-urgent');
+        urgentChip.className = 'chip active-green';
+        urgentChip.style.backgroundColor = '#fef2f2';
+        urgentChip.style.color = '#ef4444';
+        urgentChip.style.borderColor = '#fca5a5';
+        
+        msgPreview = `<p><strong>URGENT:</strong> Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red); font-weight:bold;">OVERDUE</span>.</p><br>
+        <p>Please pay immediately to avoid service interruption and penalty charges.</p><br>
+        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
+        
+        plainTextMessage = `URGENT: Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is OVERDUE. Please pay immediately to avoid service interruption and penalty: https://pay.roompe.in/r/${room}`;
+    }
+
+    // Naya message Screen par dikhao
+    document.getElementById('rem-msg-text').innerHTML = msgPreview;
+
+    // Naya message WhatsApp aur SMS ke buttons par set karo
+    let finalPhone = phone && phone !== 'undefined' ? phone : '919876543210'; 
+    document.getElementById('rem-wa-btn').onclick = function() {
+        window.open(`https://wa.me/91${finalPhone}?text=${encodeURIComponent(plainTextMessage)}`, '_blank');
+    };
+    document.getElementById('rem-sms-btn').onclick = function() {
+        window.open(`sms:+91${finalPhone}?body=${encodeURIComponent(plainTextMessage)}`, '_self');
+    };
 }
