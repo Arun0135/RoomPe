@@ -730,3 +730,90 @@ body {
   opacity: 1 !important;
   transform: scale(1) !important;
 }
+
+/* ==========================================================================
+   🚀 PREMIUM SKELETON SHIMMER EFFECT
+   ========================================================================== */
+.skeleton {
+    background: #e2e8f0 !important;
+    background-image: linear-gradient(90deg, #e2e8f0 0px, #f8fafc 40px, #e2e8f0 80px) !important;
+    background-size: 200vw 100% !important;
+    animation: shimmer 1.5s infinite linear !important;
+    border-radius: 8px !important;
+    color: transparent !important; /* Asli text ko tab tak chupayega */
+    border: none !important;
+    pointer-events: none; /* Click hone se rokega */
+}
+
+/* Skeleton ke andar agar koi icon/text hai toh usko bhi chupao */
+.skeleton * {
+    visibility: hidden !important;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200vw 0; }
+    100% { background-position: 200vw 0; }
+}
+
+/* ==========================================================================
+   🚀 PREMIUM TOP-CENTER FLOATING PILL (TOAST)
+   ========================================================================== */
+#toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%); /* Ekdum Center me rakhega */
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    align-items: center;
+}
+
+.custom-toast {
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    padding: 10px 20px;
+    border-radius: 100px; /* Pill Shape */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: max-content;
+    max-width: 90vw; /* Phone me screen ke bahar na jaye */
+    transform: translateY(-150%);
+    opacity: 0;
+    animation: dropDown 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+    pointer-events: auto;
+    border: 1px solid #e2e8f0;
+}
+
+/* Success & Error Themes */
+.custom-toast.success { background: #ecfdf5; border-color: #bbf7d0; }
+.custom-toast.error { background: #fef2f2; border-color: #fecdd3; }
+.custom-toast.warning { background: #fffbeb; border-color: #fde68a; }
+
+.custom-toast .icon { font-size: 18px; }
+.custom-toast.success .icon { color: #059669; }
+.custom-toast.error .icon { color: #e11d48; }
+.custom-toast.warning .icon { color: #d97706; }
+
+.custom-toast .message {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+}
+.custom-toast.success .message { color: #065f46; }
+.custom-toast.error .message { color: #9f1239; }
+.custom-toast.warning .message { color: #92400e; }
+
+/* Animations */
+@keyframes dropDown {
+    0% { transform: translateY(-150%) scale(0.9); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes dropUp {
+    0% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(-150%) scale(0.9); opacity: 0; }
+}
