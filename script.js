@@ -259,7 +259,7 @@ function saveProfileDetails() {
     let newPhone = document.getElementById('edit-profile-phone').value.trim();
     let newAvatar = document.getElementById('edit-profile-preview').src;
     
-    if(!newName) return alert("Bhai, naam toh daalna padega!");
+    if(!newName) return showToast("Enter your name!", "error");
     
     // Save to LocalStorage (Database)
     localStorage.setItem('roompe_user_name', newName);
@@ -713,8 +713,13 @@ function updateDashboardStats() {
   let occupiedRooms = rooms.filter(r => r.status === 'occupied');
   let occupancyRate = totalRooms === 0 ? 0 : Math.round((occupiedRooms.length / totalRooms) * 100);
 
+  
   let occElement = document.getElementById('dash-occupancy');
-  if(occElement) occElement.innerText = occupancyRate + '%';
+  
+  if(occElement) {
+      occElement.innerText = occupancyRate + '%';
+      occElement.classList.remove('skeleton');
+  }
 
   let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
   let totalExpected = 0;
@@ -772,9 +777,18 @@ function updateDashboardStats() {
   let collectedEl = document.getElementById('dash-collected-amt');
   let pendingEl = document.getElementById('dash-pending-amt');
 
-  if(expectedEl) expectedEl.innerText = '₹' + totalExpected.toLocaleString('en-IN');
-  if(collectedEl) collectedEl.innerText = '₹' + totalReceived.toLocaleString('en-IN');
-  if(pendingEl) pendingEl.innerText = '₹' + totalPendingAmt.toLocaleString('en-IN');
+  if(expectedEl) {
+      expectedEl.innerText = '₹' + totalExpected.toLocaleString('en-IN');
+      expectedEl.classList.remove('skeleton');
+  }
+  if(collectedEl) {
+      collectedEl.innerText = '₹' + totalReceived.toLocaleString('en-IN');
+      collectedEl.classList.remove('skeleton');
+  }
+  if(pendingEl) {
+      pendingEl.innerText = '₹' + totalPendingAmt.toLocaleString('en-IN');
+      pendingEl.classList.remove('skeleton');
+  }
 
   let actionContainer = document.getElementById('action-required-list');
   if(!actionContainer) return;
@@ -1085,7 +1099,7 @@ function saveNewPayment() {
   let amtEl = document.getElementById('pay-amount');
   let modeEl = document.getElementById('pay-mode-value');
 
-  if (!roomEl || !amtEl) { alert("Payment form inputs missing!"); return; }
+  if (!roomEl || !amtEl) { showToast("Payment form inputs missing!", "error"); return; }
 
   let roomNo = roomEl.value.trim();
   let amount = amtEl.value.trim();
@@ -1093,7 +1107,7 @@ function saveNewPayment() {
   let activePropId = RoomPeDB.getActiveProperty();
 
   if (roomNo === "" || amount === "") {
-    alert("Please enter both Room Number and Amount!");
+    showToast("Please enter both Room Number and Amount!", "error");
     return;
   }
 
@@ -1242,7 +1256,7 @@ function renderBillingList() {
           <div class="bill-footer" style="background: #fff1f2; padding: 12px 16px; border-top: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">error</span> Due this month</div>
             <div style="display:flex; gap:8px;">
-            <button onclick="openReminderScreen('${r.guest}', '${r.no}', '${r.remainingDue}', '${r.phone}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
+              <button onclick="openActionScreen('screen-send-reminder')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
               <button onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
             </div>
           </div>
@@ -1277,7 +1291,7 @@ function renderBillingList() {
           </div>
           <div class="bill-footer bg-green-lightest" style="background: #f8fafc; padding: 12px 16px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #64748b; font-weight: 500;">Received on ${dateStr}</div>
-            <button onclick="alert('Receipt downloaded!')" style="background: transparent; color: #059669; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <button onclick="showToast('Receipt downloaded!', 'success')" style="background: transparent; color: #059669; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size: 16px;">receipt</span> Receipt
             </button>
           </div>
@@ -1300,7 +1314,7 @@ function addRoomExtra(roomNo) {
   let itemName = prompt("Enter item/service name (e.g., Tea, Water Bottle, Laundry):");
   if (!itemName) return;
   let itemPrice = prompt(`Enter price for ${itemName}:`);
-  if (!itemPrice || isNaN(itemPrice)) return alert("Invalid amount!");
+  if (!itemPrice || isNaN(itemPrice)) return showToast("Invalid amount!", "error");
 
   let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
@@ -1723,7 +1737,7 @@ function saveRoomEdits() {
   let newPrice = document.getElementById('edit-room-price').value;
   let newCat = document.getElementById('edit-room-cat').value;
   
-  if(newNo === "") return alert("Room number required!"); 
+  if(newNo === "") return showToast("Room number required!", "error"); 
   
   let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
   let absIndex = absoluteRooms.findIndex(r => r.no === originalNo && r.propertyId === RoomPeDB.getActiveProperty());
@@ -1844,7 +1858,7 @@ function saveNewProperty() {
   if (propName) propName = propName.trim();
   
   if(!propName) {
-    alert("Please enter a property name!");
+    showToast("Please enter a property name!", "error");
     return;
   }
 
@@ -1876,7 +1890,7 @@ function saveNewProperty() {
   
   switchTab('dashboard');
   
-  alert(propName + " added successfully as a " + propType + " property!");
+  showPopup('success', 'Property Added', propName + " added successfully!");
 }
 
 function openPropertySwitcher() {
@@ -2019,7 +2033,7 @@ function openManageProperties() {
 function deletePropertySafetyLock(propId, propName) {
   let props = RoomPeDB.getProperties();
   if (props.length === 1) {
-    alert("Warning: You cannot delete your only property.");
+    showPopup('error', 'Action Denied', 'Warning: You cannot delete your only property.');
     return;
   }
 
@@ -2299,12 +2313,12 @@ function contactGuestAction(actionType, roomNo) {
   let due = (basePrice * duration) - roomTotalPaid;
   
   if(actionType === 'whatsapp') {
-    if(!phone) return alert("❌ No mobile number saved for this guest!");
+    if(!phone) return showToast("No mobile number saved for this guest!", "error");
     let msg = `Hi ${name}, this is from the reception.`;
     if(due > 0) msg = `Hi ${name}, gentle reminder. Your pending due is ₹${due.toLocaleString('en-IN')}. Please clear it at your earliest convenience.`;
     window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
   } else if (actionType === 'call') {
-    if(!phone) return alert("❌ No mobile number saved for this guest!");
+    if(!phone) return showToast("No mobile number saved for this guest!", "error");
     window.open(`tel:${phone}`, '_self');
   }
 }
@@ -2450,7 +2464,7 @@ async function handleGoogleLogin() {
 
     } catch (error) {
         console.error("Google Login Error:", error);
-        alert("Login failed: " + error.message);
+        showPopup('error', 'Login Failed', error.message);
     }
 }
 
@@ -2673,32 +2687,26 @@ function startCloudSync(uid) {
   });
 }
 
-// ==========================================================================
-// 🚀 APP INITIALIZATION & AUTO-LOGIN OBSERVER
-// ==========================================================================
 window.onload = function() {
-  // Database initialize (blank empty data set karega naye user ke liye)
   RoomPeDB.init();
+  
+  // 1. Yahan hum pehle saari screens chhupa rahe hain, sirf loader ghoomega
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
 
-  // Firebase Auto-Login Observer
-  setTimeout(() => {
-    if(window.fbOnAuthChange && window.fbAuth) {
-      window.fbOnAuthChange(window.fbAuth, (user) => {
-        if (user) {
-          // Agar user pehle se login hai toh app unlock karo
-          unlockApp(user);
-        } else {
-          // Agar login nahi hai, toh Login screen dikhao aur Loader hata do
-          document.getElementById('screen-login').style.display = 'flex';
-          hideAppLoader(); // 🚨 YAHI WO AAKHRI UPDATE HAI
-        }
-      });
-    } else {
-       // Failsafe: Agar firebase load na ho
-       document.getElementById('screen-login').style.display = 'flex';
-       hideAppLoader();
-    }
-  }, 500);
+  // 2. Firebase check karega ki tu login hai ya nahi
+  if(window.fbOnAuthChange && window.fbAuth) {
+    window.fbOnAuthChange(window.fbAuth, (user) => {
+      if (user) {
+        unlockApp(user); // Login hai, toh direct Dashboard khulega
+      } else {
+        document.getElementById('screen-welcome').classList.remove('hidden');
+        hideAppLoader(); 
+      }
+    });
+  } else {
+     document.getElementById('screen-welcome').classList.remove('hidden');
+     hideAppLoader();
+  }
 };
 
 // ==========================================================================
@@ -2793,7 +2801,7 @@ function openPropertyDetailsScreen() {
     let activeId = RoomPeDB.getActiveProperty();
     let activeProp = props.find(p => p.id === activeId);
     
-    if(!activeProp) return alert("Property not found!");
+    if(!activeProp) return showToast("Property not found!", "error");
 
     // Agar property me pehle se data hai, toh form me bhar do, warna khali chhod do
     document.getElementById('prop-detail-address').value = activeProp.address || '';
@@ -2827,7 +2835,7 @@ function savePropertyDetails() {
         closeActionScreen();
         showPopup('success', 'Details Saved', 'Property details and house rules updated successfully!');
     } else {
-        alert("Error saving details.");
+        showToast("Error saving details.", "error");
     }
 }
 // ==========================================================================
@@ -2840,7 +2848,7 @@ function openPricingSetupScreen() {
     let activeId = RoomPeDB.getActiveProperty();
     let activeProp = props.find(p => p.id === activeId);
     
-    if(!activeProp) return alert("Property not found!");
+    if(!activeProp) return showToast("Property not found!", "error");
 
     // Data load karo
     document.getElementById('prop-tax-gstin').value = activeProp.gstin || '';
@@ -2874,7 +2882,7 @@ function savePricingSetup() {
         closeActionScreen();
         showPopup('success', 'Pricing Saved', 'Tax and Utility settings have been updated successfully!');
     } else {
-        alert("Error saving details.");
+        showToast("Error saving details.", "error");
     }
 }
 // ==========================================================================
@@ -2932,8 +2940,8 @@ function saveNewStaff() {
     let role = document.getElementById('staff-role').value;
     let pin = document.getElementById('staff-pin').value.trim();
 
-    if(!name || !phone || !pin) return alert("Bhai, saari details bharni zaroori hain!");
-    if(pin.length !== 4) return alert("Login PIN theek 4-digit ka hona chahiye.");
+    if(!name || !phone || !pin) return showToast("Enter Full details!", "error");
+    if(pin.length !== 4) return showToast("Login PIN Required 4-digit.", "error");
 
     let props = RoomPeDB.getProperties();
     let activeId = RoomPeDB.getActiveProperty();
@@ -3457,7 +3465,7 @@ function calculateNetPayable() {
   }
 }
 // ==========================================
-// 📸 KYC DOCUMENT UPLOAD ENGINE
+// 📸 KYC DOCUMENT UPLOAD ENGINE (UPGRADED CLOUD VERSION)
 // ==========================================
 let currentKycFront = "";
 let currentKycBack = "";
@@ -3466,49 +3474,52 @@ function handleKycUpload(input, previewId, side) {
   let file = input.files[0];
   if (!file) return;
 
-  // File size check (Max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    showPopup('error', 'File Too Large', 'Please upload a clear photo under 2MB.');
+  // File size limit ab humne badha kar 5MB kar di hai kyunki hum compress kar rahe hain
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Please upload a clear photo under 5MB.', 'error');
     input.value = ""; 
     return;
   }
 
-  // FileReader se image ko Base64 me convert karo taaki DB me save ho sake
-  let reader = new FileReader();
-  reader.onload = function(e) {
-    let base64Image = e.target.result;
-    
-    // UI me preview dikhao
+  showToast('Compressing & Uploading... ⏳', 'warning');
+
+  // Pehle Compress Karo -> Phir Upload Karo
+  compressImageToBase64(file, async function(compressedBase64) {
+    // 1. UI me preview turant dikhao (Taaki user wait na kare)
     let previewImg = document.getElementById(previewId);
     if(previewImg) {
-      previewImg.src = base64Image;
+      previewImg.src = compressedBase64;
       previewImg.style.display = 'block';
     }
 
-    // Memory me save karo taaki Booking Save hote time DB me ja sake
-    if (side === 'front') currentKycFront = base64Image;
-    if (side === 'back') currentKycBack = base64Image;
-    
-    // Premium Success Popup
-    showPopup('success', 'Document Attached', `${side.charAt(0).toUpperCase() + side.slice(1)} photo added successfully.`);
-  };
-  reader.readAsDataURL(file);
+    // 2. Cloud par bhejo (Unique naam ke sath)
+    let fileName = `${Date.now()}_${side}_${Math.floor(Math.random() * 1000)}.jpg`;
+    let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+    if (cloudUrl) {
+      // 3. Memory me Cloud URL save karo (Pehle lamba Base64 hota tha)
+      if (side === 'front') currentKycFront = cloudUrl;
+      if (side === 'back') currentKycBack = cloudUrl;
+      
+      showToast(`${side.charAt(0).toUpperCase() + side.slice(1)} ID securely saved to Cloud! ☁️`, 'success');
+    }
+  });
 }
+
 // ==========================================
-// 📸 ROOM DETAILS DIRECT KYC UPLOAD ENGINE
+// 📸 ROOM DETAILS DIRECT KYC UPLOAD ENGINE (UPGRADED CLOUD VERSION)
 // ==========================================
 function uploadKycFromRoomDetails(input) {
   let file = input.files[0];
   if (!file) return;
 
-  if (file.size > 2 * 1024 * 1024) {
-    showPopup('error', 'File Too Large', 'Please upload a photo under 2MB.');
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Please upload a photo under 5MB.', 'error');
     input.value = '';
     return;
   }
 
-  // Room number dhoondho (Header se)
-  let roomTitle = document.getElementById('rd-room-title').innerText; // e.g. "Room 207"
+  let roomTitle = document.getElementById('rd-room-title').innerText; 
   let roomNoStr = roomTitle.replace('Room', '').trim();
   
   let activePropId = RoomPeDB.getActiveProperty();
@@ -3517,116 +3528,157 @@ function uploadKycFromRoomDetails(input) {
 
   if(absIndex === -1) return;
 
-  let reader = new FileReader();
-  reader.onload = function(e) {
-    let base64Image = e.target.result;
-    
-    // Asli Image Database me save karo (Pehle front, agar hai toh back)
-    if (!absoluteRooms[absIndex].idFront) {
-        absoluteRooms[absIndex].idFront = base64Image;
-    } else {
-        absoluteRooms[absIndex].idBack = base64Image;
-    }
+  showToast('Uploading ID to Secure Cloud... ⏳', 'warning');
 
-    RoomPeDB.saveRooms(absoluteRooms);
-    showPopup('success', 'Document Saved', 'Guest ID uploaded successfully.');
-    
-    // Screen ko turant refresh karo taaki photo dikh jaye
-    openRoomDetails(roomNoStr); 
-  };
-  reader.readAsDataURL(file);
+  compressImageToBase64(file, async function(compressedBase64) {
+    let fileName = `room_${roomNoStr}_${Date.now()}.jpg`;
+    let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+    if (cloudUrl) {
+      // Asli Cloud URL Database me save karo
+      if (!absoluteRooms[absIndex].idFront) {
+          absoluteRooms[absIndex].idFront = cloudUrl;
+      } else {
+          absoluteRooms[absIndex].idBack = cloudUrl;
+      }
+
+      RoomPeDB.saveRooms(absoluteRooms);
+      showToast('Guest ID securely saved to Cloud! ☁️', 'success');
+      
+      // Screen ko turant refresh karo taaki photo dikh jaye
+      openRoomDetails(roomNoStr); 
+    }
+  });
 }
 // ==========================================================================
-// 🚀 DYNAMIC RENT REMINDER ENGINE (WITH WORKING TEMPLATES & UNDEFINED FIX)
+// 🚀 DYNAMIC RENT REMINDER ENGINE (PREMIUM UI MATCHED)
 // ==========================================================================
-
-// Ye variables data ko yaad rakhenge taaki template change karte time use ho sake
-let currentRemData = { name: '', room: '', amount: '', phone: '' };
-
 function openReminderScreen(name, room, amount, phone) {
-    // 🚨 UNDEFINED FIX: Agar galti se data nahi mila, toh 'Tenant' dikhayega
-    if (!name || name === 'undefined' || name === 'null') {
-        name = 'Tenant';
-    }
-
-    currentRemData = { name, room, amount, phone };
-
-    // Initial aur Paise set karo
+    // 1. Naam ka pehla akshar nikalo (Jaise 'Arun' ka 'A', 'Rahul Kumar' ka 'RK')
     let initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+    // 2. Paise ko proper Indian format me lagao (jaise 21000 -> ₹21,000)
     let formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
 
-    // UI me Asli Data bharo
+    // 3. UI ke elements me asli data dalo
     document.getElementById('rem-initials').innerText = initials;
     document.getElementById('rem-name').innerText = name;
+    
+    // Room number ke sath wo icon aur text barkarar rakhna hai
     document.getElementById('rem-room').innerHTML = `<span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">door_front</span> Room ${room} • Active Tenant`;
+    
     document.getElementById('rem-amount').innerText = formattedAmount;
 
-    // Default template load karo (Standard Due)
-    switchReminderTemplate('standard');
-
-    openActionScreen('screen-send-reminder');
-}
-
-// 🚨 NAYA FUNCTION: Ye templates change karega aur Message/WhatsApp link update karega
-function switchReminderTemplate(type) {
-    let { name, room, amount, phone } = currentRemData;
-    let formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
-
-    // Saare buttons se color hatao
-    document.getElementById('chip-standard').className = 'chip';
-    document.getElementById('chip-gentle').className = 'chip';
-    document.getElementById('chip-urgent').className = 'chip';
-    document.getElementById('chip-standard').innerText = 'Standard Due';
-    document.getElementById('chip-urgent').style = ''; // Reset inline styles
-
-    let msgPreview = '';
-    let plainTextMessage = '';
-
-    if (type === 'standard') {
-        // Standard Button Color
-        document.getElementById('chip-standard').className = 'chip active-green';
-        document.getElementById('chip-standard').innerText = 'Standard Due ✓';
-        
-        msgPreview = `<p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red);">due today</span>.</p><br>
+    // 4. Message Preview Box (Ye tere screen par sundar dikhne ke liye hai)
+    let msgPreview = `
+        <p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red);">due today</span>.</p><br>
         <p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p><br>
-        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
-        
-        plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is due today. Kindly pay via UPI/Card to avoid late penalty charges: https://pay.roompe.in/r/${room}`;
-        
-    } else if (type === 'gentle') {
-        // Gentle Button Color
-        document.getElementById('chip-gentle').className = 'chip active-green';
-        
-        msgPreview = `<p>Hi <strong>${name}</strong>, just a gentle reminder that your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is due.</p><br>
-        <p>Please clear it at your earliest convenience. Have a great day!</p><br>
-        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
-        
-        plainTextMessage = `Hi *${name}*, just a gentle reminder that your rent of *${formattedAmount}* for *Room ${room}* is due. Please clear it at your earliest convenience: https://pay.roompe.in/r/${room}`;
-        
-    } else if (type === 'urgent') {
-        // Urgent Button Color (Red effect)
-        let urgentChip = document.getElementById('chip-urgent');
-        urgentChip.className = 'chip active-green';
-        urgentChip.style.backgroundColor = '#fef2f2';
-        urgentChip.style.color = '#ef4444';
-        urgentChip.style.borderColor = '#fca5a5';
-        
-        msgPreview = `<p><strong>URGENT:</strong> Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red); font-weight:bold;">OVERDUE</span>.</p><br>
-        <p>Please pay immediately to avoid service interruption and penalty charges.</p><br>
-        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}</div>`;
-        
-        plainTextMessage = `URGENT: Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is OVERDUE. Please pay immediately to avoid service interruption and penalty: https://pay.roompe.in/r/${room}`;
-    }
-
-    // Naya message Screen par dikhao
+        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);">
+            <span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}
+        </div>
+    `;
     document.getElementById('rem-msg-text').innerHTML = msgPreview;
 
-    // Naya message WhatsApp aur SMS ke buttons par set karo
-    let finalPhone = phone && phone !== 'undefined' ? phone : '919876543210'; 
+    // 5. Asli WhatsApp aur SMS ka Text (Jo client ko jayega)
+    let plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is due. Kindly pay via UPI/Card to avoid late penalty charges: https://pay.roompe.in/r/${room}`;
+    
+    // Agar phone number database se nahi mila, toh default test number dal do
+    let finalPhone = phone || '919876543210'; 
+
+    // WhatsApp Button par click action lagao
     document.getElementById('rem-wa-btn').onclick = function() {
         window.open(`https://wa.me/91${finalPhone}?text=${encodeURIComponent(plainTextMessage)}`, '_blank');
     };
+
+    // SMS Button par click action lagao
     document.getElementById('rem-sms-btn').onclick = function() {
         window.open(`sms:+91${finalPhone}?body=${encodeURIComponent(plainTextMessage)}`, '_self');
     };
+
+    // 6. Ab poora data bhar chuka hai, screen ko open kar do!
+    openActionScreen('screen-send-reminder');
+}
+
+// ==========================================================================
+// 🚀 PREMIUM FLOATING PILL NOTIFICATION ENGINE
+// ==========================================================================
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    
+    // Agar container HTML me nahi hai, toh automatic bana lo
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    let toast = document.createElement('div');
+    toast.className = `custom-toast ${type}`;
+
+    // Icon select karna type ke hisaab se
+    let iconName = 'check_circle';
+    if (type === 'error') iconName = 'error';
+    if (type === 'warning') iconName = 'warning';
+
+    toast.innerHTML = `
+        <span class="material-symbols-outlined icon">${iconName}</span>
+        <span class="message">${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // 3 Second baad automatically hatana (dropUp animation)
+    setTimeout(() => {
+        toast.style.animation = 'dropUp 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards';
+        setTimeout(() => {
+            toast.remove();
+        }, 300); // Animation khatam hone ka wait
+    }, 3000);
+}
+
+// ==========================================================================
+// ☁️ SMART IMAGE COMPRESSOR & FIREBASE UPLOADER ENGINE
+// ==========================================================================
+
+// 1. Photo ko chhota karne wala Compressor (2MB to 150KB)
+function compressImageToBase64(file, callback) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function(event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800; // Resolution chhota karega (HD quality)
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // 0.6 ka matlab 60% quality (Size bahut kam, quality almost same)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
+            callback(compressedBase64);
+        }
+    }
+}
+
+// 2. Chhoti photo ko Firebase Cloud par bhejne wala uploader
+async function uploadToFirebaseCloud(base64Data, fileName) {
+    if (!window.fbStorage) {
+        showToast("Storage not connected! Saving locally.", "error");
+        return base64Data; // Agar net nahi hai toh backup ke liye wahi de dega
+    }
+    
+    try {
+        const storageRef = window.fbRef(window.fbStorage, `kyc_documents/${fileName}`);
+        const snapshot = await window.fbUploadString(storageRef, base64Data, 'data_url');
+        const downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+        return downloadURL; // Ye rahi teri choti si URL!
+    } catch (error) {
+        console.error("Cloud Upload Failed:", error);
+        showToast("Image upload failed. Try again.", "error");
+        return null;
+    }
 }
