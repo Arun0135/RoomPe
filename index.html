@@ -7,9 +7,6 @@
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
-  <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#059669">
-<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png">
   
   <link rel="stylesheet" href="style.css">
   <style>
@@ -419,21 +416,21 @@
             <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
               <span class="material-symbols-outlined" style="font-size: 14px;">receipt_long</span> Expected
             </div>
-            <div id="dash-expected-amt" style="font-size: 20px; font-weight: 800; color: #0f172a;">₹0</div>
+            <div id="dash-expected-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #0f172a;">₹00,000</div>
           </div>
           
           <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
             <div style="display: flex; align-items: center; gap: 6px; color: #10b981; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
               <span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span> Collected
             </div>
-            <div id="dash-collected-amt" style="font-size: 20px; font-weight: 800; color: #10b981;">₹0</div>
+            <div id="dash-collected-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #10b981;">₹00,000</div>
           </div>
           
           <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
             <div style="display: flex; align-items: center; gap: 6px; color: #ef4444; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
               <span class="material-symbols-outlined" style="font-size: 14px;">warning</span> Pending
             </div>
-            <div id="dash-pending-amt" style="font-size: 20px; font-weight: 800; color: #ef4444;">₹0</div>
+            <div id="dash-pending-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #ef4444;">₹00,000</div>
           </div>
           
           <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
@@ -441,7 +438,7 @@
               <span class="material-symbols-outlined" style="font-size: 14px;">domain</span> Occupancy
             </div>
             <div style="font-size: 20px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-              <span id="dash-occupancy">0%</span>
+              <span id="dash-occupancy" class="skeleton">00%</span>
               <div style="width: 14px; height: 14px; border: 3px solid #e2e8f0; border-top-color: #10b981; border-radius: 50%;"></div>
             </div>
           </div>
@@ -568,11 +565,11 @@
           <span style="font-size:11px; color:var(--primary); font-weight:600; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">edit</span> Edit Copy</span>
         </div>
         
-        <!-- TEENO CHIPS WORKING BANA DIYE -->
+        <!-- TEENO CHIPS WAPAS AA GAYE -->
         <div class="filter-chips" style="margin-bottom:16px;">
-          <div id="chip-standard" class="chip active-green" onclick="switchReminderTemplate('standard')">Standard Due ✓</div>
-          <div id="chip-gentle" class="chip" onclick="switchReminderTemplate('gentle')">Gentle Reminder</div>
-          <div id="chip-urgent" class="chip" onclick="switchReminderTemplate('urgent')">Urgent / Overdue</div>
+          <div class="chip active-green">Standard Due ✓</div>
+          <div class="chip">Gentle Reminder</div>
+          <div class="chip">Urgent / Overdue</div>
         </div>
 
         <div class="rem-msg-box">
@@ -1846,6 +1843,7 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
       import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+      import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
       
       // 🚨 NAYA: Auth Imports
       import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -1878,18 +1876,15 @@
       window.fbSignInPopup = signInWithPopup;
       window.fbOnAuthChange = onAuthStateChanged;
       window.fbSignOut = signOut;
+      window.fbStorage = getStorage(app);
+window.fbRef = ref;
+window.fbUploadString = uploadString;
+window.fbGetDownloadURL = getDownloadURL;
 
       console.log("🔥 Firebase Live Sync & Auth Ready!");
     </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('PWA Service Worker Registered!', reg))
-        .catch(err => console.error('PWA Service Worker Failed!', err));
-    });
-  }
-</script>
+  <!-- PREMIUM TOAST NOTIFICATION CONTAINER -->
+<div id="toast-container"></div>
   <script src="script.js"></script>
 </body>
 </html>
