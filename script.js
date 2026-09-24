@@ -698,152 +698,180 @@ function switchTab(tabName) {
   window.history.pushState({ page: tabName }, "", "");
 }
 // ==========================================================================
-// REAL-TIME DASHBOARD ENGINE
+// 🚀 REAL-TIME DASHBOARD ENGINE (PRO VERSION WITH RINGS & GREETING)
 // ==========================================================================
 function updateDashboardStats() {
-  if (typeof RoomPeDB.getActivePropertyRooms !== 'function') return;
+    if (typeof RoomPeDB.getActivePropertyRooms !== 'function') return;
 
-  let rooms = RoomPeDB.getActivePropertyRooms();
-  let payments = RoomPeDB.getActivePropertyPayments();
-  
-  let props = RoomPeDB.getProperties();
-  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty()) || props[0];
-
-  let totalRooms = rooms.length;
-  let occupiedRooms = rooms.filter(r => r.status === 'occupied');
-  let occupancyRate = totalRooms === 0 ? 0 : Math.round((occupiedRooms.length / totalRooms) * 100);
-
-  
-  let occElement = document.getElementById('dash-occupancy');
-  
-  if(occElement) {
-      occElement.innerText = occupancyRate + '%';
-      occElement.classList.remove('skeleton');
-  }
-
-  let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
-  let totalExpected = 0;
-  let totalPendingAmt = 0;
-  let pendingRoomsList = [];
-
-  occupiedRooms.forEach(r => {
-    let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    // --- 1. SMART AI GREETING ---
+    let hour = new Date().getHours();
+    let greeting = "Good Evening";
+    let emoji = "🌙";
+    if (hour >= 5 && hour < 12) { greeting = "Good Morning"; emoji = "🌅"; }
+    else if (hour >= 12 && hour < 17) { greeting = "Good Afternoon"; emoji = "☀️"; }
     
-    // 🚨 DASHBOARD SMART MATH START
-    let isMonthlyStay = r.stayType === 'Monthly';
-    let priceDaily = parseInt(r.priceDaily || r.price || 0);
-    let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
-    let duration = parseInt(r.duration || 1);
+    let greetTitle = document.getElementById('smart-greeting-title');
+    if(greetTitle) greetTitle.innerText = `${greeting}, Boss! ${emoji}`;
 
-    let expectedRent = 0;
-    let expectedCheckoutDate = new Date(r.checkinDate || new Date());
-    expectedCheckoutDate.setHours(0,0,0,0);
+    // --- 2. DATA CALCULATION (Original Engine Maintained) ---
+    let rooms = RoomPeDB.getActivePropertyRooms();
+    let payments = RoomPeDB.getActivePropertyPayments();
+    
+    let totalRooms = rooms.length;
+    let occupiedRooms = rooms.filter(r => r.status === 'occupied');
+    let occupancyRate = totalRooms === 0 ? 0 : Math.round((occupiedRooms.length / totalRooms) * 100);
 
-    if (isMonthlyStay) {
-      expectedRent = priceMonthly * duration;
-      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
-    } else {
-      expectedRent = priceDaily * duration;
-      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+    let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    let totalExpected = 0;
+    let totalPendingAmt = 0;
+    let pendingRoomsList = [];
+
+    occupiedRooms.forEach(r => {
+        let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+        
+        let isMonthlyStay = r.stayType === 'Monthly';
+        let priceDaily = parseInt(r.priceDaily || r.price || 0);
+        let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
+        let duration = parseInt(r.duration || 1);
+
+        let expectedRent = 0;
+        let expectedCheckoutDate = new Date(r.checkinDate || new Date());
+        expectedCheckoutDate.setHours(0,0,0,0);
+
+        if (isMonthlyStay) {
+            expectedRent = priceMonthly * duration;
+            expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+        } else {
+            expectedRent = priceDaily * duration;
+            expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+        }
+
+        let isOverstay = false;
+        let extraFine = 0;
+        let today = new Date();
+        today.setHours(0,0,0,0);
+
+        if (today > expectedCheckoutDate) {
+            let diffTime = Math.abs(today - expectedCheckoutDate);
+            let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+            extraFine = extraDays * perDayFine;
+            expectedRent += extraFine;
+            isOverstay = true;
+        }
+
+        totalExpected += expectedRent;
+        let remainingDue = expectedRent - roomTotalPaid;
+
+        if (remainingDue > 0) {
+            totalPendingAmt += remainingDue;
+            pendingRoomsList.push({ ...r, remainingDue, isOverstay, extraFine });
+        }
+    });
+
+    // --- 3. UI TEXT UPDATES ---
+    if(document.getElementById('dash-expected-amt')) document.getElementById('dash-expected-amt').innerText = '₹' + totalExpected.toLocaleString('en-IN');
+    if(document.getElementById('dash-collected-amt')) document.getElementById('dash-collected-amt').innerText = '₹' + totalReceived.toLocaleString('en-IN');
+    if(document.getElementById('dash-pending-amt')) document.getElementById('dash-pending-amt').innerText = '₹' + totalPendingAmt.toLocaleString('en-IN');
+    if(document.getElementById('dash-occupancy')) document.getElementById('dash-occupancy').innerText = occupancyRate + '%';
+
+    // --- 4. 🍏 APPLE RINGS ANIMATION MATH ---
+    let maxRevenueBase = totalExpected > 0 ? totalExpected : (totalReceived > 0 ? totalReceived : 1);
+    
+    let colPercent = Math.min(Math.round((totalReceived / maxRevenueBase) * 100), 100);
+    let expPercent = totalExpected > 0 ? 100 : 0; 
+    let pendPercent = Math.min(Math.round((totalPendingAmt / maxRevenueBase) * 100), 100);
+    
+    if (totalExpected === 0 && totalReceived === 0) { colPercent = 0; expPercent = 0; pendPercent = 0; }
+
+    setTimeout(() => {
+        let ringCol = document.getElementById('ring-collected');
+        let ringPend = document.getElementById('ring-pending');
+        let ringExp = document.getElementById('ring-expected');
+        let ringOcc = document.getElementById('ring-occupancy');
+
+        if(ringCol) ringCol.setAttribute('stroke-dasharray', `${colPercent}, 100`);
+        if(ringPend) ringPend.setAttribute('stroke-dasharray', `${pendPercent}, 100`);
+        if(ringExp) ringExp.setAttribute('stroke-dasharray', `${expPercent}, 100`);
+        if(ringOcc) ringOcc.setAttribute('stroke-dasharray', `${occupancyRate}, 100`);
+    }, 100); 
+
+    // --- 5. ACTION REQUIRED LIST ---
+    let actionContainer = document.getElementById('action-required-list');
+    if(!actionContainer) return;
+    let actionHTML = '';
+    let actionCount = 0;
+
+    pendingRoomsList.forEach(r => {
+        actionCount++;
+        let alertColor = r.isOverstay ? '#991b1b' : '#ef4444'; 
+        
+        // Naye colors aur icon iOS design ke liye
+        let bgColor = r.isOverstay ? '#fef2f2' : '#fffbeb';
+        let iconName = r.isOverstay ? 'warning' : 'currency_rupee';
+
+        let overstayTag = r.isOverstay ? `<span style="font-size:10px; background:#fee2e2; color:#b91c1c; padding:2px 4px; border-radius:4px; margin-left:4px; border: 1px solid #fca5a5;">+ ₹${r.extraFine} Fine</span>` : '';
+
+        // Naya Apple iOS Style UI (Bina button wala card)
+        actionHTML += `
+          <div onclick="openRoomDetails('${r.no}')" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: white; border: 1px solid #f1f5f9; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="width: 40px; height: 40px; background: ${bgColor}; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor};">
+                <span class="material-symbols-outlined" style="font-size: 20px;">${iconName}</span>
+              </div>
+              <div>
+                <h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no} ${overstayTag}</h5>
+                <p style="margin: 0; font-size: 12px; color: ${alertColor};">₹${r.remainingDue.toLocaleString('en-IN')} Due</p>
+              </div>
+            </div>
+            <div style="color: #cbd5e1; display: flex; align-items: center;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">chevron_right</span>
+            </div>
+          </div>
+        `;
+    });
+
+    let cleaningRooms = rooms.filter(r => r.status === 'cleaning');
+    cleaningRooms.forEach(r => {
+        actionCount++;
+        actionHTML += `
+          <div onclick="openRoomDetails('${r.no}')" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: white; border: 1px solid #f1f5f9; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #3b82f6;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">cleaning_services</span>
+              </div>
+              <div>
+                <h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no}</h5>
+                <p style="margin: 0; font-size: 12px; color: #3b82f6;">Needs Cleaning</p>
+              </div>
+            </div>
+            <div style="color: #cbd5e1; display: flex; align-items: center;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">chevron_right</span>
+            </div>
+          </div>
+        `;
+    });
+
+    if(actionCount === 0) {
+        actionHTML = `
+          <div style="text-align:center; padding: 10px; color:#94a3b8; font-size:13px; font-weight:600;">
+            <span class="material-symbols-outlined" style="font-size:32px; color:#10b981; display:block; margin-bottom:8px;">task_alt</span> 
+            All caught up! No pending actions.
+          </div>`;
+    }
+    actionContainer.innerHTML = actionHTML;
+
+    let subGreet = document.getElementById('smart-greeting-sub');
+    if (subGreet) {
+        if (totalPendingAmt > 0) subGreet.innerText = `You have ₹${totalPendingAmt.toLocaleString('en-IN')} pending to collect today.`;
+        else subGreet.innerText = "All dues are clear. Great job!";
     }
 
-    let isOverstay = false;
-    let extraFine = 0;
-    let today = new Date();
-    today.setHours(0,0,0,0);
-
-    if (today > expectedCheckoutDate) {
-      let diffTime = Math.abs(today - expectedCheckoutDate);
-      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
-      extraFine = extraDays * perDayFine;
-      
-      expectedRent += extraFine;
-      isOverstay = true;
+    // --- 6. TRIGGER THE REVENUE GRAPH ---
+    if (typeof renderDashboardChart === 'function') {
+        renderDashboardChart();
     }
-    // 🚨 DASHBOARD SMART MATH END
-
-    totalExpected += expectedRent;
-    let remainingDue = expectedRent - roomTotalPaid;
-
-    if (remainingDue > 0) {
-      totalPendingAmt += remainingDue;
-      pendingRoomsList.push({ ...r, remainingDue, isOverstay, extraFine });
-    }
-  });
-
-  let expectedEl = document.getElementById('dash-expected-amt');
-  let collectedEl = document.getElementById('dash-collected-amt');
-  let pendingEl = document.getElementById('dash-pending-amt');
-
-  if(expectedEl) {
-      expectedEl.innerText = '₹' + totalExpected.toLocaleString('en-IN');
-      expectedEl.classList.remove('skeleton');
-  }
-  if(collectedEl) {
-      collectedEl.innerText = '₹' + totalReceived.toLocaleString('en-IN');
-      collectedEl.classList.remove('skeleton');
-  }
-  if(pendingEl) {
-      pendingEl.innerText = '₹' + totalPendingAmt.toLocaleString('en-IN');
-      pendingEl.classList.remove('skeleton');
-  }
-
-  let actionContainer = document.getElementById('action-required-list');
-  if(!actionContainer) return;
-  let actionHTML = '';
-  let actionCount = 0;
-
-  pendingRoomsList.forEach(r => {
-    actionCount++;
-    let alertColor = r.isOverstay ? '#991b1b' : '#ef4444'; 
-    let overstayTag = r.isOverstay ? `<span style="font-size:10px; background:#fee2e2; color:#b91c1c; padding:2px 4px; border-radius:4px; margin-left:4px; border: 1px solid #fca5a5;">+ ₹${r.extraFine} Fine</span>` : '';
-
-    actionHTML += `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <div style="width: 40px; height: 40px; background: #fef2f2; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor};">
-            <span class="material-symbols-outlined" style="font-size: 20px;">${r.isOverstay ? 'warning' : 'currency_rupee'}</span>
-          </div>
-          <div>
-            <h5 style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no} ${overstayTag}</h5>
-            <p style="margin: 0; font-size: 12px; color: ${alertColor};">₹${r.remainingDue.toLocaleString('en-IN')} Due</p>
-          </div>
-        </div>
-        <button onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: white; border: 1px solid #10b981; color: #10b981; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
-      </div>
-    `;
-  });
-
-  let cleaningRooms = rooms.filter(r => r.status === 'cleaning');
-  cleaningRooms.forEach(r => {
-    actionCount++;
-    actionHTML += `
-      <div onclick="markRoomClean('${r.no}')" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; cursor: pointer;">
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <div style="width: 40px; height: 40px; background: #fff7ed; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #f97316;">
-            <span class="material-symbols-outlined" style="font-size: 20px;">cleaning_services</span>
-          </div>
-          <div>
-            <h5 style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no}</h5>
-            <p style="margin: 0; font-size: 12px; color: #f97316;">Needs Cleaning</p>
-          </div>
-        </div>
-        <span class="material-symbols-outlined" style="color: #cbd5e1;">chevron_right</span>
-      </div>
-    `;
-  });
-
-  if(actionCount === 0) {
-    actionHTML = `
-      <div style="text-align:center; padding: 10px; color:#94a3b8; font-size:13px; font-weight:600;">
-        <span class="material-symbols-outlined" style="font-size:32px; color:#10b981; display:block; margin-bottom:8px;">task_alt</span> 
-        All caught up! No pending actions.
-      </div>`;
-  }
-  actionContainer.innerHTML = actionHTML;
-}
+} // <--- BAS YE EK BRACKET ADD KARNA HAI SABSE LAST ME
 
 // ==========================================================================
 // 5. FORMS & DATA ACTIONS (Rooms)
@@ -2616,21 +2644,56 @@ function routeToDashboard() {
 }
 
 // ==========================================================================
-// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE & CONFLICT-FREE)
+// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE, VISUAL & CONFLICT-FREE)
 // ==========================================================================
 let isReceivingCloudData = false;
 let cloudTimer = null;
 
+// UI Helper: Cloud Icon ko update karne ke liye
+function updateSyncUI(status) {
+    let cloudBox = document.getElementById('cloud-sync-indicator');
+    let cloudIcon = document.getElementById('cloud-icon');
+    if (!cloudBox || !cloudIcon) return;
+
+    if (status === 'syncing') {
+        cloudBox.style.background = '#eff6ff'; // Light Blue
+        cloudBox.style.color = '#3b82f6';
+        cloudIcon.innerText = 'cloud_sync';
+        cloudIcon.style.animation = 'spin 2s linear infinite';
+    } else if (status === 'done') {
+        cloudBox.style.background = '#f0fdf4'; // Light Green
+        cloudBox.style.color = '#10b981';
+        cloudIcon.innerText = 'cloud_done';
+        cloudIcon.style.animation = 'none';
+    } else if (status === 'offline') {
+        cloudBox.style.background = '#fef2f2'; // Light Red
+        cloudBox.style.color = '#ef4444';
+        cloudIcon.innerText = 'cloud_off';
+        cloudIcon.style.animation = 'none';
+    }
+}
+
 // Naya Smart Trigger: Ye tabhi push karega jab local user koi data change karega
 window.triggerCloudSync = function() {
   if (isReceivingCloudData) return; // Agar Firebase se data download ho raha hai, toh wapas upload mat karo
+  
+  if (!navigator.onLine) {
+      updateSyncUI('offline');
+      if(typeof showToast === 'function') showToast("Offline mode. Data saved locally.", "warning");
+      return;
+  }
+
+  updateSyncUI('syncing');
   clearTimeout(cloudTimer);
-  cloudTimer = setTimeout(pushToCloud, 1000); // 1 sec delay taaki ek sath multiple changes push ho sakein
+  cloudTimer = setTimeout(pushToCloud, 1500); // 1.5 sec delay taaki ek sath multiple changes push ho sakein
 };
 
 async function pushToCloud() {
   let user = window.fbAuth ? window.fbAuth.currentUser : null;
-  if (!window.db || !user) return;
+  if (!window.db || !user) {
+      updateSyncUI('offline');
+      return;
+  }
   
   const userRef = window.fbDoc(window.db, "users", user.uid);
   
@@ -2649,8 +2712,10 @@ async function pushToCloud() {
         lastUpdated: new Date().getTime()
     }, { merge: true });
     console.log("☁️ Private Property Data Safely Saved to Cloud!");
+    updateSyncUI('done');
   } catch (e) {
     console.error("Cloud Save Error:", e);
+    updateSyncUI('offline');
   }
 }
 
@@ -2661,31 +2726,51 @@ function startCloudSync(uid) {
   
   window.fbOnSnapshot(userRef, (docSnap) => {
       if(docSnap.exists()) {
-          isReceivingCloudData = true; // 🔒 Lock laga diya
           let data = docSnap.data();
           
-          // Cloud data ko local mein dalo (Bina interceptor ke!)
-          if(data.rooms) localStorage.setItem('roompe_rooms', JSON.stringify(data.rooms));
-          if(data.bookings) localStorage.setItem('roompe_bookings', JSON.stringify(data.bookings));
-          if(data.payments) localStorage.setItem('roompe_payments', JSON.stringify(data.payments));
-          if(data.properties) localStorage.setItem('roompe_properties', JSON.stringify(data.properties));
-          
-          // Data aate hi UI refresh
-          if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
-          if(typeof renderBookingsList === 'function') renderBookingsList();
-          if(typeof updateHotelName === 'function') updateHotelName();
-          if(typeof updateDashboardStats === 'function') updateDashboardStats();
-          
-          // Thodi der baad lock kholo aur loader hatao
-          setTimeout(() => { 
-              isReceivingCloudData = false; // 🔓 Lock khol diya
-              hideAppLoader(); 
-          }, 800);
+          let localLastUpdated = localStorage.getItem('roompe_last_sync') || 0;
+          if (data.lastUpdated && data.lastUpdated > localLastUpdated) {
+              isReceivingCloudData = true; // 🔒 Lock laga diya
+              updateSyncUI('syncing');
+
+              // Cloud data ko local mein dalo (Bina interceptor ke!)
+              if(data.rooms) localStorage.setItem('roompe_rooms', JSON.stringify(data.rooms));
+              if(data.bookings) localStorage.setItem('roompe_bookings', JSON.stringify(data.bookings));
+              if(data.payments) localStorage.setItem('roompe_payments', JSON.stringify(data.payments));
+              if(data.properties) localStorage.setItem('roompe_properties', JSON.stringify(data.properties));
+              localStorage.setItem('roompe_last_sync', data.lastUpdated);
+              
+              // Data aate hi UI refresh
+              if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
+              if(typeof renderBookingsList === 'function') renderBookingsList();
+              if(typeof updateHotelName === 'function') updateHotelName();
+              if(typeof updateDashboardStats === 'function') updateDashboardStats();
+              
+              // Thodi der baad lock kholo aur loader hatao
+              setTimeout(() => { 
+                  isReceivingCloudData = false; // 🔓 Lock khol diya
+                  updateSyncUI('done');
+                  hideAppLoader(); 
+              }, 800);
+          } else {
+              hideAppLoader();
+          }
       } else {
           hideAppLoader(); // Agar user ka pehla din hai (Koi data nahi cloud par)
       }
   });
 }
+
+// Internet Detectors
+window.addEventListener('online', () => {
+    updateSyncUI('syncing');
+    pushToCloud();
+    if(typeof showToast === 'function') showToast("Back online! Syncing data...", "success");
+});
+
+window.addEventListener('offline', () => {
+    updateSyncUI('offline');
+});
 
 window.onload = function() {
   RoomPeDB.init();
@@ -3751,5 +3836,74 @@ async function uploadToFirebaseCloud(base64Data, fileName) {
         console.error("Cloud Upload Failed:", error);
         showToast("Image upload failed. Try again.", "error");
         return null;
+    }
+}
+
+// ==========================================================================
+// ⚡ SMART ELECTRICITY ENGINE (AUTO-CALCULATE & ADD TO DUES)
+// ==========================================================================
+function openElectricityModal(roomNo) {
+    let rooms = RoomPeDB.getActivePropertyRooms();
+    let room = rooms.find(r => String(r.no) === String(roomNo));
+    if(!room) return;
+
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let rate = activeProp && activeProp.electricityRate ? parseFloat(activeProp.electricityRate) : 10; // Default ₹10 agar setup nahi kiya
+
+    document.getElementById('elec-room-no').value = roomNo;
+    
+    // Smart Memory: Agar purani reading hai toh auto-fill karo, warna 0 (Editable)
+    document.getElementById('elec-prev-reading').value = room.lastMeterReading || '';
+    document.getElementById('elec-curr-reading').value = '';
+    document.getElementById('elec-rate-info').innerText = `Rate: ₹${rate}/unit`;
+
+    document.getElementById('modal-electricity').style.display = 'flex';
+}
+
+function saveElectricityBill() {
+    let roomNo = document.getElementById('elec-room-no').value;
+    let prev = parseFloat(document.getElementById('elec-prev-reading').value) || 0;
+    let curr = parseFloat(document.getElementById('elec-curr-reading').value) || 0;
+    
+    if (curr <= prev) {
+        if(typeof showToast === 'function') showToast("Current reading must be higher than previous!", "error");
+        else alert("Current reading must be higher than previous!");
+        return;
+    }
+
+    // Rate Fetch karo
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let rate = activeProp && activeProp.electricityRate ? parseFloat(activeProp.electricityRate) : 10;
+
+    // Smart Math
+    let units = curr - prev;
+    let billAmount = units * rate;
+
+    // Database me save karo
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activeProp.id || (!r.propertyId && activeProp.id === 'prop_default')));
+    
+    if (absIndex !== -1) {
+        // Nayi reading ko "Previous" bana do agle mahine ke liye
+        absoluteRooms[absIndex].lastMeterReading = curr;
+
+        // Bill ko Extras me daal do, system automatically usko Net Payable (Due) me jod lega!
+        if (!absoluteRooms[absIndex].extras) absoluteRooms[absIndex].extras = [];
+        absoluteRooms[absIndex].extras.push({
+            item: `⚡ Electricity (${units} units x ₹${rate})`,
+            price: billAmount,
+            date: new Date().getTime()
+        });
+
+        RoomPeDB.saveRooms(absoluteRooms); // Cloud sync bhi ho jayega
+        
+        document.getElementById('modal-electricity').style.display = 'none';
+        
+        if(typeof showToast === 'function') showToast(`₹${billAmount} added for ${units} units!`, "success");
+        
+        // UI instantly refresh karo taaki Total Due badha hua dikhe
+        openRoomDetails(roomNo);
     }
 }
