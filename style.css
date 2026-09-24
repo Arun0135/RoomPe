@@ -817,3 +817,59 @@ body {
     0% { transform: translateY(0) scale(1); opacity: 1; }
     100% { transform: translateY(-150%) scale(0.9); opacity: 0; }
 }
+
+/* ==========================================================================
+   🚀 DASHBOARD 2.0 SUPER PREMIUM STYLES (Glassmorphism & Apple Rings)
+   ========================================================================== */
+.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 16px;
+}
+
+/* SVG Circular Progress Rings - UPGRADED PRO VERSION */
+.ring-wrapper { position: relative; width: 68px; height: 68px; }
+.circular-chart { display: block; margin: 0 auto; max-width: 100%; max-height: 100%; }
+/* Peeche wali grey ring (Thick) */
+.circle-bg { fill: none; stroke: #f1f5f9; stroke-width: 4.5; } 
+/* Upar wali colored ring (Thick + Glow) */
+.circle { 
+    fill: none; stroke-width: 4.5; stroke-linecap: round; 
+    transition: stroke-dasharray 1.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    filter: drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.15)); /* Premium 3D Glow */
+}
+/* Ring Center Icon Position */
+.ring-icon {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    display: flex; justify-content: center; align-items: center;
+}
+/* Ring Colors */
+.ring-green .circle { stroke: #10b981; }
+.ring-red .circle { stroke: #ef4444; }
+.ring-blue .circle { stroke: #3b82f6; }
+.ring-purple .circle { stroke: #8b5cf6; }
+
+/* Quick Action Modern Buttons */
+.quick-action-btn {
+    background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.2s; cursor: pointer; flex: 1;
+}
+.quick-action-btn:active { transform: scale(0.95); }
+.qa-icon-box {
+    width: 44px; height: 44px; border-radius: 12px; display: flex; justify-content: center; align-items: center;
+}
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+.quick-action-pill {
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.quick-action-pill:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
