@@ -1256,7 +1256,7 @@ function renderBillingList() {
           <div class="bill-footer" style="background: #fff1f2; padding: 12px 16px; border-top: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">error</span> Due this month</div>
             <div style="display:flex; gap:8px;">
-              <button onclick="openActionScreen('screen-send-reminder')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
+              <button onclick="openReminderScreen('${r.guest || 'Guest'}', '${r.no}', '${r.remainingDue}', '${r.phone || ''}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
               <button onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
             </div>
           </div>
@@ -2839,10 +2839,8 @@ function savePropertyDetails() {
     }
 }
 // ==========================================================================
-// 💰 PRICING & TAX SETUP ENGINE
+// 💰 PRICING, TAX & UPI SETUP ENGINE
 // ==========================================================================
-
-// 1. Screen kholna aur purana data form me bharna
 function openPricingSetupScreen() {
     let props = RoomPeDB.getProperties();
     let activeId = RoomPeDB.getActiveProperty();
@@ -2850,37 +2848,49 @@ function openPricingSetupScreen() {
     
     if(!activeProp) return showToast("Property not found!", "error");
 
-    // Data load karo
+    // Purana data load karo
     document.getElementById('prop-tax-gstin').value = activeProp.gstin || '';
     document.getElementById('prop-tax-percent').value = activeProp.gstPercent || '';
     document.getElementById('prop-tax-electricity').value = activeProp.electricityRate || '';
     document.getElementById('prop-tax-cycle').value = activeProp.rentCycle || '1st';
     
+    // Naya UPI data load karo
+    let upiEl = document.getElementById('prop-upi-id');
+    let nameEl = document.getElementById('prop-upi-name');
+    if(upiEl) upiEl.value = activeProp.upiId || '';
+    if(nameEl) nameEl.value = activeProp.upiName || '';
+    
     openActionScreen('screen-pricing-tax');
 }
 
-// 2. Form ka data LocalStorage me (Active Property par) save karna
 function savePricingSetup() {
     let gstin = document.getElementById('prop-tax-gstin').value.trim().toUpperCase();
     let gstPercent = document.getElementById('prop-tax-percent').value.trim();
     let electricityRate = document.getElementById('prop-tax-electricity').value.trim();
     let rentCycle = document.getElementById('prop-tax-cycle').value;
+    
+    // Naya UPI input uthao
+    let upiId = document.getElementById('prop-upi-id') ? document.getElementById('prop-upi-id').value.trim() : '';
+    let upiName = document.getElementById('prop-upi-name') ? document.getElementById('prop-upi-name').value.trim() : '';
 
     let props = RoomPeDB.getProperties();
     let activeId = RoomPeDB.getActiveProperty();
     let activeIndex = props.findIndex(p => p.id === activeId);
 
     if(activeIndex !== -1) {
-        // Data save karna
         props[activeIndex].gstin = gstin;
         props[activeIndex].gstPercent = gstPercent;
         props[activeIndex].electricityRate = electricityRate;
         props[activeIndex].rentCycle = rentCycle;
         
+        // UPI Save
+        props[activeIndex].upiId = upiId;
+        props[activeIndex].upiName = upiName;
+        
         RoomPeDB.saveProperties(props); 
         
         closeActionScreen();
-        showPopup('success', 'Pricing Saved', 'Tax and Utility settings have been updated successfully!');
+        showPopup('success', 'Settings Saved', 'Tax and UPI setup updated successfully!');
     } else {
         showToast("Error saving details.", "error");
     }
@@ -3551,52 +3561,113 @@ function uploadKycFromRoomDetails(input) {
   });
 }
 // ==========================================================================
-// 🚀 DYNAMIC RENT REMINDER ENGINE (PREMIUM UI MATCHED)
+// 🚀 DYNAMIC RENT REMINDER ENGINE (WITH TEMPLATES & UPI)
 // ==========================================================================
+
+// Global state taaki teeno templates me same data use ho sake
+let currentReminderData = {
+    name: '', room: '', amount: '', formattedAmount: '', phone: '', 
+    propName: '', upiLinkText: '', plainUpiLink: ''
+};
+
 function openReminderScreen(name, room, amount, phone) {
-    // 1. Naam ka pehla akshar nikalo (Jaise 'Arun' ka 'A', 'Rahul Kumar' ka 'RK')
-    let initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    // 1. Data ko global state me save karo
+    currentReminderData.name = name || 'Guest';
+    currentReminderData.room = room || '';
+    currentReminderData.amount = amount || 0;
+    currentReminderData.formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
+    currentReminderData.phone = phone || '919876543210'; // Default phone if missing
 
-    // 2. Paise ko proper Indian format me lagao (jaise 21000 -> ₹21,000)
-    let formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
-
-    // 3. UI ke elements me asli data dalo
-    document.getElementById('rem-initials').innerText = initials;
-    document.getElementById('rem-name').innerText = name;
+    // 2. Property aur UPI data nikalo
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let upiId = activeProp && activeProp.upiId ? activeProp.upiId : '';
+    currentReminderData.propName = activeProp && activeProp.upiName ? activeProp.upiName : 'RoomPe Property';
     
-    // Room number ke sath wo icon aur text barkarar rakhna hai
-    document.getElementById('rem-room').innerHTML = `<span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">door_front</span> Room ${room} • Active Tenant`;
+    // 3. UPI Links Generate Karo
+    if (upiId) {
+        let deepLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(currentReminderData.propName)}&am=${amount}&cu=INR`;
+        // HTML Preview ke liye (Green Box)
+        currentReminderData.upiLinkText = `<div style="background:#ecfdf5; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#059669; margin-top:12px; font-size:13px;"><span class="material-symbols-outlined" style="font-size:16px;">link</span> pay.roompe.in/r/${currentReminderData.room}</div>`;
+        // WhatsApp ke liye asli link
+        currentReminderData.plainUpiLink = `\n\n👉 *Pay instantly via UPI:* \n${deepLink}`;
+    } else {
+        currentReminderData.upiLinkText = `<div style="color:#ef4444; font-size:12px; font-weight:600; margin-top:12px;">⚠️ Add UPI ID in Settings to attach payment link.</div>`;
+        currentReminderData.plainUpiLink = "\n\n(Please contact reception for payment details.)";
+    }
+
+    // 4. Top Card UI Update Karo (Screenshot ke hisaab se)
+    let initials = currentReminderData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     
-    document.getElementById('rem-amount').innerText = formattedAmount;
+    // Yahan ensure karna ki tere HTML me ye IDs hon
+    if(document.getElementById('rem-initials')) document.getElementById('rem-initials').innerText = initials;
+    if(document.getElementById('rem-name')) document.getElementById('rem-name').innerText = currentReminderData.name;
+    if(document.getElementById('rem-room')) document.getElementById('rem-room').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; color:#94a3b8;">door_front</span> Room ${currentReminderData.room} • Active Tenant`;
+    if(document.getElementById('rem-amount')) document.getElementById('rem-amount').innerText = currentReminderData.formattedAmount;
 
-    // 4. Message Preview Box (Ye tere screen par sundar dikhne ke liye hai)
-    let msgPreview = `
-        <p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:var(--red);">due today</span>.</p><br>
-        <p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p><br>
-        <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);">
-            <span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/${room}
-        </div>
-    `;
-    document.getElementById('rem-msg-text').innerHTML = msgPreview;
+    // 5. Default "Standard" template load karo
+    switchReminderTemplate('standard');
 
-    // 5. Asli WhatsApp aur SMS ka Text (Jo client ko jayega)
-    let plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is due. Kindly pay via UPI/Card to avoid late penalty charges: https://pay.roompe.in/r/${room}`;
-    
-    // Agar phone number database se nahi mila, toh default test number dal do
-    let finalPhone = phone || '919876543210'; 
-
-    // WhatsApp Button par click action lagao
-    document.getElementById('rem-wa-btn').onclick = function() {
-        window.open(`https://wa.me/91${finalPhone}?text=${encodeURIComponent(plainTextMessage)}`, '_blank');
-    };
-
-    // SMS Button par click action lagao
-    document.getElementById('rem-sms-btn').onclick = function() {
-        window.open(`sms:+91${finalPhone}?body=${encodeURIComponent(plainTextMessage)}`, '_self');
-    };
-
-    // 6. Ab poora data bhar chuka hai, screen ko open kar do!
     openActionScreen('screen-send-reminder');
+}
+
+// 🎯 Template Switcher Logic
+function switchReminderTemplate(type) {
+    let msgPreviewHTML = "";
+    let plainTextMessage = "";
+    
+    let { name, room, formattedAmount, propName, upiLinkText, plainUpiLink, phone } = currentReminderData;
+
+    // Teeno alag-alag messages
+    if (type === 'standard') {
+        msgPreviewHTML = `<p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> at ${propName} is <span style="color:#e11d48;">due today</span>.</p><br><p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p>${upiLinkText}`;
+        plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* at ${propName} is due today. Kindly pay instantly to avoid late penalty charges.${plainUpiLink}`;
+    } 
+    else if (type === 'gentle') {
+        msgPreviewHTML = `<p>Hi <strong>${name}</strong>, just a gentle reminder that your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is pending.</p><br><p>Whenever you have a moment, please clear the dues. Thank you for staying with us!</p>${upiLinkText}`;
+        plainTextMessage = `Hi *${name}*, just a gentle reminder that your rent of *${formattedAmount}* for *Room ${room}* is pending. Whenever you have a moment, please clear the dues. Thank you!${plainUpiLink}`;
+    } 
+    else if (type === 'urgent') {
+        msgPreviewHTML = `<p><strong>URGENT:</strong> Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:#e11d48; font-weight:bold;">OVERDUE</span>.</p><br><p>Please clear the payment immediately to avoid daily late fees or service interruption.</p>${upiLinkText}`;
+        plainTextMessage = `*URGENT:* Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is OVERDUE. Please clear the payment immediately to avoid daily late fees.${plainUpiLink}`;
+    }
+
+    // UI me preview update karo
+    if(document.getElementById('rem-msg-text')) {
+        document.getElementById('rem-msg-text').innerHTML = msgPreviewHTML;
+    }
+
+    // WhatsApp aur SMS buttons me active template ka text set karo
+    document.getElementById('rem-wa-btn').onclick = function() {
+        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(plainTextMessage)}`, '_blank');
+    };
+    document.getElementById('rem-sms-btn').onclick = function() {
+        window.open(`sms:+91${phone}?body=${encodeURIComponent(plainTextMessage)}`, '_self');
+    };
+
+    // 🎨 Buttons ka Rang Badlo (Green / Active state set karna)
+    // Pehle sabko normal (white) kar do
+    ['standard', 'gentle', 'urgent'].forEach(t => {
+        let btn = document.getElementById('btn-tpl-' + t);
+        if(btn) {
+            btn.style.background = 'white';
+            btn.style.color = '#475569';
+            btn.style.border = '1px solid #e2e8f0';
+            btn.style.fontWeight = '500';
+            // Checkmark chhupao
+            if(btn.innerHTML.includes('✓')) btn.innerHTML = btn.innerHTML.replace('✓', '').trim();
+        }
+    });
+
+    // Jo select kiya hai usko Green aur BOLD kardo
+    let activeBtn = document.getElementById('btn-tpl-' + type);
+    if(activeBtn) {
+        activeBtn.style.background = '#059669'; // Green
+        activeBtn.style.color = 'white';
+        activeBtn.style.border = '1px solid #059669';
+        activeBtn.style.fontWeight = '700';
+        activeBtn.innerHTML = activeBtn.innerHTML + ' ✓';
+    }
 }
 
 // ==========================================================================
