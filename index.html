@@ -390,14 +390,22 @@
       </div>
     </div>
 
-  <!-- ================= SCREEN 5: MAIN DASHBOARD ================= -->
+  <!-- ================= SCREEN 5: MAIN DASHBOARD (PREMIUM RINGS UI) ================= -->
     <div id="screen-dashboard" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
+      
+      <!-- HEADER -->
       <header class="dash-header" style="background: white; border-bottom: none;">
         <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
           <h3 style="color: #059669; font-weight: 800;">TheTaz</h3>
           <span class="material-symbols-outlined" style="color: #059669;">expand_more</span>
         </div>
-        <div class="header-icons">
+        <div class="header-icons" style="display: flex; align-items: center; gap: 12px;">
+          
+          <!-- ☁️ NEW: Cloud Sync Indicator -->
+          <div id="cloud-sync-indicator" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #f0fdf4; color: #10b981; transition: 0.3s;">
+            <span id="cloud-icon" class="material-symbols-outlined" style="font-size: 18px;">cloud_done</span>
+          </div>
+
           <div class="bell-icon" onclick="openActionScreen('screen-notifications')">
             <span class="material-symbols-outlined">notifications</span><div class="red-dot"></div>
           </div>
@@ -407,83 +415,119 @@
         </div>
       </header>
 
-      <div class="dash-scroll-area" style="padding: 16px 20px 100px;">
+      <!-- CLEAN DASHBOARD CONTENT -->
+      <div class="dash-scroll-area" style="padding: 20px 24px; padding-bottom: 100px; background: #f8fafc;">
+
+        <!-- 1. The Apple Rings (Stats Grid) -->
         <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 16px;">Overview</h3>
-        
-        <!-- DYNAMIC STATS GRID -->
-        <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
-          <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 14px;">receipt_long</span> Expected
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+            
+            <!-- Collected Ring -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
+                <div class="ring-wrapper">
+                    <svg viewBox="0 0 36 36" class="circular-chart ring-green">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle" id="ring-collected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <!-- Center Icon Added -->
+                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #10b981;">done_all</span></div>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Collected</p>
+                    <h4 id="dash-collected-amt" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">₹0</h4>
+                </div>
             </div>
-            <div id="dash-expected-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #0f172a;">₹00,000</div>
-          </div>
-          
-          <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="display: flex; align-items: center; gap: 6px; color: #10b981; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 14px;">check_circle</span> Collected
+
+            <!-- Pending Ring -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
+                <div class="ring-wrapper">
+                    <svg viewBox="0 0 36 36" class="circular-chart ring-red">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle" id="ring-pending" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <!-- Center Icon Added -->
+                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #ef4444;">warning</span></div>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pending</p>
+                    <h4 id="dash-pending-amt" style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">₹0</h4>
+                </div>
             </div>
-            <div id="dash-collected-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #10b981;">₹00,000</div>
-          </div>
-          
-          <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="display: flex; align-items: center; gap: 6px; color: #ef4444; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 14px;">warning</span> Pending
+
+            <!-- Expected Ring -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
+                <div class="ring-wrapper">
+                    <svg viewBox="0 0 36 36" class="circular-chart ring-blue">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle" id="ring-expected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <!-- Center Icon Added -->
+                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #3b82f6;">account_balance_wallet</span></div>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Expected</p>
+                    <h4 id="dash-expected-amt" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">₹0</h4>
+                </div>
             </div>
-            <div id="dash-pending-amt" class="skeleton" style="font-size: 20px; font-weight: 800; color: #ef4444;">₹00,000</div>
-          </div>
-          
-          <div style="background: white; border: 1px solid #f1f5f9; padding: 16px; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="display: flex; align-items: center; gap: 6px; color: #475569; font-size: 11px; font-weight: 600; margin-bottom: 8px;">
-              <span class="material-symbols-outlined" style="font-size: 14px;">domain</span> Occupancy
+
+            <!-- Occupancy Ring -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
+                <div class="ring-wrapper">
+                    <svg viewBox="0 0 36 36" class="circular-chart ring-purple">
+                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="circle" id="ring-occupancy" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <!-- Center Icon Added -->
+                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #8b5cf6;">bed</span></div>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Occupancy</p>
+                    <h4 id="dash-occupancy" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">0%</h4>
+                </div>
             </div>
-            <div style="font-size: 20px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-              <span id="dash-occupancy" class="skeleton">00%</span>
-              <div style="width: 14px; height: 14px; border: 3px solid #e2e8f0; border-top-color: #10b981; border-radius: 50%;"></div>
-            </div>
-          </div>
         </div>
 
-        <h3 style="font-size: 11px; color: #64748b; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">QUICK ACTIONS</h3>
-        
-        <!-- QUICK ACTIONS BUTTONS -->
-        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-          <div onclick="openActionScreen('screen-add-room')" style="flex: 1; background: white; border: 1px solid #f1f5f9; padding: 16px 8px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="width: 32px; height: 32px; margin: 0 auto 8px; background: #ecfdf5; color: #10b981; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
+        <!-- 4. Floating Quick Actions (THE ULTIMATE MIX UI) -->
+<h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">Quick Actions</h4>
+<div style="display: flex; gap: 12px; margin-bottom: 24px;">
+    
+    <!-- Add Room (Ocean Blue Glow) -->
+    <div class="quick-action-pill" onclick="openActionScreen('screen-add-room')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #2563eb); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
+        </div>
+        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Room</span>
+    </div>
+
+    <!-- Booking (Emerald Green Glow) -->
+    <div class="quick-action-pill" onclick="openActionScreen('screen-new-booking')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">event_available</span>
+        </div>
+        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Booking</span>
+    </div>
+
+    <!-- Payment (Sunset Orange Glow) -->
+    <div class="quick-action-pill" onclick="openActionScreen('screen-add-payment')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
+        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 4px 10px rgba(217, 119, 6, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
+            <span class="material-symbols-outlined" style="font-size: 18px;">payments</span>
+        </div>
+        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Collect</span>
+    </div>
+
+</div>
+
+        <!-- 3. Action Required List -->
+        <div class="glass-card">
+            <h4 style="font-size: 11px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
+                <span class="material-symbols-outlined" style="font-size: 16px;">error</span> ACTION REQUIRED
+            </h4>
+            <div id="action-required-list">
+                <!-- JS WILL INJECT ALERTS HERE -->
             </div>
-            <span style="font-size: 11px; font-weight: 600; color: #0f172a;">Add Room</span>
-          </div>
-          
-          <div onclick="openActionScreen('screen-new-booking')" style="flex: 1; background: white; border: 1px solid #f1f5f9; padding: 16px 8px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="width: 32px; height: 32px; margin: 0 auto 8px; background: #ecfdf5; color: #10b981; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">event_available</span>
-            </div>
-            <span style="font-size: 11px; font-weight: 600; color: #0f172a;">New Booking</span>
-          </div>
-          
-          <div onclick="openActionScreen('screen-add-payment')" style="flex: 1; background: white; border: 1px solid #f1f5f9; padding: 16px 8px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div style="width: 32px; height: 32px; margin: 0 auto 8px; background: #ecfdf5; color: #10b981; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">payments</span>
-            </div>
-            <span style="font-size: 11px; font-weight: 600; color: #0f172a;">Add Payment</span>
-          </div>
         </div>
 
-        <!-- ACTION REQUIRED CONTAINER -->
-        <div style="background: white; border: 1px solid #f1f5f9; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-            <span class="material-symbols-outlined" style="color: #ef4444; font-size: 18px;">error</span>
-            <h4 style="margin: 0; font-size: 13px; font-weight: 700; color: #0f172a;">ACTION REQUIRED</h4>
-          </div>
-          
-          <!-- JS WILL INJECT ALERTS HERE -->
-          <div id="action-required-list">
-          </div>
-          
-        </div>
       </div>
-
     </div>
 
    <!-- ================= ACTION SCREEN: SMART NOTIFICATIONS ================= -->
@@ -1624,16 +1668,27 @@
       </div>
 
       <!-- NEW: ROOM SERVICE & EXTRAS SECTION -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h4 style="font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">ADD-ONS & EXTRAS</h4>
-        <button id="rd-add-extra-btn" style="background: #e0e7ff; color: #4f46e5; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          <span class="material-symbols-outlined" style="font-size: 14px;">add</span> Add Item
-        </button>
-      </div>
-      <div id="rd-extras-list" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px;">
-        <!-- Javascript yahan items dale ga -->
-      </div>
+<div id="extras-wrapper">
+    <!-- ADD-ONS AND EXTRAS HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase;">ADD-ONS & EXTRAS</h4>
+        <div style="display: flex; gap: 8px;">
+            <!-- Naya Electricity Button -->
+            <button onclick="openElectricityModal(document.getElementById('rd-room-title').innerText.replace('Room ', ''))" style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> Meter
+            </button>
+            <!-- Purana Add Extra Button -->
+            <button id="rd-add-extra-btn" style="background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 14px;">add</span> Add Item
+            </button>
+        </div>
     </div>
+    
+    <!-- EXTRAS LIST -->
+    <div id="rd-extras-list" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px;">
+        <!-- Javascript yahan items dale ga -->
+    </div>
+</div>
 
     <!-- TAB 2: PAYMENTS (Hidden by default) -->
     <div id="rd-tab-payments" class="hidden">
@@ -1907,6 +1962,28 @@ window.fbGetDownloadURL = getDownloadURL;
     </script>
   <!-- PREMIUM TOAST NOTIFICATION CONTAINER -->
 <div id="toast-container"></div>
+  <!-- ================= METER READING MODAL (SMART ENGINE) ================= -->
+<div id="modal-electricity" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+  <div style="background: white; width: 90%; max-width: 350px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+    <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        <span class="material-symbols-outlined" style="color: #f59e0b;">bolt</span> Electricity Bill
+    </h3>
+    <input type="hidden" id="elec-room-no">
+    
+    <label style="font-size: 12px; font-weight: 600; color: #475569;">Previous Reading (Editable)</label>
+    <input type="number" id="elec-prev-reading" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; margin-top: 4px; font-size: 16px;">
+    
+    <label style="font-size: 12px; font-weight: 600; color: #475569;">Current Reading</label>
+    <input type="number" id="elec-curr-reading" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; margin-top: 4px; font-size: 16px;" placeholder="e.g. 1350">
+    
+    <div id="elec-rate-info" style="font-size: 11px; color: #10b981; font-weight: 600; margin-bottom: 20px; text-align: right;">Rate: ₹10/unit</div>
+    
+    <div style="display: flex; gap: 12px;">
+      <button onclick="document.getElementById('modal-electricity').style.display='none'" style="flex: 1; padding: 12px; border-radius: 8px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer;">Cancel</button>
+      <button onclick="saveElectricityBill()" style="flex: 1; padding: 12px; border-radius: 8px; background: #f59e0b; color: white; border: none; font-weight: 700; cursor: pointer;">Add Bill</button>
+    </div>
+  </div>
+</div>
   <script src="script.js"></script>
 </body>
 </html>
