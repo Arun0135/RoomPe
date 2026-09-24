@@ -796,7 +796,7 @@ function updateDashboardStats() {
         if(ringOcc) ringOcc.setAttribute('stroke-dasharray', `${occupancyRate}, 100`);
     }, 100); 
 
-    // --- 5. ACTION REQUIRED LIST ---
+    // --- 5. ACTION REQUIRED LIST (FROSTED GLASS / GLASSMORPHISM UI) ---
     let actionContainer = document.getElementById('action-required-list');
     if(!actionContainer) return;
     let actionHTML = '';
@@ -804,28 +804,30 @@ function updateDashboardStats() {
 
     pendingRoomsList.forEach(r => {
         actionCount++;
-        let alertColor = r.isOverstay ? '#991b1b' : '#ef4444'; 
-        
-        // Naye colors aur icon iOS design ke liye
-        let bgColor = r.isOverstay ? '#fef2f2' : '#fffbeb';
-        let iconName = r.isOverstay ? 'warning' : 'currency_rupee';
+        let alertColor = r.isOverstay ? '#ef4444' : '#f59e0b'; // Red or Orange
+        let iconName = r.isOverstay ? 'warning' : 'payments';
 
-        let overstayTag = r.isOverstay ? `<span style="font-size:10px; background:#fee2e2; color:#b91c1c; padding:2px 4px; border-radius:4px; margin-left:4px; border: 1px solid #fca5a5;">+ ₹${r.extraFine} Fine</span>` : '';
+        // Glassmorphism wala Fine Tag
+        let overstayTag = r.isOverstay ? `<span style="font-size:10px; background: rgba(239, 68, 68, 0.1); color:#ef4444; padding:2px 8px; border-radius:12px; margin-left:8px; border: 1px solid rgba(239, 68, 68, 0.2); font-weight: 700;">+₹${r.extraFine} Fine</span>` : '';
 
-        // Naya Apple iOS Style UI (Bina button wala card)
+        // FROSTED GLASS CARD: Semi-transparent white with blur effect
         actionHTML += `
-          <div onclick="openRoomDetails('${r.no}')" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: white; border: 1px solid #f1f5f9; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <div style="width: 40px; height: 40px; background: ${bgColor}; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor};">
+          <div onclick="openRoomDetails('${r.no}')" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.04); transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+            
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <!-- Glowing Glass Icon Box -->
+              <div style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 2px 12px ${alertColor}25;">
                 <span class="material-symbols-outlined" style="font-size: 20px;">${iconName}</span>
               </div>
               <div>
-                <h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no} ${overstayTag}</h5>
-                <p style="margin: 0; font-size: 12px; color: ${alertColor};">₹${r.remainingDue.toLocaleString('en-IN')} Due</p>
+                <h5 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a; font-weight: 800; display: flex; align-items: center;">Room ${r.no} ${overstayTag}</h5>
+                <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">Due: <span style="color: ${alertColor}; font-weight: 800;">₹${r.remainingDue.toLocaleString('en-IN')}</span></p>
               </div>
             </div>
-            <div style="color: #cbd5e1; display: flex; align-items: center;">
-                <span class="material-symbols-outlined" style="font-size: 24px;">chevron_right</span>
+            
+            <!-- Premium iOS style circle arrow -->
+            <div style="background: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
+                <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 14px;">arrow_forward_ios</span>
             </div>
           </div>
         `;
@@ -835,18 +837,20 @@ function updateDashboardStats() {
     cleaningRooms.forEach(r => {
         actionCount++;
         actionHTML += `
-          <div onclick="openRoomDetails('${r.no}')" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 12px; background: white; border: 1px solid #f1f5f9; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
-            <div style="display: flex; gap: 12px; align-items: center;">
-              <div style="width: 40px; height: 40px; background: #eff6ff; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #3b82f6;">
+          <div onclick="openRoomDetails('${r.no}')" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.04); transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+            
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <div style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #3b82f6; box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 2px 12px rgba(59, 130, 246, 0.15);">
                 <span class="material-symbols-outlined" style="font-size: 20px;">cleaning_services</span>
               </div>
               <div>
-                <h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a; font-weight: 700;">Room ${r.no}</h5>
-                <p style="margin: 0; font-size: 12px; color: #3b82f6;">Needs Cleaning</p>
+                <h5 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a; font-weight: 800; display: flex; align-items: center;">Room ${r.no}</h5>
+                <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">Status: <span style="color: #3b82f6; font-weight: 800;">Needs Cleaning</span></p>
               </div>
             </div>
-            <div style="color: #cbd5e1; display: flex; align-items: center;">
-                <span class="material-symbols-outlined" style="font-size: 24px;">chevron_right</span>
+            
+            <div style="background: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
+                <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 14px;">arrow_forward_ios</span>
             </div>
           </div>
         `;
@@ -854,13 +858,14 @@ function updateDashboardStats() {
 
     if(actionCount === 0) {
         actionHTML = `
-          <div style="text-align:center; padding: 10px; color:#94a3b8; font-size:13px; font-weight:600;">
-            <span class="material-symbols-outlined" style="font-size:32px; color:#10b981; display:block; margin-bottom:8px;">task_alt</span> 
-            All caught up! No pending actions.
+          <div style="text-align:center; padding: 20px 10px; background: transparent; color:#94a3b8; font-size:13px; font-weight:600;">
+            <span class="material-symbols-outlined" style="font-size:36px; color:#10b981; display:block; margin-bottom:8px; opacity: 0.3;">check_circle</span> 
+            All dues clear! No pending actions.
           </div>`;
     }
     actionContainer.innerHTML = actionHTML;
 
+    // --- (Graph and Sub-greeting Logic to prevent errors) ---
     let subGreet = document.getElementById('smart-greeting-sub');
     if (subGreet) {
         if (totalPendingAmt > 0) subGreet.innerText = `You have ₹${totalPendingAmt.toLocaleString('en-IN')} pending to collect today.`;
@@ -1561,28 +1566,48 @@ function openRoomDetails(roomNo) {
     }
   }
 
-  // PAYMENTS TAB UPDATE
-  let roomPayments = payments.filter(p => String(p.room) === String(roomNo)).sort((a,b) => b.date - a.date);
+  // ==========================================
+  // 💸 PAYMENTS TAB UPDATE (SUPER FIX FOR CLOUD & LOCAL DATA)
+  // ==========================================
+ // Purani line hata kar ye Naya Smart Filter & Sort laga:
+  let roomPayments = payments.filter(p => {
+      let pRoom = String(p.room || '').replace('Room ', '').trim();
+      let currRoom = String(roomNo || '').replace('Room ', '').trim();
+      return pRoom === currRoom;
+  }).sort((a, b) => {
+      let timeA = a.date ? (a.date.seconds ? a.date.seconds * 1000 : new Date(a.date).getTime()) : 0;
+      let timeB = b.date ? (b.date.seconds ? b.date.seconds * 1000 : new Date(b.date).getTime()) : 0;
+      return timeB - timeA;
+  });
+  
   let payListContainer = document.getElementById('rd-payments-list');
+  
   if(payListContainer) {
     let payHTML = '';
     if(roomPayments.length === 0) {
-      payHTML = `<div style="text-align:center; padding: 20px; color:#94a3b8; font-size:12px;">No payments found for this stay.</div>`;
+      payHTML = `
+        <div style="text-align:center; padding: 24px 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: #94a3b8; margin-bottom: 8px; display: block;">receipt_long</span>
+            <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">No payments recorded yet.</p>
+        </div>`;
     } else {
       roomPayments.forEach(p => {
-        let dStr = new Date(p.date).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        // Firebase Timestamp & Local Date string parser (Safe Fallback)
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+        let dStr = new Date(timeValue).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        
         payHTML += `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px;">
             <div style="display:flex; gap:12px; align-items:center;">
-              <div style="width:36px; height:36px; background:#f8fafc; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#475569;">
+              <div style="width:36px; height:36px; background:#f0fdf4; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#10b981;">
                 <span class="material-symbols-outlined" style="font-size:18px;">${p.mode === 'UPI' ? 'phone_iphone' : 'payments'}</span>
               </div>
               <div>
                 <h5 style="margin:0; font-size:15px; color:#0f172a; font-weight:800;">₹${parseInt(p.amount).toLocaleString('en-IN')}</h5>
-                <p style="margin:0; font-size:11px; color:#64748b;">${dStr} • via ${p.mode}</p>
+                <p style="margin:0; font-size:11px; color:#64748b;">${dStr} • via ${p.mode || 'Cash'}</p>
               </div>
             </div>
-            <span style="font-size:10px; background:#ecfdf5; color:#059669; padding:4px 8px; border-radius:6px; font-weight:700;">Success</span>
+            <span style="font-size:10px; background:#ecfdf5; color:#059669; padding:4px 8px; border-radius:6px; font-weight:700; border: 1px solid #a7f3d0;">Success</span>
           </div>`;
       });
     }
@@ -1599,27 +1624,56 @@ function openRoomDetails(roomNo) {
   if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = '';
   if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = '';
   
-  // DISPLAY KYC DOCUMENTS IN ROOM DETAILS
-  let kycDisplayBox = document.getElementById('rd-kyc-display-box');
-  if(kycDisplayBox) {
-    if (room.idFront || room.idBack) {
-      kycDisplayBox.innerHTML = `
-        <div style="display:flex; gap:12px; margin-top:10px; width: 100%;">
-          ${room.idFront ? `<div style="flex:1;"><img src="${room.idFront}" style="width:100%; height:120px; object-fit:cover; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.05);"><p style="text-align:center; font-size:11px; margin-top:4px; color:#64748b; font-weight:600;">Front</p></div>` : ''}
-          ${room.idBack ? `<div style="flex:1;"><img src="${room.idBack}" style="width:100%; height:120px; object-fit:cover; border-radius:12px; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.05);"><p style="text-align:center; font-size:11px; margin-top:4px; color:#64748b; font-weight:600;">Back</p></div>` : ''}
+  // ==========================================
+  // 📸 DISPLAY KYC DOCUMENTS (SMART GALLERY UI)
+  // ==========================================
+  let docsGallery = document.getElementById('rd-docs-gallery');
+  let sigContainer = document.getElementById('rd-sig-container');
+
+  // Naya Premium Card Design
+  const createDocCard = (title, imgUrl) => `
+    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+        <div style="height: 100px; background: #f8fafc; cursor: pointer; position: relative;" onclick="window.open('${imgUrl}', '_blank')">
+            <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <span class="material-symbols-outlined" style="color: white; font-size: 28px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">zoom_in_map</span>
+            </div>
         </div>
-      `;
-    } else {
-      kycDisplayBox.innerHTML = `
-        <div style="border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 30px 20px; text-align: center; color: #64748b; background: #f8fafc;">
-          <span class="material-symbols-outlined" style="font-size: 32px; color: #3b82f6; margin-bottom: 8px;">add_a_photo</span>
-          <h5 style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 700;">No ID Uploaded</h5>
-          <p style="margin: 4px 0 0 0; font-size: 12px;">Documents are pending for this guest.</p>
+        <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; background: white; border-top: 1px solid #f1f5f9;">
+            <span style="font-size: 11px; font-weight: 800; color: #475569;">${title}</span>
+            <div style="display: flex; gap: 10px;">
+                <a href="${imgUrl}" download="Guest_${title}.jpg" style="color: #3b82f6; display: flex; align-items: center; text-decoration: none;"><span class="material-symbols-outlined" style="font-size: 16px;">download</span></a>
+                <span class="material-symbols-outlined" style="font-size: 16px; color: #10b981; cursor: pointer;" onclick="shareDocument('${imgUrl}')">share</span>
+            </div>
         </div>
-      `;
-    }
+    </div>`;
+
+  // Agar photo nahi hai toh ye dikhega
+  const createEmptyCard = (title) => `
+    <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8;">
+        <span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">image_not_supported</span>
+        <span style="font-size: 11px; font-weight: 600;">No ${title}</span>
+    </div>`;
+
+  // Gallery render karo
+  if(docsGallery) {
+      let frontHTML = room.idFront ? createDocCard('Front ID', room.idFront) : createEmptyCard('Front ID');
+      let backHTML = room.idBack ? createDocCard('Back ID', room.idBack) : createEmptyCard('Back ID');
+      docsGallery.innerHTML = frontHTML + backHTML;
   }
-  
+
+  // Signature render karo
+  if(sigContainer) {
+      if(room.signature) {
+          sigContainer.innerHTML = `<img src="${room.signature}" style="max-height: 80px; max-width: 100%; filter: contrast(1.5); cursor: pointer;" onclick="window.open('${room.signature}', '_blank')">`;
+      } else {
+          sigContainer.innerHTML = `<div style="color: #94a3b8; display: flex; flex-direction: column; align-items: center;"><span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">draw</span><span style="font-size: 11px; font-weight: 600;">No Signature</span></div>`;
+      }
+  }
+
+  let actionMenu = document.getElementById('doc-action-menu');
+  if(actionMenu) actionMenu.style.display = 'none';
+
   switchRoomDetailsTab('overview');
   // 🚨 YAHAN SE 'openActionScreen' HATA DIYA GAYA HAI TAAKI DOUBLE JUMP/BLINK NA HO
 }
@@ -1654,7 +1708,7 @@ function checkoutGuest(roomNo) {
 
   // 🧠 Checkout Math (Updated with Smart Hybrid Logic)
   let isMonthlyStay = room.stayType === 'Monthly';
-let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+  let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
   
   let priceDaily = parseInt(room.priceDaily || room.price || 0);
   let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
@@ -1691,14 +1745,30 @@ let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.cur
 
   let remainingDue = expectedRent - roomTotalPaid;
 
-  // Agar paise baki hain toh Custom Popup dikhao aur form par bhejo
+  // Agar paise baki hain toh NAYA Custom Popup dikhao aur form par bhejo
   if (remainingDue > 0) {
-    showCustomPopup('danger', 'Checkout Blocked!', `Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}.\nPlease collect the payment first.`, function() {
-      openActionScreen('screen-add-payment');
-      document.getElementById('pay-room-no').value = roomNo;
-      document.getElementById('pay-amount').value = remainingDue;
-    });
-    return; 
+    // 1. Modal ke andar ka text update karo
+    let blockedTextElem = document.getElementById('checkout-blocked-text');
+    if(blockedTextElem) {
+        blockedTextElem.innerText = `Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}.\nPlease collect the payment first.`;
+    }
+    
+    // 2. Naya Orange wala Checkout Blocked Modal kholo
+    let blockedModal = document.getElementById('modal-checkout-blocked');
+    if(blockedModal) {
+        blockedModal.style.display = 'flex';
+    } else {
+        // Agar galti se HTML me modal miss ho gaya toh ye fallback alert chalega
+        alert(`Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}. Please collect the payment first.`);
+    }
+    
+    // 3. Payment screen ke inputs me room no auto-fill kar do
+    let payRoomInput = document.getElementById('pay-room-no');
+    let payAmountInput = document.getElementById('pay-amount');
+    if(payRoomInput) payRoomInput.value = roomNo;
+    if(payAmountInput) payAmountInput.value = remainingDue;
+    
+    return; // Aage checkout ka code run hone se rok do
   }
 
   // 🚨 FIX 2: Premium Custom Popup for Checkout confirmation
@@ -1815,35 +1885,45 @@ function deleteRoom() {
 }
 
 function switchRoomDetailsTab(tabName) {
-  let tabs = ['overview', 'payments', 'documents'];
-  tabs.forEach(t => {
-    let btn = document.getElementById('rd-btn-' + t);
-    let content = document.getElementById('rd-tab-' + t);
-    if(btn && content) {
-      btn.style.background = 'transparent';
-      btn.style.color = '#64748b';
-      content.classList.add('hidden');
+    // 1. Sabhi buttons ko normal grey kar do (Inactive state)
+    ['overview', 'payments', 'documents'].forEach(tab => {
+        let btn = document.getElementById('rd-btn-' + tab);
+        if(btn) {
+            btn.style.background = 'transparent';
+            btn.style.color = '#64748b'; // Grey text
+        }
+    });
+    
+    // 2. Jo tab click hua hai usko Green/Active kar do
+    let activeBtn = document.getElementById('rd-btn-' + tabName);
+    if(activeBtn) {
+        activeBtn.style.background = '#059669'; // Tera theme wala dark green
+        activeBtn.style.color = 'white';
     }
-  });
 
-  let activeBtn = document.getElementById('rd-btn-' + tabName);
-  let activeContent = document.getElementById('rd-tab-' + tabName);
+    // 3. Sabhi tab content ko pehle hide (chupa) do
+    ['overview', 'payments', 'documents'].forEach(tab => {
+        let tabContent = document.getElementById('rd-tab-' + tab);
+        if(tabContent) {
+            tabContent.style.display = 'none';
+            // 🚨 CSS conflict fix: Hide karte waqt class wapas lagao
+            tabContent.classList.add('hidden'); 
+        }
+    });
 
-  if(activeBtn && activeContent) {
-    activeBtn.style.background = '#059669';
-    activeBtn.style.color = 'white';
-    activeContent.classList.remove('hidden');
-  }
-
-  // 🚨 SMART KYC & SIGNATURE TAB VISIBILITY CONTROLLER (Naya Code Yahan Aaya Hai)
-  let kycWrapper = document.getElementById('kyc-and-signature-wrapper');
-  if (kycWrapper) {
-    if (tabName === 'documents') {
-      kycWrapper.style.display = 'block'; // Sirf Documents tab par dikhega
-    } else {
-      kycWrapper.style.display = 'none';  // Baaki sab jagah chup jayega
+    // 4. Sirf target wale tab ko show karo
+    let targetContent = document.getElementById('rd-tab-' + tabName);
+    if(targetContent) {
+        targetContent.style.display = 'block';
+        // 🚨 MAIN FIX: Dikhate waqt 'hidden' class ko hata do taaki safed screen na aaye
+        targetContent.classList.remove('hidden'); 
     }
-  }
+    
+    // 5. Electricity/Extras wala box SIRF Overview me dikhna chahiye
+    let extrasWrapper = document.getElementById('extras-wrapper');
+    if(extrasWrapper) {
+        extrasWrapper.style.display = (tabName === 'overview') ? 'block' : 'none';
+    }
 }
 
 function handleFileUpload(input) {
@@ -2854,7 +2934,8 @@ function openHistoricalBooking(bookingId) {
       payHTML = `<div style="text-align:center; padding: 20px; color:#94a3b8; font-size:12px;">No payments recorded during this stay.</div>`;
     } else {
       bPayments.sort((a,b) => b.date - a.date).forEach(p => {
-        let dStr = new Date(p.date).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+  let dStr = new Date(timeValue).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
         payHTML += `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; margin-bottom:10px;">
             <div style="display:flex; gap:12px; align-items:center;">
@@ -3905,5 +3986,73 @@ function saveElectricityBill() {
         
         // UI instantly refresh karo taaki Total Due badha hua dikhe
         openRoomDetails(roomNo);
+    }
+}
+
+// ==========================================
+// 🪄 SMART DOCUMENT ACTIONS & UPLOAD ENGINE
+// ==========================================
+function toggleDocActionMenu() {
+    let menu = document.getElementById('doc-action-menu');
+    if(menu) {
+        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+    }
+}
+
+function triggerDocUpload(side) {
+    document.getElementById('doc-action-menu').style.display = 'none';
+    if(side === 'front') document.getElementById('rd-kyc-front-input').click();
+    if(side === 'back') document.getElementById('rd-kyc-back-input').click();
+}
+
+function uploadSpecificKyc(input, dbKey) {
+    let file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Please upload a photo under 5MB.', 'error');
+        input.value = '';
+        return;
+    }
+
+    let roomTitle = document.getElementById('rd-room-title').innerText; 
+    let roomNoStr = roomTitle.replace('Room', '').trim();
+    
+    let activePropId = RoomPeDB.getActiveProperty();
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNoStr) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+
+    if(absIndex === -1) return;
+
+    showToast('Uploading ID to Secure Cloud... ⏳', 'warning');
+
+    compressImageToBase64(file, async function(compressedBase64) {
+        let sideText = dbKey === 'idFront' ? 'front' : 'back';
+        let fileName = `room_${roomNoStr}_${sideText}_${Date.now()}.jpg`;
+        let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+        if (cloudUrl) {
+            // Specific ID ko database me update karo (Front ya Back)
+            absoluteRooms[absIndex][dbKey] = cloudUrl;
+            RoomPeDB.saveRooms(absoluteRooms);
+            
+            showToast('Document securely saved to Cloud! ☁️', 'success');
+            
+            // UI instantly refresh karo taaki Gallery me aa jaye
+            openRoomDetails(roomNoStr); 
+            setTimeout(() => { switchRoomDetailsTab('documents'); }, 100);
+        }
+    });
+}
+
+function shareDocument(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Guest KYC Document',
+            text: 'Here is the securely scanned KYC document from RoomPe.',
+            url: url
+        }).catch((error) => console.log('Error sharing', error));
+    } else {
+        showToast("Direct sharing not supported on this browser. Use download button.", "warning");
     }
 }
