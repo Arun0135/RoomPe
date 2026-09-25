@@ -1,4 +1,4 @@
-const CACHE_NAME = "roompe-v5"; // Version update
+const CACHE_NAME = "roompe-v6"; // Version update
 const urlsToCache = [
   "./",
   "./index.html",
