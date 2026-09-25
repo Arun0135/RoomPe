@@ -698,7 +698,7 @@ function switchTab(tabName) {
   window.history.pushState({ page: tabName }, "", "");
 }
 // ==========================================================================
-// 🚀 REAL-TIME DASHBOARD ENGINE (PRO VERSION WITH RINGS & GREETING)
+// 🚀 REAL-TIME DASHBOARD ENGINE (PRO VERSION WITH TRENDS & INSIGHTS)
 // ==========================================================================
 function updateDashboardStats() {
     if (typeof RoomPeDB.getActivePropertyRooms !== 'function') return;
@@ -713,18 +713,63 @@ function updateDashboardStats() {
     let greetTitle = document.getElementById('smart-greeting-title');
     if(greetTitle) greetTitle.innerText = `${greeting}, Boss! ${emoji}`;
 
-    // --- 2. DATA CALCULATION (Original Engine Maintained) ---
+    // --- 2. DATA CALCULATION ---
     let rooms = RoomPeDB.getActivePropertyRooms();
     let payments = RoomPeDB.getActivePropertyPayments();
     
     let totalRooms = rooms.length;
     let occupiedRooms = rooms.filter(r => r.status === 'occupied');
+    let vacantRooms = rooms.filter(r => r.status === 'available'); // FEATURE 4: Khali rooms
     let occupancyRate = totalRooms === 0 ? 0 : Math.round((occupiedRooms.length / totalRooms) * 100);
 
-    let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
-    let totalExpected = 0;
-    let totalPendingAmt = 0;
+    // ==========================================
+    // 🟢 FEATURE 1: TRENDS & MIX LOGIC (Collected)
+    // ==========================================
+    let now = new Date();
+    let currentMonth = now.getMonth();
+    let currentYear = now.getFullYear();
+    let lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    let lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    let lifetimeCollected = 0;
+    let thisMonthCollected = 0;
+    let lastMonthCollected = 0;
+
+    payments.forEach(p => {
+        let amt = parseInt(p.amount || 0);
+        lifetimeCollected += amt;
+
+        // Date parse with Cloud Fallback
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+        let pDate = new Date(timeValue);
+        
+        if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
+            thisMonthCollected += amt;
+        } else if (pDate.getMonth() === lastMonth && pDate.getFullYear() === lastMonthYear) {
+            lastMonthCollected += amt;
+        }
+    });
+
+    let growthPercent = 0;
+    let trendHTML = `<span style="color: #94a3b8; font-size: 10px;">No past data</span>`;
+    if (lastMonthCollected > 0) {
+        growthPercent = Math.round(((thisMonthCollected - lastMonthCollected) / lastMonthCollected) * 100);
+        if (growthPercent >= 0) {
+            trendHTML = `<span style="color: #10b981; font-size: 11px; font-weight: 800;">⬆️ +${growthPercent}%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+        } else {
+            trendHTML = `<span style="color: #ef4444; font-size: 11px; font-weight: 800;">⬇️ ${growthPercent}%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+        }
+    } else if (thisMonthCollected > 0) {
+        trendHTML = `<span style="color: #10b981; font-size: 11px; font-weight: 800;">⬆️ 100%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+    }
+
+    // ==========================================
+    // 🔵 & 🔴 FEATURE 2: AGING DUES & EXPECTED MATH
+    // ==========================================
+    let totalExpected = 0; // Active Rooms Expected
+    let totalPendingAmt = 0; // Lifetime Pending
     let pendingRoomsList = [];
+    let dangerOverdueAmount = 0; // > 30 Days purani udhaari
 
     occupiedRooms.forEach(r => {
         let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
@@ -748,14 +793,15 @@ function updateDashboardStats() {
 
         let isOverstay = false;
         let extraFine = 0;
+        let overstayDays = 0;
         let today = new Date();
         today.setHours(0,0,0,0);
 
         if (today > expectedCheckoutDate) {
             let diffTime = Math.abs(today - expectedCheckoutDate);
-            let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            overstayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
-            extraFine = extraDays * perDayFine;
+            extraFine = overstayDays * perDayFine;
             expectedRent += extraFine;
             isOverstay = true;
         }
@@ -765,24 +811,65 @@ function updateDashboardStats() {
 
         if (remainingDue > 0) {
             totalPendingAmt += remainingDue;
-            pendingRoomsList.push({ ...r, remainingDue, isOverstay, extraFine });
+            pendingRoomsList.push({ ...r, remainingDue, isOverstay, extraFine, overstayDays });
+            
+            // Risk Indicator check (> 30 days)
+            if (overstayDays > 30) {
+                dangerOverdueAmount += remainingDue;
+            }
         }
     });
 
-    // --- 3. UI TEXT UPDATES ---
-    if(document.getElementById('dash-expected-amt')) document.getElementById('dash-expected-amt').innerText = '₹' + totalExpected.toLocaleString('en-IN');
-    if(document.getElementById('dash-collected-amt')) document.getElementById('dash-collected-amt').innerText = '₹' + totalReceived.toLocaleString('en-IN');
-    if(document.getElementById('dash-pending-amt')) document.getElementById('dash-pending-amt').innerText = '₹' + totalPendingAmt.toLocaleString('en-IN');
-    if(document.getElementById('dash-occupancy')) document.getElementById('dash-occupancy').innerText = occupancyRate + '%';
+    // ==========================================
+    // 🪫 FEATURE 4: VACANCY LOSS MATH
+    // ==========================================
+    let dailyVacancyLoss = vacantRooms.reduce((sum, r) => {
+        let pDaily = parseInt(r.priceDaily || r.price || 0);
+        let pMonthly = parseInt(r.priceMonthly || 0);
+        let effectiveDaily = pDaily > 0 ? pDaily : Math.round(pMonthly / 30);
+        return sum + effectiveDaily;
+    }, 0);
+
+    // --- 3. UI TEXT UPDATES (DOM Manipulation) ---
+    
+    // 🟢 Collected Card (This Month + Trend + Lifetime)
+    let collectedAmtEl = document.getElementById('dash-collected-amt');
+    if(collectedAmtEl) {
+        collectedAmtEl.innerHTML = `₹${thisMonthCollected.toLocaleString('en-IN')}<br><div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME: ₹${lifetimeCollected.toLocaleString('en-IN')}</div>${trendHTML}`;
+        collectedAmtEl.style.lineHeight = '1.3';
+    }
+
+    // 🔵 Expected Card (Active Occupied)
+    let expectedAmtEl = document.getElementById('dash-expected-amt');
+    if(expectedAmtEl) {
+        expectedAmtEl.innerHTML = `₹${totalExpected.toLocaleString('en-IN')}<br><span style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">ACTIVE ROOMS ONLY</span>`;
+        expectedAmtEl.style.lineHeight = '1.3';
+    }
+    
+    // 🔴 Pending Card (All-Time + Danger Tag)
+    let pendingAmtEl = document.getElementById('dash-pending-amt');
+    if(pendingAmtEl) {
+        let dangerTag = dangerOverdueAmount > 0 ? `<div style="background: #fef2f2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; border: 1px solid #fecdd3; display: inline-block; margin-top: 2px;">⚠️ ₹${dangerOverdueAmount.toLocaleString('en-IN')} > 30 DAYS</div>` : `<div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME DUES</div>`;
+        pendingAmtEl.innerHTML = `₹${totalPendingAmt.toLocaleString('en-IN')}<br>${dangerTag}`;
+        pendingAmtEl.style.lineHeight = '1.3';
+    }
+
+    // 🪫 Occupancy Card (Percentage + Vacancy Loss)
+    let occEl = document.getElementById('dash-occupancy');
+    if(occEl) {
+        let lossTag = dailyVacancyLoss > 0 ? `<div style="color: #ef4444; font-size: 9px; font-weight: 800; margin-top: 2px;">LOSING ₹${dailyVacancyLoss.toLocaleString('en-IN')} / DAY</div>` : `<div style="color: #10b981; font-size: 9px; font-weight: 800; margin-top: 2px;">FULL HOUSE 🏠</div>`;
+        occEl.innerHTML = `${occupancyRate}%<br>${lossTag}`;
+        occEl.style.lineHeight = '1.3';
+    }
 
     // --- 4. 🍏 APPLE RINGS ANIMATION MATH ---
-    let maxRevenueBase = totalExpected > 0 ? totalExpected : (totalReceived > 0 ? totalReceived : 1);
+    let maxRevenueBase = totalExpected > 0 ? totalExpected : (thisMonthCollected > 0 ? thisMonthCollected : 1);
     
-    let colPercent = Math.min(Math.round((totalReceived / maxRevenueBase) * 100), 100);
+    let colPercent = Math.min(Math.round((thisMonthCollected / maxRevenueBase) * 100), 100);
     let expPercent = totalExpected > 0 ? 100 : 0; 
     let pendPercent = Math.min(Math.round((totalPendingAmt / maxRevenueBase) * 100), 100);
     
-    if (totalExpected === 0 && totalReceived === 0) { colPercent = 0; expPercent = 0; pendPercent = 0; }
+    if (totalExpected === 0 && thisMonthCollected === 0) { colPercent = 0; expPercent = 0; pendPercent = 0; }
 
     setTimeout(() => {
         let ringCol = document.getElementById('ring-collected');
@@ -807,15 +894,13 @@ function updateDashboardStats() {
         let alertColor = r.isOverstay ? '#ef4444' : '#f59e0b'; // Red or Orange
         let iconName = r.isOverstay ? 'warning' : 'payments';
 
-        // Glassmorphism wala Fine Tag
-        let overstayTag = r.isOverstay ? `<span style="font-size:10px; background: rgba(239, 68, 68, 0.1); color:#ef4444; padding:2px 8px; border-radius:12px; margin-left:8px; border: 1px solid rgba(239, 68, 68, 0.2); font-weight: 700;">+₹${r.extraFine} Fine</span>` : '';
+        // ⚠️ Enhanced Danger Tag in Action List
+        let overstayTag = r.isOverstay ? `<span style="font-size:9px; background: rgba(239, 68, 68, 0.1); color:#ef4444; padding:2px 6px; border-radius:8px; margin-left:6px; border: 1px solid rgba(239, 68, 68, 0.2); font-weight: 800; letter-spacing: 0.5px;">${r.overstayDays} DAYS OVERDUE</span>` : '';
 
-        // FROSTED GLASS CARD: Semi-transparent white with blur effect
         actionHTML += `
           <div onclick="openRoomDetails('${r.no}')" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.04); transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
             
             <div style="display: flex; gap: 14px; align-items: center;">
-              <!-- Glowing Glass Icon Box -->
               <div style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 2px 12px ${alertColor}25;">
                 <span class="material-symbols-outlined" style="font-size: 20px;">${iconName}</span>
               </div>
@@ -825,7 +910,6 @@ function updateDashboardStats() {
               </div>
             </div>
             
-            <!-- Premium iOS style circle arrow -->
             <div style="background: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
                 <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 14px;">arrow_forward_ios</span>
             </div>
@@ -865,10 +949,11 @@ function updateDashboardStats() {
     }
     actionContainer.innerHTML = actionHTML;
 
-    // --- (Graph and Sub-greeting Logic to prevent errors) ---
+    // --- Sub-greeting Logic ---
     let subGreet = document.getElementById('smart-greeting-sub');
     if (subGreet) {
-        if (totalPendingAmt > 0) subGreet.innerText = `You have ₹${totalPendingAmt.toLocaleString('en-IN')} pending to collect today.`;
+        if (dangerOverdueAmount > 0) subGreet.innerHTML = `<span style="color: #ef4444; font-weight: 700;">Critical: ₹${dangerOverdueAmount.toLocaleString('en-IN')} is heavily overdue!</span>`;
+        else if (totalPendingAmt > 0) subGreet.innerText = `You have ₹${totalPendingAmt.toLocaleString('en-IN')} pending to collect.`;
         else subGreet.innerText = "All dues are clear. Great job!";
     }
 
@@ -876,7 +961,7 @@ function updateDashboardStats() {
     if (typeof renderDashboardChart === 'function') {
         renderDashboardChart();
     }
-} // <--- BAS YE EK BRACKET ADD KARNA HAI SABSE LAST ME
+}
 
 // ==========================================================================
 // 5. FORMS & DATA ACTIONS (Rooms)
@@ -1148,7 +1233,6 @@ function saveNewPayment() {
   let room = allRooms.find(r => String(r.no) === String(roomNo));
   let guestName = room && room.guest ? room.guest : "Unknown Guest";
   
-  // 🚨 SMART FETCH: Room ki current Booking ID nikalo
   let currentBookingId = room && room.currentBookingId ? room.currentBookingId : null;
 
   let payments = RoomPeDB.getPayments();
@@ -1168,8 +1252,10 @@ function saveNewPayment() {
   roomEl.value = '';
   amtEl.value = '';
 
-  closeActionScreen();
-  switchTab('billing'); 
+  // 🚨 NAYA SMART ROUTING LOGIC
+  closeActionScreen(); // Sirf popup band hoga
+  smartRefresh(); // Wahi screen background me refresh ho jayegi
+  showToast('Payment saved successfully!', 'success');
 }
 
 function renderBillingList() {
@@ -1846,9 +1932,10 @@ function saveRoomEdits() {
     absoluteRooms[absIndex].cat = newCat;
     localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
     
-    closeActionScreen();
-    closeActionScreen();
-    switchTab('rooms');
+    // 🚨 NAYA SMART ROUTING LOGIC
+    closeActionScreen(); // Sirf edit room popup band karo
+    smartRefresh(); // Wahi screen update ho jayegi
+    showToast('Room details updated!', 'success');
   }
 }
 
@@ -2396,8 +2483,8 @@ function saveNewBookingVIP() {
   if(document.getElementById('id-back-input')) document.getElementById('id-back-input').value = '';
   clearSignature('signature-pad');
 
-  closeActionScreen();
-  switchTab('rooms');
+ closeActionScreen();
+smartRefresh();
 
   setTimeout(() => {
     if (smartMenu) showPopup('success', 'Booking & WhatsApp Sent!', `Message delivered to +91 ${guestPhone}. Guest has been successfully checked in.`);
@@ -4055,4 +4142,31 @@ function shareDocument(url) {
     } else {
         showToast("Direct sharing not supported on this browser. Use download button.", "warning");
     }
+}
+
+// ==========================================
+// 🧠 SMART ROUTING & REFRESH ENGINE
+// ==========================================
+function smartRefresh() {
+    setTimeout(() => {
+        let activeScreen = document.querySelector('.screen:not(.hidden)');
+        
+        // Agar hum Room Details par hain, toh usko silently refresh karo bina back-history badhaye
+        if (activeScreen && activeScreen.id === 'screen-room-details') {
+            let roomTitleText = document.getElementById('rd-room-title').innerText;
+            let currentRoom = roomTitleText.replace('Room ', '').replace(' (Past Stay)', '').trim();
+            
+            // Mute history push temporarily to prevent double back-button issues
+            let originalPush = window.history.pushState;
+            window.history.pushState = function() {}; 
+            openRoomDetails(currentRoom);
+            window.history.pushState = originalPush; 
+        } else {
+            // Agar main tab par hain, toh current active tab ko refresh karo
+            if (currentMainTab === 'billing' && typeof renderBillingList === 'function') renderBillingList();
+            if (currentMainTab === 'dashboard' && typeof updateDashboardStats === 'function') updateDashboardStats();
+            if (currentMainTab === 'rooms' && typeof renderRoomsGrid === 'function') renderRoomsGrid();
+            if (currentMainTab === 'bookings' && typeof renderBookingsList === 'function') renderBookingsList();
+        }
+    }, 150); // Thoda delay taaki UI smooth transition le sake
 }
