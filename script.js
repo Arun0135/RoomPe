@@ -1,4 +1,21 @@
 
+// ==========================================
+// 🛡️ ANTI-HACKER SECURITY SHIELD (XSS)
+// ==========================================
+function sanitizeInput(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str.replace(/[&<>"'/]/g, function (s) {
+        const entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;'
+        };
+        return entityMap[s];
+    });
+}
 // ==========================================================================
 // 🚀 PREMIUM LOADER ENGINE (With Animation Fix)
 // ==========================================================================
@@ -2401,8 +2418,11 @@ function toggleGSTBox() {
 }
 
 function saveNewBookingVIP() {
-  let guestName = document.getElementById('book-guest-name').value.trim();
-  let guestPhone = document.getElementById('book-guest-phone').value.trim();
+  let rawGuestName = document.getElementById('book-guest-name').value;
+let guestName = sanitizeInput(rawGuestName.trim());
+
+let rawGuestPhone = document.getElementById('book-guest-phone').value;
+let guestPhone = sanitizeInput(rawGuestPhone.trim());
   let roomNo = document.getElementById('book-room-no').value.trim();
   let stayType = document.getElementById('book-stay-type').value;
   let checkin = document.getElementById('book-checkin').value;
@@ -2751,7 +2771,7 @@ async function handleEmailAuth(event) {
 }
 
 // ==========================================
-// 🚀 SECURE LOGOUT ENGINE
+// 🚀 SECURE LOGOUT ENGINE (ULTRA-SECURE UPGRADE)
 // ==========================================
 async function logOutApp() {
     try {
@@ -2762,6 +2782,7 @@ async function logOutApp() {
         
         // 🚨 MAIN FIX: Browser ki memory se purane user ka saara data uda do
         localStorage.clear(); 
+        sessionStorage.clear(); // 🛡️ NAYA: Session memory wipe (Security Update)
         
         // Saari screens hide karo aur sirf Welcome/Login screen dikhao
         document.querySelectorAll('.screen').forEach(screen => {
@@ -2774,11 +2795,15 @@ async function logOutApp() {
         
         console.log("User Logged Out Successfully! Memory Cleared.");
         
+        // 🛡️ NAYA: JS Variables/RAM ko flush karne ke liye silent page reload
+        setTimeout(() => {
+            window.location.reload();
+        }, 800);
+        
     } catch (error) {
         console.error("Logout Error:", error);
     }
 }
-
 // 2. INSTANT PROPERTY SWITCHER
 function switchActiveProperty(propId) {
   RoomPeDB.setActiveProperty(propId);
