@@ -500,7 +500,12 @@ function renderRoomsGrid() {
       } else if (room.status === 'available') {
         // 🚨 NAYA UPDATE: Yahan Delete ke liye Edit Icon aur Price Format (/mo ya /d) theek kiya gaya hai!
         footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openEditRoom('${room.no}')" style="font-size: 18px; color: #94a3b8;">edit</span>`;
-        subText = isMonthlyProp ? `₹${room.priceMonthly}/mo` : `₹${room.priceDaily}/d`;
+        
+        // 🚨 GADBAD 2 FIX: Purane rooms ke liye price fallback
+        let pMonthly = room.priceMonthly || room.price || 0;
+        let pDaily = room.priceDaily || Math.round((room.price || 0) / 30);
+        subText = isMonthlyProp ? `₹${pMonthly}/mo` : `₹${pDaily}/d`;
+        
         cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
       } else if (room.status === 'cleaning') {
         footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); markRoomClean('${room.no}')">check</span>`;
@@ -1462,7 +1467,7 @@ function addRoomExtra(roomNo) {
       price: parseInt(itemPrice),
       date: new Date().getTime()
     });
-    localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
+    RoomPeDB.saveRooms(absoluteRooms);
     openRoomDetails(roomNo); 
   }
 }
@@ -1569,7 +1574,7 @@ function openRoomDetails(roomNo) {
       if(absIndex !== -1) {
          absoluteRooms[absIndex].checkinDate = room.checkinDate;
          absoluteRooms[absIndex].duration = 1;
-         localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
+         RoomPeDB.saveRooms(absoluteRooms);
       }
     }
 
@@ -1945,13 +1950,26 @@ function saveRoomEdits() {
   
   if(absIndex !== -1) {
     absoluteRooms[absIndex].no = newNo;
+    
+    // IMPORTANT FIX: Dono prices update hone chahiye
     absoluteRooms[absIndex].price = newPrice;
+    absoluteRooms[absIndex].priceMonthly = newPrice; 
+    absoluteRooms[absIndex].priceDaily = Math.round(newPrice / 30);
+    
     absoluteRooms[absIndex].cat = newCat;
-    localStorage.setItem('roompe_rooms', JSON.stringify(absoluteRooms));
+    
+    // Database (Local Storage aur Firebase dono par update karna)
+    RoomPeDB.saveRooms(absoluteRooms); 
     
     // 🚨 NAYA SMART ROUTING LOGIC
     closeActionScreen(); // Sirf edit room popup band karo
-    smartRefresh(); // Wahi screen update ho jayegi
+    
+    // Screen refresh ko direct force call karo
+    if (typeof renderRoomsGrid === 'function') {
+        renderRoomsGrid();
+    }
+    smartRefresh(); // Baki cheeze update karne ke liye
+    
     showToast('Room details updated!', 'success');
   }
 }
@@ -2255,7 +2273,7 @@ function deletePropertySafetyLock(propId, propName) {
     
     let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
     let remainingRooms = allRooms.filter(r => r.propertyId !== propId && (r.propertyId || propId !== 'prop_default'));
-    localStorage.setItem('roompe_rooms', JSON.stringify(remainingRooms));
+    RoomPeDB.saveRooms(remainingRooms);
     
     if (RoomPeDB.getActiveProperty() === propId) {
       RoomPeDB.setActiveProperty(updatedProps[0].id);
