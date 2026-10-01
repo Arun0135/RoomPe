@@ -254,66 +254,78 @@
       </div>
     </div>
 
- <!-- ================= SCREEN 2: LOGIN (FIREBASE READY UI) ================= -->
-    <div id="screen-login" class="screen hidden" style="padding: 24px; text-align: center; background-color: white; height: 100vh; display: flex; flex-direction: column; justify-content: center;">
+ <!-- ========================================== -->
+<!-- 🚀 PREMIUM LOGIN SCREEN (With Name & Google) -->
+<!-- ========================================== -->
+<div id="screen-login" class="screen hidden" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);">
+    
+    <!-- TOP GREEN HEADER -->
+    <div class="premium-login-header">
+        <h1 id="auth-title">Hello<br>Sign in!</h1>
+        <!-- Hidden Subtitle to prevent JS Error -->
+        <p id="auth-subtitle" style="display:none;">Log in to manage your properties</p>
+    </div>
 
-        <div style="margin-bottom: 40px;">
-            <div style="text-align: center; margin-bottom: 16px;">
-  <!-- Apni Image ka Link yahan 'src' me daal -->
-  <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe Logo" style="width: 80px; height: 80px; border-radius: 20px; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-</div>
-            <h2 id="auth-title" style="margin: 0 0 8px; color: #0f172a; font-size: 24px; font-weight: 800;">Welcome Back</h2>
-            <p id="auth-subtitle" style="margin: 0; color: #64748b; font-size: 14px;">Log in to manage your properties</p>
+    <!-- BOTTOM OVERLAPPING WHITE CARD -->
+    <div class="premium-login-card">
+        
+        <div id="auth-error-msg" style="display:none; background: #fef2f2; border: 1px solid #fecdd3; padding: 12px; border-radius: 12px; align-items: center; gap: 8px; margin-bottom: 20px;">
+            <span class="material-symbols-outlined" style="color: #ef4444; font-size: 20px;">error</span>
+            <span id="auth-error-text" style="color: #ef4444; font-size: 13px; font-weight: 600;">Error message</span>
         </div>
-      
 
-        <!-- Real Email Field -->
-        <div style="text-align: left; margin-bottom: 16px;">
-            <label style="font-size: 12px; color: #475569; font-weight: 700; margin-bottom: 8px; display: block;">Email Address</label>
-            <input type="email" id="auth-email" placeholder="name@roompe.com" style="width: 100%; padding: 14px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; box-sizing: border-box; transition: 0.2s;" onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#e2e8f0'">
-        </div>
-
-        <!-- Real Password Field (With Eye Icon & Error) -->
-        <div style="text-align: left; margin-bottom: 24px;">
-            <label style="font-size: 12px; color: var(--text-light); font-weight: 700; margin-bottom: 8px; display: block;">Password</label>
-            <div style="position: relative;">
-                <input type="password" id="auth-pass" placeholder="********" style="width: 100%; padding: 14px 45px 14px 16px; border: 1.5px solid var(--border-color); border-radius: 12px; font-size: 15px; outline: none; box-sizing: border-box; transition: 0.2s;" onfocus="this.style.borderColor='var(--primary-dark)'" onblur="if(this.style.borderColor !== 'var(--red)') this.style.borderColor='var(--border-color)'">
-                
-                <!-- Eye Icon -->
-                <span id="toggle-password-eye" class="material-symbols-outlined" onclick="togglePasswordVisibility()" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text-light); cursor: pointer; font-size: 20px; user-select: none;">visibility_off</span>
+        <!-- 👤 FULL NAME INPUT (Hidden for Login, Shows on Signup) -->
+        <div class="premium-input-wrap" id="auth-name-wrap" style="display: none;">
+            <label>Full Name</label>
+            <div class="premium-input-row">
+                <input type="text" id="auth-name" placeholder="Name">
+                <span class="material-symbols-outlined check-icon">person</span>
             </div>
-            
-            <!-- Inline Error Message (Hidden by default) -->
-            <p id="auth-error-msg" style="color: #ef4444; font-size: 13px; margin-bottom: 16px; display: none; align-items: center; gap: 4px;">
-  <span class="material-symbols-outlined" style="font-size: 16px;">error</span>
-  <span id="auth-error-text">Incorrect email or password.</span>
-</p>
         </div>
 
-        <!-- Sign In / Sign Up Button -->
-        <button type="button" id="auth-main-btn" onclick="handleEmailAuth(event)" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">
-            Sign In
-        </button>
-
-        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 24px;">
-            <div style="height: 1px; background: #e2e8f0; flex: 1;"></div>
-            <span style="color: #94a3b8; font-size: 12px; font-weight: 600;">OR</span>
-            <div style="height: 1px; background: #e2e8f0; flex: 1;"></div>
+        <!-- ✉️ EMAIL INPUT -->
+        <div class="premium-input-wrap">
+            <label id="auth-label-email">Email Address</label>
+            <div class="premium-input-row">
+                <input type="email" id="auth-email" placeholder="name@roompe.com">
+                <span class="material-symbols-outlined check-icon">check</span>
+            </div>
         </div>
 
-        <!-- Real Google Auth Button -->
-        <button type="button" onclick="handleGoogleLogin()" style="width: 100%; padding: 14px; background: white; color: #0f172a; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px;">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" style="width: 20px;">
+        <!-- 🔒 PASSWORD INPUT -->
+        <div class="premium-input-wrap">
+            <label>Password</label>
+            <div class="premium-input-row">
+                <input type="password" id="auth-pass" placeholder="••••••••">
+                <span class="material-symbols-outlined toggle-eye" id="toggle-password-eye" onclick="togglePasswordVisibility()">visibility_off</span>
+            </div>
+        </div>
+
+        <!-- FORGOT PASSWORD LINK -->
+        <div class="forgot-pass-link" onclick="handleForgotPassword()">Forgot password?</div>
+
+        <!-- MAIN BUTTON -->
+        <button id="auth-main-btn" onclick="handleEmailAuth(event)" class="premium-pill-btn">SIGN IN</button>
+
+        <!-- OR DIVIDER -->
+        <div style="text-align: center; margin: 24px 0; position: relative;">
+            <div style="position: absolute; top: 50%; width: 100%; height: 1px; background: #e2e8f0; z-index: 1;"></div>
+            <span style="position: relative; z-index: 2; background: white; padding: 0 12px; font-size: 12px; color: #94a3b8; font-weight: 600;">OR</span>
+        </div>
+
+        <!-- 🔴 PROPER GOOGLE BUTTON -->
+        <button onclick="handleGoogleLogin()" class="premium-google-btn-new">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style="width: 24px; height: 24px;">
             Continue with Google
         </button>
 
-        <!-- Sign Up Toggle Link -->
-        <p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 24px;">
+        <!-- TOGGLE LOGIN/SIGNUP -->
+        <div class="premium-auth-toggle">
             <span id="auth-toggle-text">Don't have an account? </span>
-            <span id="auth-toggle-btn" onclick="toggleAuthMode()" style="color: #059669; font-weight: 700; cursor: pointer;">Sign Up</span>
-        </p>
-
+            <span id="auth-toggle-btn" onclick="toggleAuthMode()">Sign up</span>
+        </div>
     </div>
+</div>
 
   
 
@@ -1016,66 +1028,97 @@
       </div>
     </div>
 
-    <!-- ================= SCREEN 12: ADD ROOM FORM ================= -->
-    <div id="screen-add-room" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; font-size: 18px;">Add New Room</h3>
-      </header>
-      
-      <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 100px;">
-        
-        <!-- BULK ADD READY FIELD -->
-        <div class="form-group mb-24">
-          <label>Room Number(s) <span style="color:var(--primary); font-size:10px; float:right; background:#f0fdf4; padding:2px 6px; border-radius:8px;">BULK ENABLED</span></label>
-          <div class="input-box setup-input" style="margin-bottom: 4px;"><input type="text" id="new-room-no" placeholder="e.g., 201 or 201-205"></div>
-          <p style="font-size: 11px; color: var(--text-light); margin-bottom: 16px;">For multiple rooms, use a hyphen (e.g., 201-205) or comma (201, 202)</p>
+    <!-- ========================================== -->
+<!-- 🚀 PREMIUM ADD NEW ROOM SCREEN -->
+<!-- ========================================== -->
+<div id="screen-add-room" class="screen hidden" style="background: #f8fafc; min-height: 100vh; position: relative;">
+    
+    <!-- Header -->
+    <div class="dash-header" style="box-shadow: none; border-bottom: 1px solid #e2e8f0; background: white;">
+        <div class="property-title" onclick="closeActionScreen()">
+            <span class="material-symbols-outlined" style="color: #0f172a; font-size: 24px;">arrow_back</span>
+            <h3 style="color: #0f172a;">Add New Room</h3>
         </div>
-
-        <div class="form-group mb-24">
-          <label>Floor</label>
-          <div class="input-box setup-input">
-            <select id="new-room-floor" style="width: 100%; border: none; outline: none; background: transparent; font-size: 15px; color: var(--text-dark);">
-              <option>Ground Floor</option>
-              <option>Floor 1</option>
-              <option>Floor 2</option>
-              <option>Floor 3</option>
-              <option>Floor 4</option>
-              <option>Floor 5</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group mb-24">
-          <label>Room Category</label>
-          <div class="input-box setup-input">
-            <select id="new-room-cat" style="width: 100%; border: none; outline: none; background: transparent; font-size: 15px; color: var(--text-dark);">
-              <option>Deluxe AC</option>
-              <option>Standard Non-AC</option>
-              <option>Suite</option>
-              <option>Family Room</option>
-            </select>
-          </div>
-        </div>
-        
-       <!-- SMART DUAL PRICING -->
-        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-          <div style="flex: 1;">
-            <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block; color: var(--text-dark);">Daily Rent (₹)</label>
-            <input type="number" id="new-room-price-daily" placeholder="e.g. 1500" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline-color: var(--primary-dark);">
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block; color: var(--text-dark);">Monthly Rent (₹)</label>
-            <input type="number" id="new-room-price-monthly" placeholder="e.g. 6000" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline-color: var(--primary-dark);">
-          </div>
-        </div>
-        
-      </div>
-      
-      <div style="position: absolute; bottom: 75px; left: 0; width: 100%; padding: 16px 24px; background: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); z-index: 10;">
-        <button class="btn-primary" onclick="saveNewRoom()">Save Room(s)</button>
-      </div>
     </div>
+
+    <!-- Scrollable Form Area -->
+    <div class="setup-body" style="padding: 24px; padding-bottom: 100px; overflow-y: auto;">
+        <div style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;">
+            
+            <!-- 1. Room Number(s) -->
+            <div class="premium-form-wrap">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label>Room Number(s)</label>
+                    <span style="font-size: 9px; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px;">BULK ENABLED</span>
+                </div>
+                <div class="premium-form-row">
+                    <span class="material-symbols-outlined input-icon">meeting_room</span>
+                    <input type="text" id="new-room-no" placeholder="e.g., 201 or 201-205">
+                </div>
+                <p style="font-size: 11px; color: #94a3b8; margin-top: 6px;">Use a hyphen (201-205) or comma (201, 202) for multiple</p>
+            </div>
+
+            <!-- 2. Smart Floor Input -->
+            <div class="premium-form-wrap" style="margin-top: 24px;">
+                <label>Floor</label>
+                <div class="premium-form-row">
+                    <span class="material-symbols-outlined input-icon">layers</span>
+                    <input type="text" id="new-room-floor" placeholder="e.g., Ground Floor, Basement, Floor 12">
+                </div>
+                <!-- Quick Chips for Auto-fill -->
+                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Ground Floor'">Ground</span>
+                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 1'">1st</span>
+                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 2'">2nd</span>
+                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 3'">3rd</span>
+                </div>
+            </div>
+
+            <!-- 3. Editable Category (Datalist Magic) -->
+            <div class="premium-form-wrap" style="margin-top: 24px;">
+                <label>Room Category</label>
+                <div class="premium-form-row">
+                    <span class="material-symbols-outlined input-icon">bed</span>
+                    <!-- Datalist allows both typing and selecting -->
+                    <input list="category-options" id="new-room-cat" placeholder="Select or type custom category...">
+                    <datalist id="category-options">
+                        <option value="Standard Non-AC">
+                        <option value="Deluxe AC">
+                        <option value="Suite">
+                        <option value="Family Room">
+                        <option value="Single Sharing">
+                        <option value="Double Sharing">
+                        <option value="Dormitory">
+                    </datalist>
+                </div>
+            </div>
+
+            <!-- 4. Rent Prices (Side by Side) -->
+            <div style="display: flex; gap: 16px; margin-top: 24px;">
+                <div class="premium-form-wrap" style="flex: 1;">
+                    <label>Daily Rent</label>
+                    <div class="premium-form-row">
+                        <span style="font-weight: 700; color: #64748b; margin-right: 8px;">₹</span>
+                        <input type="number" id="new-room-price-daily" placeholder="1500">
+                    </div>
+                </div>
+                <div class="premium-form-wrap" style="flex: 1;">
+                    <label>Monthly Rent</label>
+                    <div class="premium-form-row">
+                        <span style="font-weight: 700; color: #64748b; margin-right: 8px;">₹</span>
+                        <input type="number" id="new-room-price-monthly" placeholder="6000">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Fixed Save Button at Bottom -->
+    <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 16px 24px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); z-index: 10;">
+        <button onclick="saveNewRoom()" class="premium-pill-btn" style="box-shadow: 0 4px 15px rgba(5,150,105,0.2);">Save Room(s)</button>
+    </div>
+</div>
 
     <!-- ================= ✏️ EDIT PROFILE SCREEN ================= -->
     <div id="screen-edit-profile" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
@@ -2024,6 +2067,46 @@ window.fbGetDownloadURL = getDownloadURL;
       <button onclick="document.getElementById('modal-checkout-blocked').style.display='none'; openActionScreen('screen-add-payment');" style="flex: 1.2; padding: 12px; border-radius: 12px; background: #f59e0b; color: white; border: none; font-weight: 700; cursor: pointer;">Collect Payment</button>
     </div>
   </div>
+</div>
+
+  <!-- ========================================== -->
+<!-- 🚀 PREMIUM ADD EXTRA ITEM MODAL -->
+<!-- ========================================== -->
+<div id="modal-add-extra" class="screen hidden" style="background: rgba(0,0,0,0.4); z-index: 99999; justify-content: center; align-items: center; padding: 20px; position: fixed;">
+    <div style="background: white; width: 100%; max-width: 360px; border-radius: 24px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: 0.2s;" id="add-extra-box">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 36px; height: 36px; background: #f0fdf4; color: #059669; border-radius: 10px; display: flex; justify-content: center; align-items: center;">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">add_shopping_cart</span>
+                </div>
+                <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">Add Extra Item</h3>
+            </div>
+            <span class="material-symbols-outlined" style="color: #94a3b8; cursor: pointer;" onclick="closeAddExtraModal()">close</span>
+        </div>
+
+        <!-- Hidden input to store room number -->
+        <input type="hidden" id="extra-room-no">
+
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Item / Service Name</label>
+            <div style="background: #f8fafc; border-radius: 12px; padding: 12px 16px; border: 1.5px solid #e2e8f0; display: flex; align-items: center;">
+                <input type="text" id="extra-item-name" placeholder="e.g. Tea, Water, Laundry" style="width: 100%; border: none; background: transparent; outline: none; font-size: 14px; font-weight: 600; color: #0f172a;">
+            </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <label style="display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Price (₹)</label>
+            <div style="background: #f8fafc; border-radius: 12px; padding: 12px 16px; border: 1.5px solid #e2e8f0; display: flex; align-items: center;">
+                <input type="number" id="extra-item-price" placeholder="e.g. 50" style="width: 100%; border: none; background: transparent; outline: none; font-size: 14px; font-weight: 600; color: #0f172a;">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+            <button onclick="closeAddExtraModal()" style="flex: 1; padding: 14px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; font-size: 14px; cursor: pointer;">Cancel</button>
+            <button onclick="submitRoomExtra()" style="flex: 1; padding: 14px; border-radius: 12px; background: #059669; color: white; border: none; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(5,150,105,0.25);">Save Item</button>
+        </div>
+    </div>
 </div>
   <script src="script.js"></script>
 </body>
