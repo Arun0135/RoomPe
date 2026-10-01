@@ -1451,25 +1451,69 @@ function renderBillingList() {
 // 7. ROOM DETAILS, CHECKOUT & EDIT LOGIC (MASTER ENGINE)
 // ==========================================================================
 
+// 1. Modal Kholne wala function
 function addRoomExtra(roomNo) {
-  let itemName = prompt("Enter item/service name (e.g., Tea, Water Bottle, Laundry):");
-  if (!itemName) return;
-  let itemPrice = prompt(`Enter price for ${itemName}:`);
-  if (!itemPrice || isNaN(itemPrice)) return showToast("Invalid amount!", "error");
+    // Purana data clean karo aur room no set karo
+    document.getElementById('extra-room-no').value = roomNo;
+    document.getElementById('extra-item-name').value = '';
+    document.getElementById('extra-item-price').value = '';
+    
+    // Naya Custom Modal Kholo
+    let modal = document.getElementById('modal-add-extra');
+    let box = document.getElementById('add-extra-box');
+    
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        box.style.transform = 'scale(1)';
+    }, 10);
+}
 
-  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
-  let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
-  
-  if (absIndex !== -1) {
-    if (!absoluteRooms[absIndex].extras) absoluteRooms[absIndex].extras = [];
-    absoluteRooms[absIndex].extras.push({
-      item: itemName,
-      price: parseInt(itemPrice),
-      date: new Date().getTime()
-    });
-    RoomPeDB.saveRooms(absoluteRooms);
-    openRoomDetails(roomNo); 
-  }
+// 2. Modal Band karne wala function
+function closeAddExtraModal() {
+    let modal = document.getElementById('modal-add-extra');
+    let box = document.getElementById('add-extra-box');
+    
+    box.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+// 3. Item ko Database me Save karne wala function
+function submitRoomExtra() {
+    let roomNo = document.getElementById('extra-room-no').value;
+    let itemName = document.getElementById('extra-item-name').value.trim();
+    let itemPrice = parseInt(document.getElementById('extra-item-price').value);
+
+    // Validation
+    if (!itemName) return showToast("Please enter an item name!", "error");
+    if (!itemPrice || isNaN(itemPrice) || itemPrice <= 0) return showToast("Please enter a valid price!", "error");
+
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
+    
+    if (absIndex !== -1) {
+        if (!absoluteRooms[absIndex].extras) absoluteRooms[absIndex].extras = [];
+        
+        // Naya item array me push karo
+        absoluteRooms[absIndex].extras.push({
+            item: itemName,
+            price: itemPrice,
+            date: new Date().getTime()
+        });
+        
+        // Firebase Cloud aur Local Storage dono me save karo (Bug Fix Included)
+        RoomPeDB.saveRooms(absoluteRooms);
+        
+        // Modal band karo aur Success Popup/Toast dikhao
+        closeAddExtraModal();
+        showToast(`${itemName} added successfully!`, "success");
+        
+        // UI ko instantly refresh karo taaki item list me aur bill me dikh jaye
+        openRoomDetails(roomNo); 
+    }
 }
 
 function openRoomDetails(roomNo) {
@@ -2634,11 +2678,57 @@ let isLoginMode = true;
 
 function toggleAuthMode() {
   isLoginMode = !isLoginMode;
-  document.getElementById('auth-title').innerText = isLoginMode ? 'Welcome Back' : 'Create Account';
-  document.getElementById('auth-subtitle').innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
-  document.getElementById('auth-main-btn').innerText = isLoginMode ? 'Sign In' : 'Sign Up';
-  document.getElementById('auth-toggle-btn').innerText = isLoginMode ? 'Sign Up' : 'Log In';
-  document.getElementById('auth-toggle-text').innerText = isLoginMode ? "Don't have an account? " : "Already have an account? ";
+  
+  // 🚨 SMART FIX: Check if element exists before updating (Fixes the Red Error!)
+  let titleEl = document.getElementById('auth-title');
+  let subtitleEl = document.getElementById('auth-subtitle');
+  let mainBtn = document.getElementById('auth-main-btn');
+  let toggleBtn = document.getElementById('auth-toggle-btn');
+  let toggleText = document.getElementById('auth-toggle-text');
+  
+  // Naye fields (Name aur Forgot Password)
+  let nameWrap = document.getElementById('auth-name-wrap');
+  let forgotLink = document.querySelector('.forgot-pass-link');
+
+  if(titleEl) titleEl.innerHTML = isLoginMode ? 'Hello<br>Sign in!' : 'Create<br>Account';
+  if(subtitleEl) subtitleEl.innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
+  if(mainBtn) mainBtn.innerText = isLoginMode ? 'SIGN IN' : 'SIGN UP';
+  if(toggleBtn) toggleBtn.innerText = isLoginMode ? 'Sign up' : 'Log In';
+  if(toggleText) toggleText.innerText = isLoginMode ? "Don't have an account? " : "Already have an account? ";
+  
+  // 🪄 MAGIC: Signup me Name dikhao, Login me chhipa do
+  if(nameWrap) nameWrap.style.display = isLoginMode ? 'none' : 'block';
+  // Signup me Forgot Password chhipa do
+  if(forgotLink) forgotLink.style.display = isLoginMode ? 'block' : 'none';
+}
+
+// 🔐 FORGOT PASSWORD LOGIC
+async function handleForgotPassword() {
+    const emailInput = document.getElementById('auth-email');
+    const email = emailInput.value.trim();
+    
+    if (!email) {
+        showToast("Please enter your email address first.", "error");
+        emailInput.style.borderBottomColor = 'var(--red)';
+        return;
+    }
+    
+    try {
+        // Firebase Password Reset Trigger
+        if (window.fbAuth) {
+            import('https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js').then(module => {
+                module.sendPasswordResetEmail(window.fbAuth, email)
+                .then(() => {
+                    showPopup('success', 'Email Sent!', `Password reset link has been sent to ${email}. Check your inbox.`);
+                })
+                .catch((error) => {
+                    showToast(error.message, "error");
+                });
+            });
+        }
+    } catch (error) {
+        showToast("Something went wrong.", "error");
+    }
 }
 
 // 🚀 APP UNLOCKER (Parda hatane aur data laane ka engine)
@@ -4213,3 +4303,4 @@ function smartRefresh() {
         }
     }, 150); // Thoda delay taaki UI smooth transition le sake
 }
+
