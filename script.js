@@ -1225,12 +1225,36 @@ function selectPayMode(mode) {
   let cashBtn = document.getElementById('pay-mode-cash');
   let valInput = document.getElementById('pay-mode-value');
 
-  if(upiBtn) upiBtn.classList.remove('active');
-  if(cashBtn) cashBtn.classList.remove('active');
-  
-  if(mode === 'UPI' && upiBtn) upiBtn.classList.add('active');
-  else if (cashBtn) cashBtn.classList.add('active');
-  
+  // 1. Pehle dono buttons ko normal grey (inactive) kar do
+  if(upiBtn) {
+      upiBtn.style.background = 'white';
+      upiBtn.style.border = '1px solid #e2e8f0';
+      upiBtn.style.color = '#64748b';
+      upiBtn.style.fontWeight = '600';
+      upiBtn.style.userSelect = 'none'; // Text highlight hone se rokega
+  }
+  if(cashBtn) {
+      cashBtn.style.background = 'white';
+      cashBtn.style.border = '1px solid #e2e8f0';
+      cashBtn.style.color = '#64748b';
+      cashBtn.style.fontWeight = '600';
+      cashBtn.style.userSelect = 'none'; // Text highlight hone se rokega
+  }
+
+  // 2. Jo click hua hai usko Premium Green (active) kar do
+  if(mode === 'UPI' && upiBtn) {
+      upiBtn.style.background = '#f0fdf4';
+      upiBtn.style.border = '2px solid #059669';
+      upiBtn.style.color = '#059669';
+      upiBtn.style.fontWeight = '700';
+  } else if (mode === 'Cash' && cashBtn) {
+      cashBtn.style.background = '#f0fdf4';
+      cashBtn.style.border = '2px solid #059669';
+      cashBtn.style.color = '#059669';
+      cashBtn.style.fontWeight = '700';
+  }
+
+  // 3. Database me bhejne ke liye hidden value update karo
   if(valInput) valInput.value = mode;
 }
 
@@ -1290,45 +1314,47 @@ function renderBillingList() {
 
   let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
   
-  // 🚨 NAYA SMART CALCULATION ENGINE START 🚨
+  // 🚨 NAYA SMART CALCULATION ENGINE START (WITH AUTO-RENEWAL) 🚨
   let totalExpected = 0;
   let totalPendingAmount = 0; 
   let pendingRooms = [];
 
   occupiedRooms.forEach(r => {
-    // 1. Unique Booking ID wala filter (Purane bugs na aayein)
+    // 1. Unique Booking ID wala filter
     let roomTotalPaid = payments
       .filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest))
       .reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
     
-    // 2. Smart Math (Daily/Monthly)
+    // 2. Smart Math (Daily/Monthly) Setup
     let isMonthlyStay = r.stayType === 'Monthly';
     let priceDaily = parseInt(r.priceDaily || r.price || 0);
     let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
-    let duration = parseInt(r.duration || 1);
+    let baseDuration = parseInt(r.duration || 1);
 
     let expectedRent = 0;
-    let expectedCheckoutDate = new Date(r.checkinDate || new Date());
-    expectedCheckoutDate.setHours(0,0,0,0);
-
-    if (isMonthlyStay) {
-      expectedRent = priceMonthly * duration;
-      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
-    } else {
-      expectedRent = priceDaily * duration;
-      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
-    }
-
+    let checkinDate = new Date(r.checkinDate || new Date());
     let today = new Date();
     today.setHours(0,0,0,0);
+    checkinDate.setHours(0,0,0,0);
 
-    // 3. Overstay Fine
-    let extraFine = 0;
-    if (today > expectedCheckoutDate) {
-      let diffTime = Math.abs(today - expectedCheckoutDate);
-      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
-      extraFine = extraDays * perDayFine;
+    // 3. The Auto-Renewal Engine
+    if (isMonthlyStay) {
+      // PG Logic: Check karega kitne mahine shuru ho chuke hain
+      let monthsPassed = 0;
+      let tempDate = new Date(checkinDate);
+      while (tempDate <= today) {
+          monthsPassed++;
+          tempDate.setMonth(tempDate.getMonth() + 1);
+      }
+      let totalCycles = Math.max(baseDuration, monthsPassed);
+      expectedRent = priceMonthly * totalCycles;
+    } else {
+      // Hotel Logic: Pay per night auto-increment
+      let diffTimeCurrent = Math.abs(today - checkinDate);
+      let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+      if(daysStaying === 0) daysStaying = 1;
+      let totalDays = Math.max(baseDuration, daysStaying);
+      expectedRent = priceDaily * totalDays;
     }
 
     // 4. Extras Calculation
@@ -1337,7 +1363,7 @@ function renderBillingList() {
       r.extras.forEach(ext => extrasTotal += parseInt(ext.price || 0));
     }
 
-    let finalExpectedRent = expectedRent + extraFine + extrasTotal;
+    let finalExpectedRent = expectedRent + extrasTotal;
     totalExpected += finalExpectedRent;
 
     let remainingDue = finalExpectedRent - roomTotalPaid;
@@ -1608,7 +1634,9 @@ function openRoomDetails(roomNo) {
   let checkoutBtn = document.getElementById('rd-checkout-btn');
   if(checkoutBtn) checkoutBtn.setAttribute('onclick', `checkoutGuest('${room.no}')`);
 
-  // OVERVIEW MATH & EXTRAS
+  // ==========================================
+  // 🚀 NAYA SMART BILLING ENGINE START (PRO)
+  // ==========================================
   if (room.status === 'occupied') {
     if(!room.checkinDate) {
       room.checkinDate = new Date().toISOString().slice(0,16);
@@ -1627,41 +1655,50 @@ function openRoomDetails(roomNo) {
     today.setHours(0,0,0,0);
     checkinDate.setHours(0,0,0,0);
 
-    let diffTimeCurrent = Math.abs(today - checkinDate);
-    let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
-    if(daysStaying === 0) daysStaying = 1;
-
-    // SMART MATH LOGIC START
     let isMonthlyStay = room.stayType === 'Monthly';
     let priceDaily = parseInt(room.priceDaily || room.price || 0);
     let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
-    let duration = parseInt(room.duration || 1);
+    let baseDuration = parseInt(room.duration || 1);
 
     let totalRoomRent = 0;
-    let expectedCheckoutDate = new Date(checkinDate);
+    let cycleText = "";
 
     if (isMonthlyStay) {
-      totalRoomRent = priceMonthly * duration;
-      expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+      // 🟢 PG MODE (ADVANCE CYCLE & AUTO-RENEWAL)
+      let monthsPassed = 0;
+      let tempDate = new Date(checkinDate);
+      
+      // Calculate active months
+      while (tempDate <= today) {
+          monthsPassed++;
+          tempDate.setMonth(tempDate.getMonth() + 1);
+      }
+      
+      let totalCycles = Math.max(baseDuration, monthsPassed);
+      totalRoomRent = priceMonthly * totalCycles;
+
+      // Cycle Dates Format for UI
+      let cycleStartDate = new Date(checkinDate);
+      cycleStartDate.setMonth(cycleStartDate.getMonth() + (totalCycles - 1));
+      let cycleEndDate = new Date(cycleStartDate);
+      cycleEndDate.setMonth(cycleEndDate.getMonth() + 1);
+      cycleEndDate.setDate(cycleEndDate.getDate() - 1);
+
+      let startStr = cycleStartDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+      let endStr = cycleEndDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+      cycleText = `Cycle: ${startStr} to ${endStr}`;
     } else {
-      totalRoomRent = priceDaily * duration;
-      expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+      // 🔵 HOTEL MODE (DAILY PAY-AS-YOU-GO)
+      let diffTimeCurrent = Math.abs(today - checkinDate);
+      let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+      if(daysStaying === 0) daysStaying = 1;
+
+      let totalDays = Math.max(baseDuration, daysStaying);
+      totalRoomRent = priceDaily * totalDays;
+      cycleText = `${daysStaying} days staying`;
     }
 
-    let isOverstay = false;
-    let extraFine = 0;
-    if (today > expectedCheckoutDate) {
-      let diffTime = Math.abs(today - expectedCheckoutDate);
-      let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
-      extraFine = extraDays * perDayFine;
-      
-      totalRoomRent += extraFine;
-      isOverstay = true;
-    }
-    // SMART MATH LOGIC END
-
+    // EXTRAS & ELECTRICITY CALCULATION
     let extrasTotal = 0;
     let extrasHTML = '';
     if (room.extras && room.extras.length > 0) {
@@ -1686,14 +1723,19 @@ function openRoomDetails(roomNo) {
     let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
     let remainingDue = grandTotal - roomTotalPaid;
 
+    // UPDATE UI ELEMENTS
     let checkinEl = document.getElementById('rd-checkin-date');
     if(checkinEl) checkinEl.innerText = checkinDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    
     let durationEl = document.getElementById('rd-stay-duration');
-    if(durationEl) durationEl.innerText = daysStaying + ' days staying';
+    if(durationEl) durationEl.innerText = cycleText; // 🚨 MAGIC: Ye ab auto-switch hoga Daily/Monthly pe
+    
     let rentEl = document.getElementById('rd-room-rent');
     if(rentEl) rentEl.innerText = '₹' + grandTotal.toLocaleString('en-IN');
+    
     let advEl = document.getElementById('ui-amount-paid');
     if(advEl) advEl.innerText = '₹' + roomTotalPaid.toLocaleString('en-IN');
+    
     let extrasListEl = document.getElementById('rd-extras-list');
     if(extrasListEl) extrasListEl.innerHTML = extrasHTML;
 
@@ -1709,23 +1751,18 @@ function openRoomDetails(roomNo) {
     let dueIcon = document.getElementById('rd-due-icon');
 
     if(typeof calculateNetPayable === 'function') calculateNetPayable();
-
-    if (isOverstay) {
-      let dueStatusElement = document.getElementById('rd-due-status');
-      if (dueStatusElement) {
-        dueStatusElement.innerHTML += `<br><span style="font-size:9px; color:#b91c1c;">(Includes ₹${extraFine} Overstay)</span>`;
-      }
-    }
   }
+  // ==========================================
+  // 🚀 ENGINE END
+  // ==========================================
 
   // ==========================================
   // 💸 PAYMENTS TAB UPDATE (SUPER FIX FOR CLOUD & LOCAL DATA)
   // ==========================================
- // Purani line hata kar ye Naya Smart Filter & Sort laga:
   let roomPayments = payments.filter(p => {
       let pRoom = String(p.room || '').replace('Room ', '').trim();
       let currRoom = String(roomNo || '').replace('Room ', '').trim();
-      return pRoom === currRoom;
+      return pRoom === currRoom && p.guest === room.guest; // Extra security for correct guest
   }).sort((a, b) => {
       let timeA = a.date ? (a.date.seconds ? a.date.seconds * 1000 : new Date(a.date).getTime()) : 0;
       let timeB = b.date ? (b.date.seconds ? b.date.seconds * 1000 : new Date(b.date).getTime()) : 0;
@@ -1744,7 +1781,6 @@ function openRoomDetails(roomNo) {
         </div>`;
     } else {
       roomPayments.forEach(p => {
-        // Firebase Timestamp & Local Date string parser (Safe Fallback)
         let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
         let dStr = new Date(timeValue).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
         
@@ -1782,7 +1818,6 @@ function openRoomDetails(roomNo) {
   let docsGallery = document.getElementById('rd-docs-gallery');
   let sigContainer = document.getElementById('rd-sig-container');
 
-  // Naya Premium Card Design
   const createDocCard = (title, imgUrl) => `
     <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
         <div style="height: 100px; background: #f8fafc; cursor: pointer; position: relative;" onclick="window.open('${imgUrl}', '_blank')">
@@ -1800,21 +1835,18 @@ function openRoomDetails(roomNo) {
         </div>
     </div>`;
 
-  // Agar photo nahi hai toh ye dikhega
   const createEmptyCard = (title) => `
     <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8;">
         <span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">image_not_supported</span>
         <span style="font-size: 11px; font-weight: 600;">No ${title}</span>
     </div>`;
 
-  // Gallery render karo
   if(docsGallery) {
       let frontHTML = room.idFront ? createDocCard('Front ID', room.idFront) : createEmptyCard('Front ID');
       let backHTML = room.idBack ? createDocCard('Back ID', room.idBack) : createEmptyCard('Back ID');
       docsGallery.innerHTML = frontHTML + backHTML;
   }
 
-  // Signature render karo
   if(sigContainer) {
       if(room.signature) {
           sigContainer.innerHTML = `<img src="${room.signature}" style="max-height: 80px; max-width: 100%; filter: contrast(1.5); cursor: pointer;" onclick="window.open('${room.signature}', '_blank')">`;
@@ -1827,7 +1859,6 @@ function openRoomDetails(roomNo) {
   if(actionMenu) actionMenu.style.display = 'none';
 
   switchRoomDetailsTab('overview');
-  // 🚨 YAHAN SE 'openActionScreen' HATA DIYA GAYA HAI TAAKI DOUBLE JUMP/BLINK NA HO
 }
 // ==========================================================================
 // 🏢 DYNAMIC PROPERTY NAME ENGINE
@@ -1848,93 +1879,129 @@ function updateHotelName() {
 }
 
 // ==========================================
-// SMART CHECKOUT ENGINE (Fixed Math, Cloud Sync & Custom Popup)
+// 🚀 SMART CHECKOUT ENGINE (WITH CUSTOM MODAL)
 // ==========================================
 function checkoutGuest(roomNo) {
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
-  
-  // 🚨 FIX 1: String matching taaki room hamesha mile
   let room = rooms.find(r => String(r.no) === String(roomNo));
   if (!room) return;
 
-  // 🧠 Checkout Math (Updated with Smart Hybrid Logic)
-  let isMonthlyStay = room.stayType === 'Monthly';
+  // 1. Initial Math
   let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
   
+  let isMonthlyStay = room.stayType === 'Monthly';
   let priceDaily = parseInt(room.priceDaily || room.price || 0);
   let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
-  let duration = parseInt(room.duration || 1);
+  let baseDuration = parseInt(room.duration || 1);
 
-  let expectedRent = 0;
-  let expectedCheckoutDate = new Date(room.checkinDate || new Date());
-  expectedCheckoutDate.setHours(0,0,0,0);
-
-  if (isMonthlyStay) {
-    expectedRent = priceMonthly * duration;
-    expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
-  } else {
-    expectedRent = priceDaily * duration;
-    expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
-  }
-
+  let checkinDate = new Date(room.checkinDate || new Date());
   let today = new Date();
   today.setHours(0,0,0,0);
+  checkinDate.setHours(0,0,0,0);
 
-  if (today > expectedCheckoutDate) {
-    let diffTime = Math.abs(today - expectedCheckoutDate);
-    let extraDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
-    expectedRent += (extraDays * perDayFine);
+  let fullCycleRent = 0;
+  let proRataRent = 0;
+
+  let diffTimeCurrent = Math.abs(today - checkinDate);
+  let actualDaysStayed = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+  if(actualDaysStayed === 0) actualDaysStayed = 1;
+
+  if (isMonthlyStay) {
+    let monthsPassed = 0;
+    let tempDate = new Date(checkinDate);
+    while (tempDate <= today) {
+        monthsPassed++;
+        tempDate.setMonth(tempDate.getMonth() + 1);
+    }
+    let totalCycles = Math.max(baseDuration, monthsPassed);
+    fullCycleRent = priceMonthly * totalCycles;
+
+    let fullMonthsStayed = Math.floor(actualDaysStayed / 30);
+    let extraDaysStayed = actualDaysStayed % 30;
+    let perDayRate = Math.round(priceMonthly / 30);
+    proRataRent = (fullMonthsStayed * priceMonthly) + (extraDaysStayed * perDayRate);
+    
+    if(proRataRent > fullCycleRent) proRataRent = fullCycleRent;
+  } else {
+    let totalDays = Math.max(baseDuration, actualDaysStayed);
+    fullCycleRent = priceDaily * totalDays;
+    proRataRent = fullCycleRent; 
   }
 
-  // Extras add karo
   let extrasTotal = 0;
   if (room.extras && room.extras.length > 0) {
-    room.extras.forEach(ext => extrasTotal += ext.price);
+    room.extras.forEach(ext => extrasTotal += parseInt(ext.price || 0));
   }
-  expectedRent += extrasTotal;
+  fullCycleRent += extrasTotal;
+  proRataRent += extrasTotal;
 
-  let remainingDue = expectedRent - roomTotalPaid;
+  // 2. 🚨 CUSTOM VIP POPUP (No more ugly browser confirm)
+  if (isMonthlyStay && proRataRent < fullCycleRent) {
+     let modal = document.getElementById('modal-mid-cycle-checkout');
+     if(modal) {
+         // UI me real values daalo
+         document.getElementById('mc-full-rent').innerText = `₹${fullCycleRent.toLocaleString('en-IN')}`;
+         document.getElementById('mc-pro-rent').innerText = `₹${proRataRent.toLocaleString('en-IN')}`;
+         
+         // Modal show karo
+         modal.style.display = 'flex';
+         
+         // Button Actions Set Karo
+         document.getElementById('mc-btn-prorata').onclick = function() {
+             modal.style.display = 'none';
+             proceedToSettleCheckout(roomNo, proRataRent, roomTotalPaid); // Charge Pro-Rata
+         };
+         
+         document.getElementById('mc-btn-full').onclick = function() {
+             modal.style.display = 'none';
+             proceedToSettleCheckout(roomNo, fullCycleRent, roomTotalPaid); // Charge Full
+         };
+     }
+  } else {
+     // Agar daily hai ya month complete hai, seedha aage badho
+     proceedToSettleCheckout(roomNo, fullCycleRent, roomTotalPaid);
+  }
+}
 
-  // Agar paise baki hain toh NAYA Custom Popup dikhao aur form par bhejo
+// ==========================================
+// 🛠️ HELPER: FINAL EXECUTION AFTER CHOICE
+// ==========================================
+function proceedToSettleCheckout(roomNo, finalExpectedRent, roomTotalPaid) {
+  let remainingDue = finalExpectedRent - roomTotalPaid;
+
+  // Block agar dues pending hain
   if (remainingDue > 0) {
-    // 1. Modal ke andar ka text update karo
     let blockedTextElem = document.getElementById('checkout-blocked-text');
     if(blockedTextElem) {
         blockedTextElem.innerText = `Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}.\nPlease collect the payment first.`;
     }
-    
-    // 2. Naya Orange wala Checkout Blocked Modal kholo
     let blockedModal = document.getElementById('modal-checkout-blocked');
-    if(blockedModal) {
-        blockedModal.style.display = 'flex';
-    } else {
-        // Agar galti se HTML me modal miss ho gaya toh ye fallback alert chalega
-        alert(`Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}. Please collect the payment first.`);
-    }
+    if(blockedModal) blockedModal.style.display = 'flex';
     
-    // 3. Payment screen ke inputs me room no auto-fill kar do
     let payRoomInput = document.getElementById('pay-room-no');
     let payAmountInput = document.getElementById('pay-amount');
     if(payRoomInput) payRoomInput.value = roomNo;
     if(payAmountInput) payAmountInput.value = remainingDue;
-    
-    return; // Aage checkout ka code run hone se rok do
+    return; 
   }
 
-  // 🚨 FIX 2: Premium Custom Popup for Checkout confirmation
-  showCustomPopup('confirm', 'Checkout Guest?', `Are you sure you want to checkout the guest from Room ${roomNo}?`, function() {
-    
+  // Refund msg agar zyada pay kiya hai
+  let refundMsg = "";
+  if (remainingDue < 0) {
+      refundMsg = `<br><br><span style="color:#e11d48; font-weight:bold;">Note: Guest has overpaid by ₹${Math.abs(remainingDue).toLocaleString('en-IN')}. Please settle the refund offline.</span>`;
+  }
+
+  // Final Confirmation Popup
+  showCustomPopup('confirm', 'Confirm Checkout?', `Are you sure you want to checkout the guest from Room ${roomNo}?${refundMsg}`, function() {
     let activePropId = RoomPeDB.getActiveProperty();
     let allBookings = RoomPeDB.getBookings();
     let activeBookingIndex = allBookings.findIndex(b => String(b.room) === String(roomNo) && b.status === 'confirmed' && b.propId === activePropId);
     
-    // Booking History Update
     if(activeBookingIndex !== -1) {
       allBookings[activeBookingIndex].status = 'completed'; 
       allBookings[activeBookingIndex].checkoutDate = new Date().getTime(); 
-      allBookings[activeBookingIndex].totalBilled = expectedRent;
+      allBookings[activeBookingIndex].totalBilled = finalExpectedRent; 
       RoomPeDB.saveBookings(allBookings);
     }
 
@@ -1942,7 +2009,6 @@ function checkoutGuest(roomNo) {
     let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
     
     if (absIndex !== -1) {
-      // Room Reset
       absoluteRooms[absIndex].status = 'cleaning';
       absoluteRooms[absIndex].guest = ''; 
       absoluteRooms[absIndex].phone = ''; 
@@ -1951,17 +2017,13 @@ function checkoutGuest(roomNo) {
       absoluteRooms[absIndex].duration = '';
       absoluteRooms[absIndex].extras = [];
       absoluteRooms[absIndex].signature = ''; 
-      absoluteRooms[absIndex].currentBookingId = ''; // 🚨 NAYA: ID Clear kar do
+      absoluteRooms[absIndex].currentBookingId = '';
       
-      // 🚨 FIX 3: RoomPeDB.saveRooms use kiya taaki Cloud par bhi update ho
       RoomPeDB.saveRooms(absoluteRooms);
       
       closeActionScreen(); 
-      switchTab('rooms'); 
-      if(typeof renderBookingsList === 'function') renderBookingsList();
-      if(typeof updateDashboardStats === 'function') updateDashboardStats();
+      smartRefresh();
       
-      // Success feedback
       setTimeout(() => {
         showPopup('success', 'Checkout Complete', `Room ${roomNo} is now vacant and needs cleaning.`);
       }, 400);
@@ -2121,8 +2183,24 @@ function updateAppHeaders() {
   let activeProp = props.find(p => p.id === activeId) || props[0];
 
   if (activeProp) {
+    // 1. Property Name Update 
     document.querySelectorAll('.property-title h3').forEach(el => {
       el.innerText = activeProp.name;
+    });
+
+    // 2. 🚨 SMART FIX: Type determine karo
+    let typeText = 'Property Management';
+    if (activeProp.type === 'Daily' || activeProp.type === 'daily' || activeProp.type === 'Hotel') {
+      typeText = 'Daily Stays (Hotel)';
+    } else if (activeProp.type === 'Monthly' || activeProp.type === 'monthly' || activeProp.type === 'PG') {
+      typeText = 'Monthly Rental (PG/Hostel)';
+    } else if (activeProp.type) {
+      typeText = activeProp.type;
+    }
+
+    // 3. 🚨 SMART FIX: Saare headers me subtitle update karo (class use karke)
+    document.querySelectorAll('.header-prop-type').forEach(el => {
+       el.innerText = typeText;
     });
   }
 }
