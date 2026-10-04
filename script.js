@@ -4381,4 +4381,16 @@ function smartRefresh() {
         }
     }, 150); // Thoda delay taaki UI smooth transition le sake
 }
-
+// 🚨 SMART WAKE-UP ENGINE (SCREEN ON/OFF DETECTOR)
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        console.log("App wapas hosh me aa gaya! Refreshing...");
+        
+        // Agar Firebase connection background me toot gaya tha, toh usko dhakka maar ke chalu karega
+        if (typeof smartRefresh === 'function') {
+            smartRefresh();
+        } else if (typeof renderBillingList === 'function') {
+            renderBillingList();
+        }
+    }
+});
