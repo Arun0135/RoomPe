@@ -4394,3 +4394,76 @@ document.addEventListener("visibilitychange", () => {
         }
     }
 });
+
+// ==========================================
+// 🚀 CUSTOM PULL-TO-REFRESH (SNAPCHAT/FACEBOOK STYLE)
+// ==========================================
+let ptrStartY = 0;
+let ptrCurrentY = 0;
+let isPulling = false;
+const ptrContainer = document.getElementById('premium-ptr');
+const ptrIcon = document.getElementById('ptr-icon');
+
+// 1. Jab finger screen touch karegi
+document.addEventListener('touchstart', (e) => {
+  // Check karo ki screen ekdum TOP par hai ya nahi
+  let activeScrollArea = document.querySelector('.screen:not(.hidden) .rooms-scroll-area') || 
+                         document.querySelector('.screen:not(.hidden) .dash-scroll-area');
+                         
+  let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
+
+  // Agar screen ekdum top par hai, tabhi pull karne dega
+  if (scrollTop <= 0) {
+    ptrStartY = e.touches[0].clientY;
+    isPulling = true;
+    if(ptrContainer) ptrContainer.style.transition = 'none'; // Dragging smooth karne ke liye
+  }
+}, {passive: true});
+
+// 2. Jab finger screen par neeche slide hogi (Dragging)
+document.addEventListener('touchmove', (e) => {
+  if (!isPulling || !ptrContainer) return;
+  
+  ptrCurrentY = e.touches[0].clientY;
+  let pullDistance = ptrCurrentY - ptrStartY;
+
+  // Agar neeche khich raha hai (Max 120px tak)
+  if (pullDistance > 0 && pullDistance < 120) {
+    ptrContainer.style.transform = `translateY(${pullDistance}px)`;
+    ptrIcon.style.transform = `rotate(${pullDistance * 2.5}deg)`; // Icon khichne par gol ghumega
+  }
+}, {passive: true});
+
+// 3. Jab finger chhod di jayegi (Release & Refresh)
+document.addEventListener('touchend', () => {
+  if (!isPulling || !ptrContainer) return;
+  isPulling = false;
+  
+  let pullDistance = ptrCurrentY - ptrStartY;
+  ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Smooth bounce back
+
+  // 🚨 THRESHOLD CHECK: Agar 70px se zyada khicha hai, tabhi REFRESH hoga!
+  if (pullDistance > 70) {
+    // Spinner ko screen par hold karo
+    ptrContainer.style.transform = `translateY(70px)`; 
+    ptrIcon.classList.add('ptr-spin'); // Fast ghoomna shuru
+    
+    // 🚨 Asli Firebase Refresh Data Call
+    if(typeof smartRefresh === 'function') {
+       smartRefresh();
+    }
+
+    // 1.5 Second baad spinner wapas chupke se upar gayab ho jayega
+    setTimeout(() => {
+      ptrContainer.style.transform = `translateY(0px)`;
+      ptrIcon.classList.remove('ptr-spin');
+    }, 1500);
+    
+  } else {
+    // Agar thoda sa khich ke chhod diya (Cancel) -> Toh wapas upar chala jayega, refresh nahi hoga
+    ptrContainer.style.transform = `translateY(0px)`;
+  }
+  
+  ptrStartY = 0;
+  ptrCurrentY = 0;
+});
