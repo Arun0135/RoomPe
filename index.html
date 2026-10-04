@@ -364,12 +364,14 @@
           <h2>Setup Your Property</h2>
           <p>Let's get your business online</p>
         </div>
-        <div class="form-group mb-24">
-          <label>Property Name</label>
-          <div class="input-box setup-input">
-            <input type="text" id="setup-prop-name" placeholder="e.g., Shanti Residency">
-          </div>
-        </div>
+       <!-- PREMIUM PROPERTY NAME INPUT -->
+<div class="premium-form-wrap" style="margin-bottom: 32px;">
+    <label style="font-size: 14px;">Property Name</label>
+    <div class="premium-form-row" style="height: 56px;">
+        <span class="material-symbols-outlined input-icon" style="color: #059669;">domain</span>
+        <input type="text" id="setup-prop-name" placeholder="e.g., Shanti Residency" style="font-size: 16px; background: transparent; border: none; outline: none; width: 100%;">
+    </div>
+</div>
         <div class="setup-section-title">
           <h3>What type of property do you manage?</h3>
         </div>
@@ -839,10 +841,15 @@
   <!-- ================= SCREEN 9: MORE (PROFILE & SETTINGS) ================= -->
     <div id="screen-more" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
       <header class="dash-header">
-        <div class="property-title">
-          <h3 class="active-hotel-name">Loading...</h3>
-          <span class="material-symbols-outlined">expand_more</span>
-        </div>
+      <!-- PREMIUM HEADER WITH SUBTITLE -->
+<div style="display: flex; flex-direction: column; cursor: pointer;" onclick="openPropertySwitcher()">
+    <div class="property-title" style="align-items: center; gap: 4px; display: flex; margin-bottom: 2px;">
+        <h3>The Arrah Resort</h3>
+        <span class="material-symbols-outlined" style="font-size: 20px; color: #059669;">expand_more</span>
+    </div>
+    <!-- 🚨 Naya Subtitle Line -->
+    <span id="header-prop-type" style="font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.3px;">Daily Stays (Hotel)</span>
+</div>
         <div class="header-icons">
           <div class="bell-icon" onclick="openNotifications()"><span class="material-symbols-outlined">notifications</span><div class="red-dot"></div></div>
           <div class="profile-icon-small"><span class="material-symbols-outlined">person</span></div>
@@ -1576,41 +1583,50 @@
       </div>
     </div>
 
-   <!-- ================= SCREEN 14: ADD PAYMENT FORM ================= -->
-    <div id="screen-add-payment" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; font-size: 18px;">Record Payment</h3>
-      </header>
-      <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 100px;">
-        
-        <!-- Naya Room Number Field -->
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Room Number</label>
-          <input type="text" id="pay-room-no" placeholder="e.g., 101" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px;">
-        </div>
-
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Amount Received (₹)</label>
-          <div class="input-box setup-input">
-            <input type="number" id="pay-amount" placeholder="₹ 0.00" style="font-size: 24px; font-weight: bold; color: var(--primary-dark); width: 100%; border: none; outline: none;">
-          </div>
-        </div>
-
-        <div class="form-group mb-24">
-          <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Payment Mode</label>
-          <div class="property-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0;">
-            <div class="prop-card active" id="pay-mode-upi" onclick="selectPayMode('UPI')" style="padding: 12px; cursor: pointer;"><h4 style="margin:0;">UPI / Online</h4></div>
-            <div class="prop-card" id="pay-mode-cash" onclick="selectPayMode('Cash')" style="padding: 12px; cursor: pointer;"><h4 style="margin:0;">Cash</h4></div>
-          </div>
-          <input type="hidden" id="pay-mode-value" value="UPI">
-        </div>
-
+  <!-- ================= SCREEN 14: ADD PAYMENT FORM ================= -->
+<div id="screen-add-payment" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100; position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto;">
+  <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+    <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
+    <h3 style="flex: 1; font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">Record Payment</h3>
+  </header>
+  
+  <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 100px;">
+    
+    <!-- Room Number Field -->
+    <div class="premium-form-wrap" style="margin-bottom: 24px;">
+      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Room Number</label>
+      <div class="premium-form-row">
+        <span class="material-symbols-outlined input-icon">door_front</span>
+        <input type="text" id="pay-room-no" placeholder="e.g., 101" readonly style="background: transparent; border: none; outline: none; width: 100%; font-size: 15px; font-weight: 600; color: #0f172a;">
       </div>
-     <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 24px; background: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.05);">
-        <button class="btn-primary" onclick="saveNewPayment()">Save Payment</button>
-      </div>
     </div>
+
+    <!-- Amount Field (Green Highlighted) -->
+    <div class="premium-form-wrap" style="margin-bottom: 24px;">
+      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Amount Received (₹)</label>
+      <div class="premium-form-row" style="height: 64px; border-color: #059669; background: #ecfdf5;">
+        <span style="font-size: 24px; font-weight: 800; color: #059669; margin-right: 8px;">₹</span>
+        <input type="number" id="pay-amount" placeholder="0" style="background: transparent; border: none; outline: none; width: 100%; font-size: 28px; font-weight: 800; color: #059669;">
+      </div>
+    </div>
+
+    <!-- Payment Mode -->
+    <div class="premium-form-wrap" style="margin-bottom: 24px;">
+      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Payment Mode</label>
+      <div style="display: flex; gap: 12px;">
+        <div id="pay-mode-upi" onclick="selectPayMode('UPI')" style="flex: 1; padding: 14px; text-align: center; border-radius: 12px; border: 2px solid #059669; background: #f0fdf4; color: #059669; font-weight: 700; cursor: pointer; transition: 0.2s;">UPI / Online</div>
+        <div id="pay-mode-cash" onclick="selectPayMode('Cash')" style="flex: 1; padding: 14px; text-align: center; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 600; cursor: pointer; transition: 0.2s;">Cash</div>
+      </div>
+      <input type="hidden" id="pay-mode-value" value="UPI">
+    </div>
+
+  </div>
+  
+  <!-- Save Button -->
+  <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 16px 24px; background: white; border-top: 1px solid #e2e8f0; z-index: 10;">
+    <button onclick="saveNewPayment()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Payment</button>
+  </div>
+</div>
     
   
  <!-- ================= FIXED SCREEN 7: ROOM DETAILS & GUEST PROFILE ================= -->
@@ -2069,6 +2085,40 @@ window.fbGetDownloadURL = getDownloadURL;
   </div>
 </div>
 
+  <!-- ================= MID-CYCLE SETTLEMENT MODAL ================= -->
+<div id="modal-mid-cycle-checkout" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+  <div style="background: white; width: 90%; max-width: 340px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+    
+    <!-- Icon -->
+    <div style="width: 60px; height: 60px; background: #eff6ff; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px auto; color: #3b82f6;">
+      <span class="material-symbols-outlined" style="font-size: 32px;">rule_settings</span>
+    </div>
+    
+    <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #0f172a; font-weight: 800;">Mid-Cycle Checkout</h3>
+    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Guest is leaving early. How do you want to settle the final bill?</p>
+
+    <!-- Rent Details Box -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12px; color: #475569; font-weight: 600;">Full Cycle Rent:</span>
+            <span style="font-size: 13px; color: #0f172a; font-weight: 800;" id="mc-full-rent">₹0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+            <span style="font-size: 12px; color: #475569; font-weight: 600;">Actual Days Stayed:</span>
+            <span style="font-size: 13px; color: #059669; font-weight: 800;" id="mc-pro-rent">₹0</span>
+        </div>
+    </div>
+
+    <!-- Smart Action Buttons -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <button id="mc-btn-prorata" style="width: 100%; padding: 14px; border-radius: 12px; background: #059669; color: white; border: none; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Charge Pro-Rata (Days)</button>
+      
+      <button id="mc-btn-full" style="width: 100%; padding: 14px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer; font-size: 14px;">Charge Full Month</button>
+      
+      <button onclick="document.getElementById('modal-mid-cycle-checkout').style.display='none'" style="width: 100%; padding: 10px; background: transparent; color: #94a3b8; border: none; font-weight: 600; cursor: pointer; font-size: 13px; margin-top: 4px;">Cancel</button>
+    </div>
+  </div>
+</div>
   <!-- ========================================== -->
 <!-- 🚀 PREMIUM ADD EXTRA ITEM MODAL -->
 <!-- ========================================== -->
