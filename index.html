@@ -1996,10 +1996,11 @@
 
       </div>
     </div>
-  <!-- ================= FIREBASE CLOUD ENGINE ================= -->
+ <!-- ================= FIREBASE CLOUD ENGINE ================= -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-      import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+      // 🚨 NAYA: 'enableIndexedDbPersistence' yahan add kiya hai offline data ke liye
+      import { getFirestore, doc, setDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
       import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
       
       // 🚨 NAYA: Auth Imports
@@ -2019,6 +2020,11 @@
       const db = getFirestore(app);
       const auth = getAuth(app); // 🚨 NAYA: Auth Initialize kiya
 
+      // 🚨 OFFLINE MODE ON KARO (Screen band hone par app crash nahi hoga)
+      enableIndexedDbPersistence(db).catch((err) => {
+          console.log("Offline mode error: ", err.code);
+      });
+
       // JS File ke liye global variables
       window.db = db;
       window.fbDoc = doc;
@@ -2033,15 +2039,16 @@
       window.fbSignInPopup = signInWithPopup;
       window.fbOnAuthChange = onAuthStateChanged;
       window.fbSignOut = signOut;
+      
       window.fbStorage = getStorage(app);
-window.fbRef = ref;
-window.fbUploadString = uploadString;
-window.fbGetDownloadURL = getDownloadURL;
+      window.fbRef = ref;
+      window.fbUploadString = uploadString;
+      window.fbGetDownloadURL = getDownloadURL;
 
-      console.log("🔥 Firebase Live Sync & Auth Ready!");
+      console.log("🔥 Firebase Live Sync, Auth & OFFLINE MODE Ready!");
     </script>
   <!-- PREMIUM TOAST NOTIFICATION CONTAINER -->
-<div id="toast-container"></div>
+  <div id="toast-container"></div>
   <!-- ================= METER READING MODAL (SMART ENGINE) ================= -->
 <div id="modal-electricity" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
   <div style="background: white; width: 90%; max-width: 350px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
