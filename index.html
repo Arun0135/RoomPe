@@ -211,29 +211,87 @@
 <body>
   
   <div id="app-container" class="w-full min-h-screen relative flex flex-col pb-24 max-w-7xl mx-auto bg-[#f8f9fa]">
-
-     <!-- 🚀 CUSTOM PULL TO REFRESH UI -->
+    <!-- 🚀 CUSTOM PULL TO REFRESH UI -->
     <div id="premium-ptr">
       <div class="ptr-box" id="ptr-icon">
         <span class="material-symbols-outlined" style="font-size: 24px;">refresh</span>
       </div>
     </div>
 
-     <!-- 🚀 PREMIUM ROUND LOADER -->
-<div id="roompe-global-loader">
+    <!-- 🚀 ULTRA-PREMIUM SKELETON SHIMMER (TOP ALIGNED FIX) -->
+<div id="roompe-global-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #f8f9fa; z-index: 9999999; display: block; overflow: hidden; transition: opacity 0.4s ease, visibility 0.4s;">
+  
+  <!-- Inner Container (Top aligned, Center horizontally) -->
+  <div style="width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column;">
     
-    <div class="premium-logo-box">
-        <!-- 🚨 Ye div gol-gol ghumega -->
-        <div class="spinner-ring"></div>
-        
-        <!-- 🚨 Tera asli logo ekdum center me -->
-        <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe">
+    <!-- 1. HEADER MOCK (Ekdum Top Par) -->
+    <div style="padding: 16px 24px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <div class="skeleton-box" style="width: 120px; height: 28px; border-radius: 6px;"></div>
+      <div style="display: flex; gap: 12px;">
+         <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+         <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
+      </div>
     </div>
-    
-    <h3 class="loader-text">RoomPe</h3>
-    <div class="loader-subtitle">
-        Syncing your workspace <div class="dot-flashing"></div>
+
+    <!-- 2. BODY MOCK -->
+    <div style="padding: 20px 24px;">
+      
+      <!-- Overview Title -->
+      <div class="skeleton-box" style="width: 100px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
+      
+      <!-- 4 Rings Grid (EXACT MATCH: Left Circle, Right Text) -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;">
+         
+         <!-- Card 1 -->
+         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
+               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+            </div>
+         </div>
+
+         <!-- Card 2 -->
+         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
+               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+            </div>
+         </div>
+
+         <!-- Card 3 -->
+         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
+               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+            </div>
+         </div>
+
+         <!-- Card 4 -->
+         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
+            <div style="flex: 1;">
+               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
+               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+            </div>
+         </div>
+
+      </div>
+      
+      <!-- Quick Actions Title -->
+      <div class="skeleton-box" style="width: 120px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
+      
+      <!-- Quick Action Buttons -->
+      <div style="display: flex; gap: 12px;">
+         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+      </div>
+
     </div>
+  </div>
 </div>
 
   
@@ -455,7 +513,7 @@
                 </div>
                 <div>
                     <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Collected</p>
-                    <h4 id="dash-collected-amt" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">₹0</h4>
+                    <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">     <span id="dash-collected-amt">₹0</span>     <div id="dash-collected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div> </h4>
                 </div>
             </div>
 
@@ -471,7 +529,10 @@
                 </div>
                 <div>
                     <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pending</p>
-                    <h4 id="dash-pending-amt" style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">₹0</h4>
+                    <h4 style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">
+    <span id="dash-pending-amt">₹0</span>
+    <div id="dash-pending-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div>
+</h4>
                 </div>
             </div>
 
@@ -487,7 +548,10 @@
                 </div>
                 <div>
                     <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Expected</p>
-                    <h4 id="dash-expected-amt" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">₹0</h4>
+                    <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">
+    <span id="dash-expected-amt">₹0</span>
+    <div id="dash-expected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">ACTIVE ROOMS ONLY</div>
+</h4>
                 </div>
             </div>
 
@@ -2099,6 +2163,7 @@
   </div>
 </div>
 
+  
   <!-- ================= MID-CYCLE SETTLEMENT MODAL ================= -->
 <div id="modal-mid-cycle-checkout" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
   <div style="background: white; width: 90%; max-width: 340px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
@@ -2133,6 +2198,8 @@
     </div>
   </div>
 </div>
+
+  
   <!-- ========================================== -->
 <!-- 🚀 PREMIUM ADD EXTRA ITEM MODAL -->
 <!-- ========================================== -->
