@@ -917,6 +917,9 @@ body {
 /* SVG Circular Progress Rings - UPGRADED PRO VERSION */
 .ring-wrapper { position: relative; width: 68px; height: 68px; }
 .circular-chart { display: block; margin: 0 auto; max-width: 100%; max-height: 100%; }
+/* SVG Circular Progress Rings - UPGRADED PRO VERSION */
+.ring-wrapper { position: relative; width: 68px; height: 68px; flex-shrink: 0; }
+.circular-chart { display: block; margin: 0 auto; max-width: 100%; max-height: 100%; overflow: visible; }
 /* Peeche wali grey ring (Thick) */
 .circle-bg { fill: none; stroke: #f1f5f9; stroke-width: 4.5; } 
 /* Upar wali colored ring (Thick + Glow) */
@@ -1092,3 +1095,4 @@ body {
   0% { opacity: 0; transform: translateY(30px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+
