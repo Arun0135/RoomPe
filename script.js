@@ -621,6 +621,38 @@ function switchTab(tabName) {
   document.getElementById('global-nav').classList.remove('hidden');
 }
 
+// ==========================================
+// 🚀 THE PREMIUM NUMBER PULSE ENGINE
+// ==========================================
+function animateNumber(elementId, endValue, prefix = '₹', duration = 1200) {
+    let obj = document.getElementById(elementId);
+    if (!obj) return;
+    
+    // Agar amount 0 hai toh animation ki zaroorat nahi
+    if (endValue === 0) {
+        obj.innerHTML = prefix + '0';
+        return;
+    }
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // EaseOut effect: end me aakar number dhire ghumega (CRED App jaisa)
+        const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.floor(easeOutProgress * endValue);
+        
+        obj.innerHTML = prefix + currentVal.toLocaleString('en-IN');
+        
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = prefix + endValue.toLocaleString('en-IN'); // Final stop exact value par
+        }
+    };
+    window.requestAnimationFrame(step);
+}
 // ==========================================================================
 // 🚀 SMART NATIVE NAVIGATION ENGINE (STEP-BY-STEP BACK)
 // ==========================================================================
@@ -854,27 +886,24 @@ function updateDashboardStats() {
 
     // --- 3. UI TEXT UPDATES (DOM Manipulation) ---
     
-    // 🟢 Collected Card (This Month + Trend + Lifetime)
-    let collectedAmtEl = document.getElementById('dash-collected-amt');
-    if(collectedAmtEl) {
-        collectedAmtEl.innerHTML = `₹${thisMonthCollected.toLocaleString('en-IN')}<br><div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME: ₹${lifetimeCollected.toLocaleString('en-IN')}</div>${trendHTML}`;
-        collectedAmtEl.style.lineHeight = '1.3';
-    }
+    // 🟢 Collected Card Animation
+  animateNumber('dash-collected-amt', thisMonthCollected, '₹'); 
+  let collectedSubEl = document.getElementById('dash-collected-sub');
+  if(collectedSubEl) {
+      collectedSubEl.innerHTML = `LIFETIME: ₹${lifetimeCollected.toLocaleString('en-IN')}${trendHTML}`;
+  }
 
-    // 🔵 Expected Card (Active Occupied)
-    let expectedAmtEl = document.getElementById('dash-expected-amt');
-    if(expectedAmtEl) {
-        expectedAmtEl.innerHTML = `₹${totalExpected.toLocaleString('en-IN')}<br><span style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">ACTIVE ROOMS ONLY</span>`;
-        expectedAmtEl.style.lineHeight = '1.3';
-    }
-    
-    // 🔴 Pending Card (All-Time + Danger Tag)
-    let pendingAmtEl = document.getElementById('dash-pending-amt');
-    if(pendingAmtEl) {
-        let dangerTag = dangerOverdueAmount > 0 ? `<div style="background: #fef2f2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; border: 1px solid #fecdd3; display: inline-block; margin-top: 2px;">⚠️ ₹${dangerOverdueAmount.toLocaleString('en-IN')} > 30 DAYS</div>` : `<div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME DUES</div>`;
-        pendingAmtEl.innerHTML = `₹${totalPendingAmt.toLocaleString('en-IN')}<br>${dangerTag}`;
-        pendingAmtEl.style.lineHeight = '1.3';
-    }
+  // 🔵 Expected Card Animation
+  animateNumber('dash-expected-amt', totalExpected, '₹'); 
+
+  // 🔴 Pending Card Animation
+  // Note: Tere code me variable 'totalPendingAmt' hai, isliye wahi use kiya hai
+  animateNumber('dash-pending-amt', totalPendingAmt, '₹'); 
+  let pendingSubEl = document.getElementById('dash-pending-sub');
+  if(pendingSubEl) {
+      let dangerTag = dangerOverdueAmount > 0 ? `<div style="background: #fef2f2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; border: 1px solid #fecdd3; display: inline-block; margin-top: 2px;">⚠️ ₹${dangerOverdueAmount.toLocaleString('en-IN')} > 30 DAYS</div>` : `<div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME DUES</div>`;
+      pendingSubEl.innerHTML = dangerTag;
+  }
 
     // 🪫 Occupancy Card (Percentage + Vacancy Loss)
     let occEl = document.getElementById('dash-occupancy');
@@ -3698,7 +3727,7 @@ function showCustomPopup(type, title, message, confirmCallback = null) {
 
   // 1. Text Set Karo
   titleEl.innerText = title;
-  msgEl.innerText = message;
+  msgEl.innerHTML = message;
 
   // 2. Theme & Buttons Set Karo
   if (type === 'danger' || type === 'logout') {
@@ -4381,6 +4410,7 @@ function smartRefresh() {
         }
     }, 150); // Thoda delay taaki UI smooth transition le sake
 }
+
 // 🚨 SMART WAKE-UP ENGINE (SCREEN ON/OFF DETECTOR)
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
