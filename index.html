@@ -218,15 +218,17 @@
       </div>
     </div>
 
-    <!-- 🚀 ULTRA-PREMIUM SKELETON SHIMMER (TOP ALIGNED FIX) -->
-<div id="roompe-global-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #f8f9fa; z-index: 9999999; display: block; overflow: hidden; transition: opacity 0.4s ease, visibility 0.4s;">
+    <!-- 🚀 ULTRA-PREMIUM SKELETON SHIMMER (STRICTLY TOP ALIGNED) -->
+<div id="roompe-global-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #f8f9fa; z-index: 9999999; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; transition: opacity 0.4s ease, visibility 0.4s;">
   
-  <!-- Inner Container (Top aligned, Center horizontally) -->
-  <div style="width: 100%; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column;">
+  <!-- Inner Container (Ye app ke width ko match karega aur top se chipka rahega) -->
+  <div style="width: 100%; max-width: 1200px; display: flex; flex-direction: column;">
     
-    <!-- 1. HEADER MOCK (Ekdum Top Par) -->
+    <!-- 1. HEADER MOCK -->
     <div style="padding: 16px 24px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+      <!-- Logo Skeleton -->
       <div class="skeleton-box" style="width: 120px; height: 28px; border-radius: 6px;"></div>
+      <!-- Top Right Icons Skeleton -->
       <div style="display: flex; gap: 12px;">
          <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
          <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
@@ -234,12 +236,12 @@
     </div>
 
     <!-- 2. BODY MOCK -->
-    <div style="padding: 20px 24px;">
+    <div style="padding: 20px 24px; width: 100%;">
       
       <!-- Overview Title -->
       <div class="skeleton-box" style="width: 100px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
       
-      <!-- 4 Rings Grid (EXACT MATCH: Left Circle, Right Text) -->
+      <!-- 4 Rings Grid -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;">
          
          <!-- Card 1 -->
