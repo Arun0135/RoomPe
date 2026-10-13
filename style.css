@@ -450,30 +450,105 @@ body {
 .red-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; border: 2px solid var(--white); }
 .profile-icon-small { background: var(--primary-dark); color: var(--white); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; }
 
+/* ==========================================================================
+   🌟 PREMIUM LIGHT GLASSMORPHISM NAV (MD3 STYLE)
+   ========================================================================== */
 .bottom-nav {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: var(--white);
+  bottom: 24px !important; 
+  left: 20px !important; 
+  right: 20px !important; 
+  width: auto !important;
+  
+  /* 🪄 THE MAGIC FIX: Halka grey aur thoda transparent (Glass Effect) */
+  background: rgba(255, 255, 255, 0.85) !important; 
+  backdrop-filter: blur(12px); /* Peeche ka content blur hoga */
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8) !important; /* Patli si grey border */
+  
   display: flex;
   justify-content: space-between;
-  padding: 12px 24px 20px;
-  box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
-  z-index: 20;
+  align-items: center;
+  padding: 8px 12px !important;
+  
+  /* 🪄 THE MAGIC FIX: Stronger, Softer Shadow so it pops! */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05) !important; 
+  z-index: 999;
+  border-radius: 100px !important; 
 }
+
 .nav-item {
   display: flex;
-  flex-direction: column;
+  flex-direction: row !important; 
   align-items: center;
-  gap: 4px;
-  color: var(--text-light);
+  gap: 0; 
+  padding: 10px;
+  color: #64748b; /* Inactive grey icons */
   cursor: pointer;
-  transition: 0.2s;
+  border-radius: 100px; 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+  overflow: hidden;
 }
-.nav-item span:first-child { font-size: 24px; }
-.nav-item span:last-child { font-size: 11px; font-weight: 600; }
-.nav-item.active { color: var(--primary-dark); }
+
+.nav-item span:first-child { 
+  font-size: 24px; 
+  transition: color 0.3s;
+}
+
+/* Text: Shuru me width 0 karke chhipa rahega */
+.nav-item span:last-child { 
+  font-size: 13px; 
+  font-weight: 700; 
+  max-width: 0; 
+  opacity: 0;
+  display: block;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 🟢 ACTIVE STATE MAGIC */
+.nav-item.active { 
+  background: #ecfdf5; /* Light green pill */
+  padding: 10px 20px; 
+  gap: 8px; 
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15); /* Pill ke liye halke green shadow */
+}
+
+.nav-item.active span:first-child {
+  color: #059669; /* Dark green icon */
+}
+
+.nav-item.active span:last-child { 
+  color: #059669; /* Dark green text */
+  max-width: 100px; 
+  opacity: 1;
+}
+
+/* 🌙 Dark Mode Support for Navigation */
+body.dark-theme .bottom-nav {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-theme .nav-item {
+  color: #94a3b8;
+}
+
+body.dark-theme .nav-item.active {
+  background: #064e3b !important; 
+}
+body.dark-theme .nav-item.active span:first-child,
+body.dark-theme .nav-item.active span:last-child {
+  color: #34d399 !important; 
+}
+
+/* 💻 LAPTOP VIEW FIX */
+@media (min-width: 1024px) {
+  .bottom-nav { border-radius: 0 !important; background: var(--white) !important; backdrop-filter: none; box-shadow: none !important;}
+  .nav-item span:last-child { max-width: 200px; opacity: 1; display: block; }
+  .nav-item.active { padding: 14px 16px !important; box-shadow: none; }
+}
 
 /* Custom FAB */
 .fab-btn { position: absolute; bottom: 90px; right: 24px; background: var(--primary-dark); color: var(--white); width: 56px; height: 56px; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 24px; border: none; box-shadow: 0 8px 20px rgba(0,107,44,0.3); cursor: pointer; z-index: 10; }
@@ -1096,3 +1171,203 @@ body {
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* ==========================================================================
+   🌙 ROOMPE DARK MODE ENGINE
+   ========================================================================== */
+body.dark-theme {
+  --bg-color: #0f172a !important;
+  --white: #1e293b !important;
+  --text-dark: #f8fafc !important;
+  --text-light: #94a3b8 !important;
+  --border-color: #334155 !important;
+  background-color: #020617 !important; 
+}
+
+/* Sabhi white boxes ko dark grey me badalna */
+body.dark-theme .glass-card, 
+body.dark-theme .premium-card, 
+body.dark-theme .bill-card, 
+body.dark-theme .room-card,
+body.dark-theme .dash-header,
+body.dark-theme .bottom-nav,
+body.dark-theme .setup-body > div,
+body.dark-theme .screen {
+  background-color: var(--white) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme h1, body.dark-theme h2, body.dark-theme h3, 
+body.dark-theme h4, body.dark-theme h5, body.dark-theme .gc-number {
+  color: var(--text-dark) !important;
+}
+
+body.dark-theme p, body.dark-theme label {
+  color: var(--text-light) !important;
+}
+
+/* ==========================================================================
+   🌙 ROOMPE DARK MODE ENGINE
+   ========================================================================== */
+body.dark-theme {
+  --bg-color: #0f172a !important;
+  --white: #1e293b !important;
+  --text-dark: #f8fafc !important;
+  --text-light: #94a3b8 !important;
+  --border-color: #334155 !important;
+  background-color: #020617 !important; 
+}
+
+/* Sabhi white boxes ko dark grey me badalna */
+body.dark-theme .glass-card, 
+body.dark-theme .premium-card, 
+body.dark-theme .bill-card, 
+body.dark-theme .room-card,
+body.dark-theme .dash-header,
+body.dark-theme .bottom-nav,
+body.dark-theme .setup-body > div,
+body.dark-theme .screen {
+  background-color: var(--white) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme h1, body.dark-theme h2, body.dark-theme h3, 
+body.dark-theme h4, body.dark-theme h5, body.dark-theme .gc-number {
+  color: var(--text-dark) !important;
+}
+
+body.dark-theme p, body.dark-theme label {
+  color: var(--text-light) !important;
+}
+/* ==========================================================================
+   🌙 PREMIUM TRUE DARK MODE ENGINE (ULTIMATE FIX)
+   ========================================================================== */
+body.dark-theme {
+  --bg-color: #020617 !important; /* Deep dark background */
+  --white: #0f172a !important; /* Cards background */
+  --text-dark: #f8fafc !important; /* White text */
+  --text-light: #94a3b8 !important; /* Grey text */
+  --border-color: #1e293b !important; /* Dark borders */
+  background-color: var(--bg-color) !important; 
+}
+
+/* 1. App Backgrounds (Har page ke background ko dark karna) */
+body.dark-theme #app-container,
+body.dark-theme .screen,
+body.dark-theme .dash-scroll-area,
+body.dark-theme .rooms-scroll-area,
+body.dark-theme .setup-body {
+  background-color: var(--bg-color) !important;
+}
+
+/* 2. All Cards, Navbars, Pills, and Modals */
+body.dark-theme .glass-card, 
+body.dark-theme .premium-card, 
+body.dark-theme .bill-card, 
+body.dark-theme .room-card,
+body.dark-theme .dash-header,
+body.dark-theme .bottom-nav,
+body.dark-theme .quick-action-pill,
+body.dark-theme .billing-summary,
+body.dark-theme .profile-card-main,
+body.dark-theme .settings-card,
+body.dark-theme .lang-card,
+body.dark-theme .prop-card,
+body.dark-theme .grid-card,
+body.dark-theme .rd-card,
+body.dark-theme .notif-card,
+body.dark-theme .rem-guest-card,
+body.dark-theme .gp-payment-card {
+  background-color: var(--white) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+}
+
+/* 3. 🚨 MAGIC FIX: Override ALL Inline White Backgrounds (Fixes patches!) */
+body.dark-theme [style*="background: white"],
+body.dark-theme [style*="background: #ffffff"],
+body.dark-theme [style*="background:#ffffff"],
+body.dark-theme [style*="background: rgba(255, 255, 255"] {
+  background-color: var(--white) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* 4. 🚨 MAGIC FIX: Convert Inline Dark Texts to White */
+body.dark-theme [style*="color: #0f172a"],
+body.dark-theme [style*="color:#0f172a"],
+body.dark-theme [style*="color: #334155"] {
+  color: var(--text-dark) !important;
+}
+
+body.dark-theme [style*="color: #475569"],
+body.dark-theme [style*="color: #64748b"] {
+  color: var(--text-light) !important;
+}
+
+/* 5. Standard Text Tags */
+body.dark-theme h1, body.dark-theme h2, body.dark-theme h3, 
+body.dark-theme h4, body.dark-theme h5, body.dark-theme .gc-number,
+body.dark-theme .guest-name, body.dark-theme .price-big {
+  color: var(--text-dark) !important;
+}
+
+body.dark-theme p, body.dark-theme label, body.dark-theme .guest-label {
+  color: var(--text-light) !important;
+}
+
+/* 6. Inputs and Light Grey boxes */
+body.dark-theme input, 
+body.dark-theme select, 
+body.dark-theme textarea,
+body.dark-theme [style*="background: #f8fafc"],
+body.dark-theme [style*="background: #f1f5f9"] {
+  background-color: #020617 !important;
+  color: var(--text-dark) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* 7. Bottom Nav Fix */
+body.dark-theme .nav-item span {
+  color: var(--text-light);
+}
+body.dark-theme .nav-item.active span {
+  color: var(--primary) !important;
+}
+
+/* ==========================================================================
+   🔄 PREMIUM PULL-TO-REFRESH ENGINE (GLITCH FIX)
+   ========================================================================== */
+#premium-ptr {
+  position: absolute;
+  top: -70px; /* 🚨 THE MAGIC FIX: Isko screen ke ekdum bahar upar chhupa diya */
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 999999; /* Sabse aage rahega jab khichoge */
+  pointer-events: none;
+}
+
+.ptr-box {
+  width: 44px;
+  height: 44px;
+  background: var(--white);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  color: var(--primary-dark);
+  border: 1px solid var(--border-color);
+}
+
+/* Dark mode me bhi premium dikhega */
+body.dark-theme .ptr-box {
+  background: #1e293b;
+  color: #34d399;
+  border-color: #334155;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.ptr-spin {
+  animation: spin 1s linear infinite;
+}
