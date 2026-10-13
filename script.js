@@ -654,23 +654,35 @@ function animateNumber(elementId, endValue, prefix = '₹', duration = 1200) {
     window.requestAnimationFrame(step);
 }
 // ==========================================================================
-// 🚀 SMART NATIVE NAVIGATION ENGINE (STEP-BY-STEP BACK)
+// 🚀 SMART NATIVE NAVIGATION ENGINE (WITH OVERLAP ANIMATION)
 // ==========================================================================
-let screenStack = []; // Ye array memory me yaad rakhega hum kahan se aaye hain
+let screenStack = []; 
 
 function openActionScreen(screenId) {
-  // 1. Jo screen abhi khuli hai, usko history stack me save karo
-  const currentScreen = document.querySelector('.screen:not(.hidden)');
-  if (currentScreen && currentScreen.id !== screenId) {
-    screenStack.push(currentScreen.id);
+  const oldScreen = document.querySelector('.screen:not(.hidden)');
+  if (oldScreen && oldScreen.id !== screenId) {
+    screenStack.push(oldScreen.id);
   }
 
-  // 2. Sab hide karke target screen dikhao
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-  let target = document.getElementById(screenId);
-  if (target) target.classList.remove('hidden');
+  let targetScreen = document.getElementById(screenId);
 
-  // 3. Action screens par bottom nav chhupao
+  // 🪄 THE OVERLAP MAGIC: Nayi screen ko upar laao, purani ko peeche roko
+  if (oldScreen && oldScreen.id !== screenId) {
+      targetScreen.style.zIndex = "100"; // Nayi screen top par
+      targetScreen.classList.remove('hidden');
+      
+      oldScreen.style.zIndex = "10"; // Purani screen peeche
+      // 350ms wait karo jab tak nayi screen ka animation poora na ho jaye
+      setTimeout(() => {
+          oldScreen.classList.add('hidden');
+          targetScreen.style.zIndex = ""; 
+          oldScreen.style.zIndex = "";
+      }, 350); 
+  } else if (targetScreen) {
+      targetScreen.classList.remove('hidden');
+  }
+
+  // Bottom Nav Hide Logic
   const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
   let globalNav = document.getElementById('global-nav');
   if (globalNav) {
@@ -680,30 +692,22 @@ function openActionScreen(screenId) {
       globalNav.classList.remove('hidden');
     }
   }
-
-  // 4. Phone ke system history me ek step badhao
   window.history.pushState({ page: screenId }, "", "");
 }
 
 function closeActionScreen() {
-  // 🚨 MAGIC FIX: Ab ye function khud koi screen change nahi karega!
-  // Ye bas phone ke hardware ko bolega "1 step back aao".
-  // Screen change karne ka kaam neeche wala 'popstate' khud sambhalega. (No Double Jumps)
   window.history.back();
 }
 
-// 🚨 MASTER HARDWARE LISTENER (Phone Back aur App Back dono yahin hit honge)
 window.addEventListener('popstate', function(event) {
   if (screenStack.length > 0) {
-    // Array se theek ek step pichla screen nikalo
     const previousScreenId = screenStack.pop(); 
     
-    // UI update karo
+    // Yahan hum normal switch karenge kyunki piche jaa rahe hain
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     const prevScreen = document.getElementById(previousScreenId);
     if (prevScreen) prevScreen.classList.remove('hidden');
 
-    // Bottom Nav check
     const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
     let globalNav = document.getElementById('global-nav');
     if (globalNav) {
@@ -714,7 +718,6 @@ window.addEventListener('popstate', function(event) {
       }
     }
   } else {
-    // Agar history bilkul khali hai (app ke root par), toh hamesha safely Dashboard dikhao
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     let dash = document.getElementById('screen-dashboard');
     if (dash) dash.classList.remove('hidden');
@@ -724,14 +727,28 @@ window.addEventListener('popstate', function(event) {
   }
 });
 
-// Tab switch karne par purani history clean karna zaroori hai
+// Tab switch karne par bhi overlap magic chalega
 function switchTab(tabName) {
-  screenStack = []; // Tab badalte hi memory reset
+  screenStack = []; 
   currentMainTab = tabName; 
   
-  document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
   let targetScreen = document.getElementById('screen-' + tabName);
-  if (targetScreen) targetScreen.classList.remove('hidden');
+  let oldScreen = document.querySelector('.screen:not(.hidden)');
+
+  // 🪄 THE OVERLAP MAGIC FOR TABS
+  if (oldScreen && oldScreen.id !== 'screen-' + tabName) {
+      targetScreen.style.zIndex = "50"; // Naya tab upar
+      targetScreen.classList.remove('hidden');
+      
+      oldScreen.style.zIndex = "10"; // Purana tab peeche
+      setTimeout(() => {
+          oldScreen.classList.add('hidden');
+          targetScreen.style.zIndex = ""; 
+          oldScreen.style.zIndex = "";
+      }, 350);
+  } else if (targetScreen) {
+      targetScreen.classList.remove('hidden');
+  }
 
   let globalNav = document.getElementById('global-nav');
   if(globalNav) globalNav.classList.remove('hidden');
@@ -743,6 +760,7 @@ function switchTab(tabName) {
     }
   });
 
+  // Background me data refresh
   if(tabName === 'rooms' && typeof renderRoomsGrid === 'function') renderRoomsGrid();
   if(tabName === 'dashboard' && typeof updateDashboardStats === 'function') updateDashboardStats();
   if(tabName === 'bookings' && typeof renderBookingsList === 'function') renderBookingsList();
@@ -2683,7 +2701,7 @@ smartRefresh();
 // Ensure the HTML button calls the right function
 window.saveNewBooking = saveNewBookingVIP;
 
-function contactGuestAction(actionType, roomNo) {
+function contactGuestAction(actionType, roomNo, dueAmount = 0) {
   let rooms = RoomPeDB.getActivePropertyRooms();
   let payments = RoomPeDB.getActivePropertyPayments();
   let room = rooms.find(r => String(r.no) === String(roomNo));
@@ -2691,16 +2709,18 @@ function contactGuestAction(actionType, roomNo) {
   let name = room && room.guest ? room.guest : 'Guest';
   let phone = room && room.phone ? room.phone : ''; 
   
-  let roomTotalPaid = payments.filter(p => String(p.room) === String(roomNo)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
-  let basePrice = parseInt(room.price || 0);
-  let duration = parseInt(room.duration || 1);
-  let due = (basePrice * duration) - roomTotalPaid;
-  
   if(actionType === 'whatsapp') {
     if(!phone) return showToast("No mobile number saved for this guest!", "error");
-    let msg = `Hi ${name}, this is from the reception.`;
-    if(due > 0) msg = `Hi ${name}, gentle reminder. Your pending due is ₹${due.toLocaleString('en-IN')}. Please clear it at your earliest convenience.`;
-    window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    
+    if(dueAmount > 0) {
+        closeActionScreen(); 
+        setTimeout(() => {
+            openReminderScreen(name, roomNo, dueAmount, phone);
+        }, 150);
+    } else {
+        let msg = `Hi ${name}, this is from the reception.`;
+        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
   } else if (actionType === 'call') {
     if(!phone) return showToast("No mobile number saved for this guest!", "error");
     window.open(`tel:${phone}`, '_self');
@@ -3509,16 +3529,82 @@ function openAppSettingsScreen() {
     openActionScreen('screen-app-settings');
 }
 
+/* ==========================================================================
+   ⚙️ APP SETTINGS ENGINE (DARK MODE, BACKUP & NOTIFICATIONS)
+   ========================================================================== */
+
+// 1. Dark Mode Apply Karne Ka Asli Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// 2. App khulte hi purani theme wapas lana
+window.addEventListener('DOMContentLoaded', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 1. Dark Mode Apply Karne Ka Asli Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// 2. App khulte hi purani theme wapas lana
+window.addEventListener('DOMContentLoaded', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 3. Naya Save Settings Function
 function saveAppSettings() {
-    // Toggles se value nikalna
     let isDark = document.getElementById('toggle-dark').checked;
     let isNotif = document.getElementById('toggle-notif').checked;
     
-    localStorage.setItem('roompe_pref_theme', isDark ? 'dark' : 'light');
+    // A. Theme Save aur Apply
+    let theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('roompe_pref_theme', theme);
+    applyTheme(theme); 
+
+    // B. Push Notifications Save & Permission
     localStorage.setItem('roompe_pref_notif', isNotif ? 'on' : 'off');
+    if (isNotif && "Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if(permission === "granted") showToast("Push Notifications Enabled! 🔔", "success");
+            });
+        }
+    }
     
     closeActionScreen();
-    showPopup('success', 'Preferences Saved', 'Your system settings have been updated.');
+    showPopup('success', 'Preferences Saved', 'Your system settings have been updated successfully.');
+}
+
+// 4. Force Cloud Backup Engine
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        pushToCloud();
+    } else {
+        showToast('Cloud sync is connecting... Please wait.', 'error');
+    }
+}
+
+// 4. Force Cloud Backup Engine
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        pushToCloud();
+    } else {
+        showToast('Cloud sync is connecting... Please wait.', 'error');
+    }
 }
 
 // --- LANGUAGE LOGIC ---
@@ -4505,3 +4591,136 @@ document.addEventListener('touchend', () => {
   ptrStartY = 0;
   ptrCurrentY = 0;
 });
+
+/* ==========================================================================
+   📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
+   ========================================================================== */
+async function sendPremiumImageInvoice(tenantName, roomNo, baseRent, electricity, extras) {
+    // 1. Calculate Total
+    let totalAmount = baseRent + electricity + extras;
+
+    // 2. Apne HTML Invoice me data bharo
+    document.getElementById('inv-guest-name').innerText = tenantName;
+    document.getElementById('inv-room-no').innerText = "Room " + roomNo;
+    document.getElementById('inv-base-rent').innerText = "₹" + baseRent.toLocaleString('en-IN');
+    document.getElementById('inv-elec-amt').innerText = "₹" + electricity.toLocaleString('en-IN');
+    document.getElementById('inv-extra-amt').innerText = "₹" + extras.toLocaleString('en-IN');
+    document.getElementById('inv-grand-total').innerText = "₹" + totalAmount.toLocaleString('en-IN');
+    
+    // Aaj ki date set karo
+    let today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    document.getElementById('inv-date-text').innerText = today;
+
+    // Property ka naam Database se nikalo (Agar available ho)
+    let props = window.RoomPeDB ? window.RoomPeDB.getProperties() : [];
+    let activePropId = window.RoomPeDB ? window.RoomPeDB.getActiveProperty() : null;
+    let activeProp = props.find(p => p.id === activePropId);
+    if(activeProp && activeProp.name) {
+        document.getElementById('inv-prop-title').innerText = activeProp.name;
+    }
+
+    // Loader dikhao user ko taaki usko lage processing ho rahi hai
+    showToast("Generating Premium Invoice... ⏳", "success");
+
+    // 3. Photo Khichne ka process
+    const invoiceElement = document.getElementById('premium-invoice-template');
+    
+    // Thodi der ke liye screen par lao (invisible mode me) taaki photo khich sake
+    invoiceElement.style.top = '0px';
+    invoiceElement.style.zIndex = '-100';
+
+    try {
+        const canvas = await html2canvas(invoiceElement, { scale: 2, backgroundColor: null });
+        
+        // Wapas chhipa do
+        invoiceElement.style.top = '-9999px';
+
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `Invoice_Room_${roomNo}.png`, { type: 'image/png' });
+
+            // 4. Mobile ka Share Menu Kholo (WhatsApp ke liye)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'RoomPe Rent Invoice',
+                    text: `Hello ${tenantName}, here is your rent invoice for Room ${roomNo}.`
+                });
+            } else {
+                // Agar PC par hai toh automatically Image Download kar do
+                const link = document.createElement('a');
+                link.download = `Invoice_Room_${roomNo}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                showToast("Invoice Downloaded! You can now send it on WhatsApp Web.", "success");
+            }
+        }, 'image/png');
+
+    } catch (error) {
+        console.error("Invoice Generation Error:", error);
+        showToast("Failed to generate image.", "error");
+        invoiceElement.style.top = '-9999px';
+    }
+}
+
+/* ==========================================================================
+   ⚙️ APP SETTINGS ENGINE (DARK MODE, BACKUP & NOTIFICATIONS)
+   ========================================================================== */
+
+// 1. Force Cloud Backup Action
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        // PushToCloud function ko force call karo
+        pushToCloud();
+    } else {
+        showToast('Cloud sync module is not ready!', 'error');
+    }
+}
+
+// 2. Dark Mode Apply Karne ka Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        // Status bar theme update for mobile
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if(metaTheme) metaTheme.setAttribute("content", "#0f172a");
+    } else {
+        document.body.classList.remove('dark-theme');
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if(metaTheme) metaTheme.setAttribute("content", "#ffffff");
+    }
+}
+
+// 3. App Load Hote hi Purani Settings Apply Karna
+window.addEventListener('load', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 4. Update the "Save Preferences" Button Logic
+// Hum purane saveAppSettings ko override kar rahe hain
+window.saveAppSettings = function() {
+    let isDark = document.getElementById('toggle-dark').checked;
+    let isNotif = document.getElementById('toggle-notif').checked;
+    
+    // Theme Save aur Apply
+    let theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('roompe_pref_theme', theme);
+    applyTheme(theme);
+
+    // Push Notifications Logic (Browser Permission Maangna)
+    localStorage.setItem('roompe_pref_notif', isNotif ? 'on' : 'off');
+    if (isNotif && "Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if(permission === "granted") {
+                    showToast("Push Notifications Enabled! 🔔", "success");
+                }
+            });
+        }
+    }
+    
+    closeActionScreen(); // Setting screen band karo
+    showPopup('success', 'Preferences Saved', 'Your system settings have been updated successfully.');
+};
+
