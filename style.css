@@ -1399,3 +1399,77 @@ body.dark-theme .ptr-box {
 .ptr-spin {
   animation: spin 1s linear infinite;
 }
+
+/* ==========================================================================
+   🚀 NEW BOOKING: STACKED FLOATING CARDS UI
+   ========================================================================== */
+.stacked-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    border: 1px solid #f1f5f9;
+    position: relative;
+}
+.card-header-flex {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 12px;
+}
+.step-badge {
+    background: var(--text-dark); color: white; width: 24px; height: 24px;
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: 12px; font-weight: 800;
+}
+.card-title {
+    font-size: 16px; color: var(--text-dark); font-weight: 800; margin: 0;
+}
+
+/* SMART UPLOAD BOXES */
+.smart-upload-box {
+    border: 2px dashed #cbd5e1; background: #f8fafc; border-radius: 12px;
+    padding: 16px 0; text-align: center; cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+}
+.smart-upload-box:active { background: #f1f5f9; border-color: var(--primary); }
+.smart-upload-box .icon { font-size: 24px; color: var(--primary); display: block; margin-bottom: 4px; }
+.smart-upload-box p { font-size: 12px; color: #64748b; font-weight: 600; margin: 0;}
+
+/* SLEEK SIGNATURE BOX */
+.signature-wrapper {
+    border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; overflow: hidden;
+}
+.sig-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-bottom: 1px solid #e2e8f0; background: white;
+}
+.clear-sig-btn {
+    background: #fef2f2; color: #ef4444; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.signature-wrapper canvas {
+    width: 100%; height: 100px; touch-action: none; display: block;
+}
+.expand-sig-btn {
+    width: 100%; background: #f1f5f9; color: var(--text-dark); border: none; padding: 12px;
+    font-size: 13px; font-weight: 700; cursor: pointer; border-top: 1px solid #e2e8f0; transition: background 0.2s;
+}
+.expand-sig-btn:active { background: #e2e8f0; }
+
+/* PRO TOGGLES */
+.pro-toggle-label {
+    display: flex; align-items: center; gap: 10px; padding: 14px;
+    background: white; border: 1px solid #e2e8f0; border-radius: 12px;
+    cursor: pointer; margin-bottom: 12px; transition: 0.2s;
+}
+.pro-toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary-dark); }
+.pro-toggle-label span { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+
+/* GIANT SUBMIT BUTTON */
+.ultimate-submit-btn {
+    width: 100%; padding: 18px; background: linear-gradient(135deg, #059669, #10b981);
+    color: white; border: none; border-radius: 16px; font-size: 16px; font-weight: 800;
+    cursor: pointer; box-shadow: 0 8px 20px rgba(5,150,105,0.3); transition: transform 0.2s; margin-top: 10px;
+}
+.ultimate-submit-btn:active {
+    transform: scale(0.97); box-shadow: 0 4px 10px rgba(5,150,105,0.2);
+}
