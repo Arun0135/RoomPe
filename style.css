@@ -451,29 +451,28 @@ body {
 .profile-icon-small { background: var(--primary-dark); color: var(--white); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 18px; }
 
 /* ==========================================================================
-   🌟 PREMIUM LIGHT GLASSMORPHISM NAV (MD3 STYLE)
+   🌟 PERFECT THIN FLOATING NAV (INSTA-STYLE & CENTERED)
    ========================================================================== */
 .bottom-nav {
-  position: absolute;
+  position: fixed !important; 
   bottom: 24px !important; 
-  left: 20px !important; 
-  right: 20px !important; 
-  width: auto !important;
+  left: 50% !important; /* Ekdum center alignment */
+  transform: translateX(-50%) !important; 
+  width: calc(100% - 32px) !important; /* Perfect side gap */
+  max-width: 400px !important; 
   
-  /* 🪄 THE MAGIC FIX: Halka grey aur thoda transparent (Glass Effect) */
   background: rgba(255, 255, 255, 0.85) !important; 
-  backdrop-filter: blur(12px); /* Peeche ka content blur hoga */
+  backdrop-filter: blur(12px); 
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8) !important; /* Patli si grey border */
+  border: 1px solid rgba(226, 232, 240, 0.8) !important; 
   
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px !important;
+  padding: 6px 12px !important; /* 🚨 THIN FIX: Outer padding reduced */
   
-  /* 🪄 THE MAGIC FIX: Stronger, Softer Shadow so it pops! */
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 5px 15px rgba(0, 0, 0, 0.05) !important; 
-  z-index: 999;
+  z-index: 9999 !important;
   border-radius: 100px !important; 
 }
 
@@ -482,8 +481,8 @@ body {
   flex-direction: row !important; 
   align-items: center;
   gap: 0; 
-  padding: 10px;
-  color: #64748b; /* Inactive grey icons */
+  padding: 8px 10px; /* 🚨 THIN FIX: Inner padding reduced */
+  color: #64748b; 
   cursor: pointer;
   border-radius: 100px; 
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -491,13 +490,12 @@ body {
 }
 
 .nav-item span:first-child { 
-  font-size: 24px; 
+  font-size: 22px; /* 🚨 THIN FIX: Icon size slightly reduced */
   transition: color 0.3s;
 }
 
-/* Text: Shuru me width 0 karke chhipa rahega */
 .nav-item span:last-child { 
-  font-size: 13px; 
+  font-size: 12px; /* 🚨 THIN FIX: Text size slightly reduced */
   font-weight: 700; 
   max-width: 0; 
   opacity: 0;
@@ -508,46 +506,76 @@ body {
 
 /* 🟢 ACTIVE STATE MAGIC */
 .nav-item.active { 
-  background: #ecfdf5; /* Light green pill */
-  padding: 10px 20px; 
-  gap: 8px; 
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15); /* Pill ke liye halke green shadow */
+  background: #ecfdf5; 
+  padding: 8px 14px; /* 🚨 THIN FIX: Active pill ki motayi kam ki */
+  gap: 6px; 
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15); 
 }
 
 .nav-item.active span:first-child {
-  color: #059669; /* Dark green icon */
+  color: #059669; 
 }
 
 .nav-item.active span:last-child { 
-  color: #059669; /* Dark green text */
+  color: #059669; 
   max-width: 100px; 
   opacity: 1;
 }
 
-/* 🌙 Dark Mode Support for Navigation */
+/* 🟢 ACTIVE STATE MAGIC */
+.nav-item.active { 
+  background: #ecfdf5; 
+  padding: 10px 18px; /* Andar ka capsule size theek kiya */
+  gap: 6px; 
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15); 
+}
+
+.nav-item.active span:first-child {
+  color: #059669; 
+}
+
+.nav-item.active span:last-child { 
+  color: #059669; 
+  max-width: 100px; 
+  opacity: 1;
+}
+
+/* 🌙 Dark Mode Support */
 body.dark-theme .bottom-nav {
   background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(51, 65, 85, 0.8) !important;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
 }
-
-body.dark-theme .nav-item {
-  color: #94a3b8;
-}
-
-body.dark-theme .nav-item.active {
-  background: #064e3b !important; 
-}
+body.dark-theme .nav-item { color: #94a3b8; }
+body.dark-theme .nav-item.active { background: #064e3b !important; }
 body.dark-theme .nav-item.active span:first-child,
-body.dark-theme .nav-item.active span:last-child {
-  color: #34d399 !important; 
-}
+body.dark-theme .nav-item.active span:last-child { color: #34d399 !important; }
 
-/* 💻 LAPTOP VIEW FIX */
+/* 💻 LAPTOP VIEW FIX (Auto Sidebar conversion) */
 @media (min-width: 1024px) {
-  .bottom-nav { border-radius: 0 !important; background: var(--white) !important; backdrop-filter: none; box-shadow: none !important;}
-  .nav-item span:last-child { max-width: 200px; opacity: 1; display: block; }
+  .bottom-nav { 
+    position: absolute !important; 
+    transform: none !important; 
+    left: 0 !important; 
+    bottom: 0 !important; 
+    width: 260px !important; 
+    max-width: none !important;
+    border-radius: 0 !important; 
+    background: var(--white) !important; 
+    backdrop-filter: none; 
+    box-shadow: none !important;
+  }
+  .nav-item span:last-child { max-width: 200px; opacity: 1; display: block; font-size: 15px !important; font-weight: 600 !important;}
   .nav-item.active { padding: 14px 16px !important; box-shadow: none; }
+  .nav-item {
+    flex-direction: row !important;
+    gap: 12px !important;
+    padding: 14px 16px !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+  }
+  .nav-item span:first-child { font-size: 22px !important; }
 }
 
 /* Custom FAB */
