@@ -4578,7 +4578,7 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 /* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (FACEBOOK/GOOGLE STYLE ENGINE)
+   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SCROLL BUG FIX)
    ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
@@ -4586,56 +4586,58 @@ let isPulling = false;
 const ptrContainer = document.getElementById('premium-ptr');
 const ptrIconBox = document.getElementById('ptr-icon'); 
 const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
-
-const THRESHOLD = 70; // 🚨 LIMIT: Itna px khichna padega refresh ke liye
+const THRESHOLD = 70; // LIMIT: Itna px khichna padega
 
 // 1. Touch Start
 document.addEventListener('touchstart', (e) => {
+  // Jis div me scroll ho raha hai usko theek se target karo
   let scrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body, .screen');
   let scrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
 
-  if (scrollTop <= 5) { 
+  // 🚨 STRICT RULE: Sirf 0 ya 1px top par hi Pull-to-refresh allow hoga
+  if (scrollTop <= 1) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
     if(ptrContainer) ptrContainer.style.transition = 'none'; 
     if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
   } else {
-    isPulling = false; 
+    isPulling = false; // Agar screen thodi si bhi niche hai, refresh band!
   }
 }, {passive: true});
 
-// 2. Touch Move (Khichne par animation)
+// 2. Touch Move (Real-time Scroll & Pull Check)
 document.addEventListener('touchmove', (e) => {
   if (!isPulling || !ptrContainer) return;
   
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
+  // 🚨 SMART CHECK: Direction check karo
   if (pullDistance > 0) {
-    if (e.cancelable) e.preventDefault(); 
+    // Ungli neeche ja rahi hai = REFRESH karna chahta hai
+    if (e.cancelable) e.preventDefault(); // Normal scroll block karo
     
-    // Magnetic Resistance (Jitna niche khichega, utna hard khichega)
     let visualDistance = pullDistance * 0.4;
-
     ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
     
-    // Icon ko gol ghumana
     if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
         ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
     }
 
-    // 🚨 MAGIC: Agar limit cross kar li, toh Box ko GREEN kar do!
     if (visualDistance >= THRESHOLD) {
         ptrIconBox.classList.add('ready');
     } else {
         ptrIconBox.classList.remove('ready');
     }
   } else {
+    // Ungli UPAR ja rahi hai = NORMAL SCROLL karna chahta hai
+    // 🚨 REFRESH CANCEL KARO INSTANTLY!
     isPulling = false;
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
   }
-}, {passive: false});
+}, {passive: false}); // passive: false zaroori hai preventDefault ke liye
 
-// 3. Touch End (Ungli chhodne par decision)
+// 3. Touch End (Release)
 document.addEventListener('touchend', () => {
   if (!isPulling || !ptrContainer) return;
   isPulling = false;
@@ -4645,23 +4647,21 @@ document.addEventListener('touchend', () => {
   
   ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
 
-  // 🚨 DECISION: Agar Threshold cross kiya, tabhi REFRESH hoga!
-  if (visualDistance >= THRESHOLD) {
-    ptrContainer.style.transform = `translate(-50%, 80px)`; // Hawa me rukega
+  if (pullDistance > 0 && visualDistance >= THRESHOLD) {
+    // Threshold cross kiya toh refresh start
+    ptrContainer.style.transform = `translate(-50%, 80px)`; 
     
     if(ptrIconBox) {
         ptrIconBox.classList.remove('ready');
-        ptrIconBox.classList.add('ptr-spin'); // Ghoomne wala class
+        ptrIconBox.classList.add('ptr-spin'); 
     }
     
-    // Asli Refresh Engine Call
     if(typeof smartRefresh === 'function') {
        smartRefresh();
     } else {
        window.location.reload(); 
     }
 
-    // 1.5 Second baad spinner wapas upar bhej do
     setTimeout(() => {
       ptrContainer.style.transform = `translate(-50%, 0px)`;
       if(ptrIconBox) {
@@ -4671,7 +4671,7 @@ document.addEventListener('touchend', () => {
     }, 1500);
     
   } else {
-    // 🚨 CANCEL: Galti se khicha tha, wapas upar bhaag jao bina refresh ke!
+    // Agar chota sa khich ke chhod diya toh cancel
     ptrContainer.style.transform = `translate(-50%, 0px)`;
     if(ptrIconBox) {
         ptrIconBox.classList.remove('ready');
