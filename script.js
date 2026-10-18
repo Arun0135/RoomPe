@@ -4578,27 +4578,27 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 /* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (SMART SCROLL ISOLATION)
+   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SCROLL BUG FIX V3)
    ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
 let isPulling = false;
-let activeScrollContainer = null;
+let activeScrollArea = null;
+
 const ptrContainer = document.getElementById('premium-ptr');
 const ptrIconBox = document.getElementById('ptr-icon'); 
 const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
-const THRESHOLD = 70;
+const THRESHOLD = 70; 
 
 // 1. Touch Start
 document.addEventListener('touchstart', (e) => {
-  // Find the closest scrollable container where the touch started
-  activeScrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body');
+  // 🚨 ASLI FIX: Sirf wahi dabbe jo sach me scroll hote hain unko pakdo. '.screen' ko HATA diya!
+  activeScrollArea = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body');
   
-  // Determine the current scroll position. If inside a container, use its scrollTop. Otherwise, use window.scrollY
-  let scrollTop = activeScrollContainer ? activeScrollContainer.scrollTop : window.scrollY;
+  let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
 
-  // STRICT RULE: Only allow pull-to-refresh if we are at the absolute top (0px)
-  if (scrollTop <= 1) { 
+  // Sirf Top pe hone par hi khichne ki permission do
+  if (scrollTop <= 2) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
     if(ptrContainer) ptrContainer.style.transition = 'none'; 
@@ -4615,13 +4615,13 @@ document.addEventListener('touchmove', (e) => {
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
-  // Check if we are pulling downwards
+  // Agar finger neeche aa rahi hai (Matlab page ko neeche khich raha hai)
   if (pullDistance > 0) {
-    // 🚨 SMART CHECK: Double check if we are STILL at the top before preventing default
-    let scrollTop = activeScrollContainer ? activeScrollContainer.scrollTop : window.scrollY;
+    let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
     
-    if(scrollTop <= 1) {
-        if (e.cancelable) e.preventDefault(); // Block native scroll only if at top and pulling down
+    // Ek aur baar check: kya sach me top pe hai?
+    if(scrollTop <= 2) {
+        if (e.cancelable) e.preventDefault(); // Scroll block karo
         
         let visualDistance = pullDistance * 0.4;
         ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
@@ -4636,12 +4636,13 @@ document.addEventListener('touchmove', (e) => {
             ptrIconBox.classList.remove('ready');
         }
     } else {
-        // If we somehow scrolled down, cancel the pull
+        // Agar galti se neeche aa gaya, toh pull cancel
         isPulling = false;
         ptrContainer.style.transform = `translate(-50%, 0px)`;
     }
   } else {
-    // Finger is moving UP (normal scroll down the page). Cancel pull immediately.
+    // 🚨 FINGER UPAR JAA RAHI HAI (Neeche scroll karne ke liye)
+    // Turant pull engine ko band kar do taaki page smoothly scroll ho sake!
     isPulling = false;
     ptrContainer.style.transform = `translate(-50%, 0px)`;
   }
@@ -4689,7 +4690,7 @@ document.addEventListener('touchend', () => {
   
   ptrStartY = 0;
   ptrCurrentY = 0;
-  activeScrollContainer = null;
+  activeScrollArea = null;
 });
 /* ==========================================================================
    📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
