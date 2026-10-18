@@ -130,12 +130,17 @@
       position: relative !important;
     }
     
-    /* Lock bottom nav strictly to the bottom of the frame */
+    /* 🚀 PREMIUM FLOATING BOTTOM NAV (Apple Style) */
     .bottom-nav {
-      position: absolute !important;
-      bottom: 0 !important;
-      width: 100% !important;
-      z-index: 50;
+      position: fixed !important;
+      bottom: 24px !important; /* Screen se 24px upar hawa me tairne ke liye */
+      margin-bottom: env(safe-area-inset-bottom); /* iPhone ke bottom swipe bar se bachaane ke liye */
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: calc(100% - 32px) !important; /* Side se perfect gap */
+      max-width: 400px !important;
+      z-index: 9999 !important;
+      border-radius: 100px !important; /* Ekdum gol pill shape */
     }
 
     /* =========================================
@@ -898,11 +903,13 @@
         </div>
 
         <!-- Filter Chips (OnClick Added) -->
-        <div class="filter-chips" style="margin-bottom: 20px;">
-          <div class="chip billing-chip" onclick="setBillingFilter('All')">All (<span id="count-all">0</span>)</div>
-          <div class="chip billing-chip" onclick="setBillingFilter('Pending')">Pending (<span id="count-pending">0</span>)</div>
-          <div class="chip billing-chip active-green" onclick="setBillingFilter('Received')">Received (<span id="count-received">0</span>)</div>
-        </div>
+<div class="filter-chips" style="margin-bottom: 20px;">
+    <!-- Yahan active-green lagaya -->
+    <div class="chip billing-chip active-green" onclick="setBillingFilter('All')">All (<span id="count-all">0</span>)</div>
+    <div class="chip billing-chip" onclick="setBillingFilter('Pending')">Pending (<span id="count-pending">0</span>)</div>
+    <!-- Yahan se active-green hata diya -->
+    <div class="chip billing-chip" onclick="setBillingFilter('Received')">Received (<span id="count-received">0</span>)</div>
+</div>
 
         <!-- Transaction Cards (JS se draw hongi) -->
         <div class="room-cards-list">
@@ -910,7 +917,7 @@
       </div>
 
       <button class="fab-pill" onclick="openActionScreen('screen-add-payment')">
-        <span class="material-symbols-outlined">add</span> Record Payment
+        <span class="material-symbols-outlined">add</span> Add Payment
       </button>
 
     </div>
@@ -1545,107 +1552,153 @@
 
 
   
-   <!-- ================= ACTION SCREEN: NEW BOOKING (PRO VERSION) ================= -->
-    <div id="screen-new-booking" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">New Booking</h3>
-      </header>
-      
-      <div class="rooms-scroll-area" style="padding: 20px; padding-bottom: 100px;">
-        
-        <!-- SECTION 1: Guest Info -->
-        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">1. Guest Info</h4>
-        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-          <input type="text" id="book-guest-name" placeholder="Guest Full Name*" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; font-size: 14px; outline: none; box-sizing: border-box;">
-          
-          <div style="display: flex; gap: 8px;">
-            <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; color: #475569; font-size: 14px; font-weight: 600;">+91</div>
-            <input type="tel" id="book-guest-phone" placeholder="WhatsApp / Mobile*" style="flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
-          </div>
+  <!-- ================= ACTION SCREEN: NEW BOOKING (PRO STACKED CARDS) ================= -->
+    <div id="screen-new-booking" class="screen hidden" style="background-color: #f1f5f9;">
+        <!-- Header -->
+        <div class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; position: sticky; top: 0; z-index: 10;">
+            <div class="back-btn-circle" onclick="closeActionScreen()"><span class="icon" style="font-size: 20px;">⬅️</span></div>
+            <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">New Booking</h3>
         </div>
 
-        <!-- SECTION 2: Stay & Billing -->
-        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">2. Stay & Billing</h4>
-        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <input type="text" id="book-room-no" placeholder="Room No.*" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
-            <select id="book-stay-type" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; background: white;">
-              <option value="Daily">Daily (Hotel)</option>
-              <option value="Monthly">Monthly (PG)</option>
-            </select>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-            <input type="datetime-local" id="book-checkin" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
-            <input type="number" id="book-duration" placeholder="Duration" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
-          </div>
-          <input type="number" id="book-advance" placeholder="Advance Collected (₹)" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box;">
-        </div>
-
-        <!-- SECTION 3: Smart KYC & Signature -->
-        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">3. Smart KYC & Legal</h4>
-        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-          <select id="book-id-type" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; background: white; margin-bottom: 12px;">
-            <option value="Aadhar">Aadhar Card</option>
-            <option value="PAN">PAN Card</option>
-            <option value="Passport">Passport</option>
-          </select>
-
-          <!-- 🚨 SMART KYC HIDDEN INPUTS -->
-<input type="file" id="id-front-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'front-preview', 'front')">
-<input type="file" id="id-back-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'back-preview', 'back')">
-
-<div style="display: flex; gap: 12px; margin-bottom: 16px;">
-  <!-- FRONT PHOTO BOX -->
-  <div onclick="document.getElementById('id-front-input').click()" style="flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; background: #f8fafc; position: relative; overflow: hidden;">
-    <img id="front-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
-    <span class="material-symbols-outlined" style="color: #3b82f6; font-size: 28px; margin-bottom: 8px; position: relative; z-index: 1;">photo_camera</span>
-    <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 600; position: relative; z-index: 1;">Front Photo</p>
-  </div>
-
-  <!-- BACK PHOTO BOX -->
-  <div onclick="document.getElementById('id-back-input').click()" style="flex: 1; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; background: #f8fafc; position: relative; overflow: hidden;">
-    <img id="back-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
-    <span class="material-symbols-outlined" style="color: #3b82f6; font-size: 28px; margin-bottom: 8px; position: relative; z-index: 1;">photo_camera</span>
-    <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 600; position: relative; z-index: 1;">Back Photo</p>
-  </div>
-</div>
-
-          <!-- Digital Signature Pad -->
-          <p style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 8px;">Guest Signature</p>
-          <div style="border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; position: relative; overflow: hidden; margin-bottom: 12px;">
-            <canvas id="signature-pad" style="width: 100%; height: 140px; touch-action: none; display: block;"></canvas>
-            <div style="position: absolute; bottom: 8px; right: 8px; display: flex; gap: 8px;">
-              <button onclick="clearSignature('signature-pad')" style="background: white; color: #ef4444; border: 1px solid #fecdd3; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer;">Clear</button>
-              <button onclick="openFullScreenSignature()" style="background: #059669; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                <span class="material-symbols-outlined" style="font-size: 14px;">fullscreen</span> Expand
-              </button>
+        <div class="rooms-scroll-area" style="padding: 20px; padding-bottom: 120px;">
+            
+            <!-- 🃏 CARD 1: GUEST DETAILS -->
+            <div class="stacked-card stagger-1">
+                <div class="card-header-flex">
+                    <span class="step-badge">1</span>
+                    <h4 class="card-title">Guest Details</h4>
+                </div>
+                
+                <div class="premium-form-wrap">
+                    <label>Guest Full Name*</label>
+                    <div class="premium-form-row">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="book-guest-name" placeholder="Enter full name">
+                    </div>
+                </div>
+                
+                <div class="premium-form-wrap" style="margin-bottom: 0;">
+                    <label>WhatsApp / Mobile*</label>
+                    <div class="premium-form-row">
+                        <span class="input-icon" style="font-size:13px; font-weight:800; color:var(--text-dark);">+91</span>
+                        <input type="tel" id="book-guest-phone" placeholder="Mobile number">
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
 
-        <!-- SECTION 4: Pro Features -->
-        <h4 style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">4. Pro Add-ons</h4>
-        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-          <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; margin-bottom: 12px;">
-            <input type="checkbox" id="book-is-corporate" onchange="toggleGSTBox()" style="width: 16px; height: 16px; accent-color: #4f46e5;">
-            Corporate Booking (GST Invoice)
-          </label>
-          <div id="corporate-gst-box" style="display: none; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px;">
-            <input type="text" id="book-company-name" placeholder="Company Name" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 8px; font-size: 13px; outline: none; box-sizing: border-box;">
-            <input type="text" id="book-gstin" placeholder="GSTIN Number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box;">
-          </div>
-          
-          <label style="display: flex; align-items: center; gap: 8px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; cursor: pointer;">
-            <input type="checkbox" id="book-smart-menu" checked style="width: 16px; height: 16px; accent-color: #059669;">
-            <span style="font-size: 12px; font-weight: 600; color: #065f46;">Auto-send Smart Menu on WhatsApp</span>
-          </label>
-        </div>
+            <!-- 🃏 CARD 2: STAY & BILLING -->
+            <div class="stacked-card stagger-2">
+                <div class="card-header-flex">
+                    <span class="step-badge">2</span>
+                    <h4 class="card-title">Stay & Billing</h4>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:16px;">
+                    <div class="premium-form-row">
+                        <span class="input-icon">🛏️</span>
+                        <input type="text" id="book-room-no" placeholder="Room No.*">
+                    </div>
+                    <div class="premium-form-row">
+                        <select id="book-stay-type" style="border:none; outline:none; background:transparent; width:100%; font-weight:600; color:#0f172a;">
+                            <option value="Daily">Daily (Hotel)</option>
+                            <option value="Monthly">Monthly (PG)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:16px;">
+                    <div class="premium-form-wrap" style="margin:0;">
+                         <label style="font-size:11px;">Check-in Date</label>
+                        <div class="premium-form-row" style="padding:0 12px;">
+                            <input type="datetime-local" id="book-checkin" style="font-size: 12px; width:100%;">
+                        </div>
+                    </div>
+                    <div class="premium-form-wrap" style="margin:0;">
+                         <label style="font-size:11px;">Duration</label>
+                        <div class="premium-form-row">
+                            <input type="number" id="book-duration" placeholder="Days/Months">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="premium-form-wrap" style="margin-bottom: 0;">
+                    <label>Advance Collected (₹)</label>
+                    <!-- Highlighted Green Box for Money -->
+                    <div class="premium-form-row" style="border-color: #34d399; background: #ecfdf5;">
+                        <span class="input-icon" style="color:#059669; font-weight:bold;">₹</span>
+                        <input type="number" id="book-advance" placeholder="0.00" style="color: #064e3b; font-weight: 800; font-size: 16px;">
+                    </div>
+                </div>
+            </div>
 
-        <button onclick="saveNewBooking()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">
-          Confirm Booking
-        </button>
-      </div>
+            <!-- 🃏 CARD 3: SMART KYC & ADD-ONS -->
+            <div class="stacked-card stagger-3">
+                <div class="card-header-flex">
+                    <span class="step-badge">3</span>
+                    <h4 class="card-title">KYC & Add-ons</h4>
+                </div>
+                
+                <!-- ID Selection -->
+                <div class="premium-form-row" style="margin-bottom: 16px;">
+                    <span class="input-icon">💳</span>
+                    <select id="book-id-type" style="border:none; outline:none; background:transparent; width:100%; font-weight:600; color:#0f172a;">
+                        <option value="Aadhar">Aadhar Card</option>
+                        <option value="PAN">PAN Card</option>
+                        <option value="Passport">Passport</option>
+                    </select>
+                </div>
+                
+                <!-- Smart Image Uploaders -->
+                <input type="file" id="id-front-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'front-preview', 'front')">
+                <input type="file" id="id-back-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'back-preview', 'back')">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:20px;">
+                    <div class="smart-upload-box" onclick="document.getElementById('id-front-input').click()">
+                        <img id="front-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                        <span class="icon" style="position: relative; z-index: 1;">📷</span>
+                        <p style="position: relative; z-index: 1;">Front Photo</p>
+                    </div>
+                    <div class="smart-upload-box" onclick="document.getElementById('id-back-input').click()">
+                        <img id="back-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
+                        <span class="icon" style="position: relative; z-index: 1;">📷</span>
+                        <p style="position: relative; z-index: 1;">Back Photo</p>
+                    </div>
+                </div>
+
+                <!-- Sleek Signature Pad -->
+                <div class="signature-wrapper">
+                    <div class="sig-header">
+                        <span style="font-size:12px; font-weight:700; color:#475569;">✍️ Guest Signature</span>
+                        <button onclick="clearSignature('signature-pad')" class="clear-sig-btn">Clear</button>
+                    </div>
+                    <canvas id="signature-pad"></canvas>
+                    <button onclick="openFullScreenSignature()" class="expand-sig-btn">🔍 Expand Pad for Signature</button>
+                </div>
+
+                <hr style="border: 0; height: 1px; background: #e2e8f0; margin: 24px 0;">
+
+                <!-- Pro Add-ons -->
+                <label class="pro-toggle-label">
+                    <input type="checkbox" id="book-is-corporate" onchange="toggleGSTBox()">
+                    <span>🏢 Corporate Booking (GST)</span>
+                </label>
+                
+                <div id="corporate-gst-box" style="display: none; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px;">
+                    <input type="text" id="book-company-name" placeholder="Company Name" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; font-size: 13px; outline: none;">
+                    <input type="text" id="book-gstin" placeholder="GSTIN Number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none;">
+                </div>
+                
+                <label class="pro-toggle-label" style="background: #f0fdf4; border-color: #bbf7d0;">
+                    <input type="checkbox" id="book-smart-menu" checked>
+                    <span style="color: #065f46;">💬 Auto-send Smart Menu on WhatsApp</span>
+                </label>
+            </div>
+            
+            <!-- FINAL SUBMIT BUTTON (Giant & Beautiful) -->
+            <button class="ultimate-submit-btn" onclick="saveNewBooking()">
+                ✔️ Confirm Booking
+            </button>
+        </div>
     </div>
     <!-- ================= ACTION SCREEN: SMART NOTIFICATIONS ================= -->
     <div id="screen-notifications" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
