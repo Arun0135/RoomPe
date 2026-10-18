@@ -4578,66 +4578,76 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 /* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SCROLL BUG FIX)
+   🚀 CUSTOM PULL-TO-REFRESH (SMART SCROLL ISOLATION)
    ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
 let isPulling = false;
+let activeScrollContainer = null;
 const ptrContainer = document.getElementById('premium-ptr');
 const ptrIconBox = document.getElementById('ptr-icon'); 
 const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
-const THRESHOLD = 70; // LIMIT: Itna px khichna padega
+const THRESHOLD = 70;
 
 // 1. Touch Start
 document.addEventListener('touchstart', (e) => {
-  // Jis div me scroll ho raha hai usko theek se target karo
-  let scrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body, .screen');
-  let scrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
+  // Find the closest scrollable container where the touch started
+  activeScrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body');
+  
+  // Determine the current scroll position. If inside a container, use its scrollTop. Otherwise, use window.scrollY
+  let scrollTop = activeScrollContainer ? activeScrollContainer.scrollTop : window.scrollY;
 
-  // 🚨 STRICT RULE: Sirf 0 ya 1px top par hi Pull-to-refresh allow hoga
+  // STRICT RULE: Only allow pull-to-refresh if we are at the absolute top (0px)
   if (scrollTop <= 1) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
     if(ptrContainer) ptrContainer.style.transition = 'none'; 
     if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
   } else {
-    isPulling = false; // Agar screen thodi si bhi niche hai, refresh band!
+    isPulling = false; 
   }
 }, {passive: true});
 
-// 2. Touch Move (Real-time Scroll & Pull Check)
+// 2. Touch Move
 document.addEventListener('touchmove', (e) => {
   if (!isPulling || !ptrContainer) return;
   
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
-  // 🚨 SMART CHECK: Direction check karo
+  // Check if we are pulling downwards
   if (pullDistance > 0) {
-    // Ungli neeche ja rahi hai = REFRESH karna chahta hai
-    if (e.cancelable) e.preventDefault(); // Normal scroll block karo
+    // 🚨 SMART CHECK: Double check if we are STILL at the top before preventing default
+    let scrollTop = activeScrollContainer ? activeScrollContainer.scrollTop : window.scrollY;
     
-    let visualDistance = pullDistance * 0.4;
-    ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
-    
-    if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
-        ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
-    }
+    if(scrollTop <= 1) {
+        if (e.cancelable) e.preventDefault(); // Block native scroll only if at top and pulling down
+        
+        let visualDistance = pullDistance * 0.4;
+        ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
+        
+        if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
+            ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
+        }
 
-    if (visualDistance >= THRESHOLD) {
-        ptrIconBox.classList.add('ready');
+        if (visualDistance >= THRESHOLD) {
+            ptrIconBox.classList.add('ready');
+        } else {
+            ptrIconBox.classList.remove('ready');
+        }
     } else {
-        ptrIconBox.classList.remove('ready');
+        // If we somehow scrolled down, cancel the pull
+        isPulling = false;
+        ptrContainer.style.transform = `translate(-50%, 0px)`;
     }
   } else {
-    // Ungli UPAR ja rahi hai = NORMAL SCROLL karna chahta hai
-    // 🚨 REFRESH CANCEL KARO INSTANTLY!
+    // Finger is moving UP (normal scroll down the page). Cancel pull immediately.
     isPulling = false;
     ptrContainer.style.transform = `translate(-50%, 0px)`;
   }
-}, {passive: false}); // passive: false zaroori hai preventDefault ke liye
+}, {passive: false});
 
-// 3. Touch End (Release)
+// 3. Touch End
 document.addEventListener('touchend', () => {
   if (!isPulling || !ptrContainer) return;
   isPulling = false;
@@ -4648,7 +4658,6 @@ document.addEventListener('touchend', () => {
   ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
 
   if (pullDistance > 0 && visualDistance >= THRESHOLD) {
-    // Threshold cross kiya toh refresh start
     ptrContainer.style.transform = `translate(-50%, 80px)`; 
     
     if(ptrIconBox) {
@@ -4671,7 +4680,6 @@ document.addEventListener('touchend', () => {
     }, 1500);
     
   } else {
-    // Agar chota sa khich ke chhod diya toh cancel
     ptrContainer.style.transform = `translate(-50%, 0px)`;
     if(ptrIconBox) {
         ptrIconBox.classList.remove('ready');
@@ -4681,8 +4689,8 @@ document.addEventListener('touchend', () => {
   
   ptrStartY = 0;
   ptrCurrentY = 0;
+  activeScrollContainer = null;
 });
-
 /* ==========================================================================
    📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
    ========================================================================== */
