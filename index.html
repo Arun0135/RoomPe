@@ -245,8 +245,36 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+    /* ==========================================================================
+       🚀 ULTRA-REALISTIC SHIMMER EFFECT (APPLE / FACEBOOK STYLE)
+       ========================================================================== */
+    .skeleton-box {
+      background-color: #e2e8f0; /* Premium Slate Gray Base */
+      /* Ye gradient wahi chamakti hui light hai jo box ke upar se guzregi */
+      background-image: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.6) 20%,
+        rgba(255, 255, 255, 0) 40%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      background-size: 800px 100%;
+      background-repeat: no-repeat;
+      /* 1.2s me ek wave complete hogi, infinite time tak */
+      animation: shimmerWave 1.2s infinite linear;
+    }
+
+    /* Wave ko Left se Right bhagane ka engine */
+    @keyframes shimmerWave {
+      0% {
+        background-position: -400px 0;
+      }
+      100% {
+        background-position: 800px 0;
+      }
+    }
 </style>
-  </style>
+  
   <!-- HTML ko Image me badalne ka engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- PDF Generator Library -->
@@ -329,12 +357,51 @@
       <!-- Quick Actions Title -->
       <div class="skeleton-box" style="width: 120px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
       
-      <!-- Quick Action Buttons -->
-      <div style="display: flex; gap: 12px;">
-         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-         <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-      </div>
+     <!-- Quick Action Buttons (Tere purane wale) -->
+          <div style="display: flex; gap: 12px;">
+             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
+          </div>
+
+          <!-- 🚨 NAYA ADDITION: BOTTOM SCREEN BHARNE KE LIYE (List Skeletons) -->
+          <!-- Action Required Title Mock -->
+          <div class="skeleton-box" style="width: 140px; height: 16px; border-radius: 4px; margin-top: 32px; margin-bottom: 16px;"></div>
+          
+          <!-- List Items Mock (Puri screen bharne ke liye 3 cards) -->
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+             
+             <!-- List Card 1 -->
+             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                   <div class="skeleton-box" style="width: 70%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
+                   <div class="skeleton-box" style="width: 40%; height: 10px; border-radius: 4px;"></div>
+                </div>
+                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
+             </div>
+
+             <!-- List Card 2 -->
+             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                   <div class="skeleton-box" style="width: 50%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
+                   <div class="skeleton-box" style="width: 30%; height: 10px; border-radius: 4px;"></div>
+                </div>
+                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
+             </div>
+
+             <!-- List Card 3 -->
+             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                   <div class="skeleton-box" style="width: 80%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
+                   <div class="skeleton-box" style="width: 45%; height: 10px; border-radius: 4px;"></div>
+                </div>
+                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
+             </div>
+
+          </div>
 
     </div>
   </div>
