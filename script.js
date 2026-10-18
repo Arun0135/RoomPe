@@ -4759,3 +4759,123 @@ async function forceDownloadDocument(url, filename) {
         window.open(url, '_blank');
     }
 }
+
+/* ==========================================================================
+   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SMART ENGINE)
+   ========================================================================== */
+let ptrStartY = 0;
+let ptrCurrentY = 0;
+let isPulling = false;
+
+const ptrContainer = document.getElementById('premium-ptr');
+const ptrIconBox = document.getElementById('ptr-icon'); 
+const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
+const THRESHOLD = 70; 
+
+// 🚨 SMART HELPER: Check karta hai ki screen ka KOI BHI hissa scroll hua hai ya nahi
+function getRealScrollTop(targetElement) {
+    let el = targetElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+        if (el.scrollTop > 0) return el.scrollTop; 
+        el = el.parentElement;
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0;
+}
+
+// 1. Touch Start
+document.addEventListener('touchstart', (e) => {
+  let realScroll = getRealScrollTop(e.target);
+
+  // Agar PURI SCREEN sach me ekdum TOP par hai (0 ya 1px) tabhi refresh on hoga
+  if (realScroll <= 1) { 
+    ptrStartY = e.touches[0].clientY;
+    isPulling = true;
+    if(ptrContainer) ptrContainer.style.transition = 'none'; 
+    if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
+  } else {
+    isPulling = false; 
+  }
+}, {passive: true});
+
+// 2. Touch Move
+document.addEventListener('touchmove', (e) => {
+  if (!isPulling || !ptrContainer) return;
+  
+  ptrCurrentY = e.touches[0].clientY;
+  let pullDistance = ptrCurrentY - ptrStartY;
+
+  if (pullDistance > 0) {
+    let realScroll = getRealScrollTop(e.target);
+    
+    // Double check: Kya abhi bhi TOP par hi hai?
+    if(realScroll <= 1) {
+        if (e.cancelable) e.preventDefault(); // Normal scroll block karo
+        
+        let visualDistance = pullDistance * 0.4;
+        ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
+        
+        if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
+            ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
+        }
+
+        if (visualDistance >= THRESHOLD) {
+            ptrIconBox.classList.add('ready');
+        } else {
+            ptrIconBox.classList.remove('ready');
+        }
+    } else {
+        // Agar galti se scroll ho gaya, toh refresh turant cancel
+        isPulling = false;
+        ptrContainer.style.transform = `translate(-50%, 0px)`;
+    }
+  } else {
+    // Ungli upar jaa rahi hai (niche dekhne ke liye)
+    isPulling = false;
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+  }
+}, {passive: false});
+
+// 3. Touch End
+document.addEventListener('touchend', () => {
+  if (!isPulling || !ptrContainer) return;
+  isPulling = false;
+  
+  let pullDistance = ptrCurrentY - ptrStartY;
+  let visualDistance = pullDistance * 0.4;
+  
+  ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
+
+  if (pullDistance > 0 && visualDistance >= THRESHOLD) {
+    ptrContainer.style.transform = `translate(-50%, 80px)`; 
+    
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        ptrIconBox.classList.add('ptr-spin'); 
+    }
+    
+    // Asli Refresh Call
+    if(typeof smartRefresh === 'function') {
+       smartRefresh();
+    } else {
+       window.location.reload(); 
+    }
+
+    setTimeout(() => {
+      ptrContainer.style.transform = `translate(-50%, 0px)`;
+      if(ptrIconBox) {
+          ptrIconBox.classList.remove('ptr-spin');
+          if(ptrIconSymbol) ptrIconSymbol.style.transform = `rotate(0deg)`;
+      }
+    }, 1500);
+    
+  } else {
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        if(ptrIconSymbol) setTimeout(() => { ptrIconSymbol.style.transform = `rotate(0deg)`; }, 300);
+    }
+  }
+  
+  ptrStartY = 0;
+  ptrCurrentY = 0;
+});
