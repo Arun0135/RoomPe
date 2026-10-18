@@ -4578,32 +4578,39 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 /* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SCROLL BUG FIX V3)
+   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SCROLL BUG FIX V4 - THE MASTER FIX)
    ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
 let isPulling = false;
-let activeScrollArea = null;
 
 const ptrContainer = document.getElementById('premium-ptr');
 const ptrIconBox = document.getElementById('ptr-icon'); 
 const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
 const THRESHOLD = 70; 
 
+// 🚨 SMART HELPER: Check karta hai ki screen ka KOI BHI hissa scroll hua hai ya nahi
+function getRealScrollTop(targetElement) {
+    let el = targetElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+        if (el.scrollTop > 0) return el.scrollTop; // Agar koi bhi dabba scroll hua hai, toh uski value do
+        el = el.parentElement;
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0;
+}
+
 // 1. Touch Start
 document.addEventListener('touchstart', (e) => {
-  // 🚨 ASLI FIX: Sirf wahi dabbe jo sach me scroll hote hain unko pakdo. '.screen' ko HATA diya!
-  activeScrollArea = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body');
-  
-  let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
+  let realScroll = getRealScrollTop(e.target);
 
-  // Sirf Top pe hone par hi khichne ki permission do
-  if (scrollTop <= 2) { 
+  // Agar PURI SCREEN sach me ekdum TOP par hai (0 ya 1px) tabhi refresh on hoga
+  if (realScroll <= 1) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
     if(ptrContainer) ptrContainer.style.transition = 'none'; 
     if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
   } else {
+    // Agar thoda sa bhi niche hai, toh refresh engine completely band!
     isPulling = false; 
   }
 }, {passive: true});
@@ -4615,13 +4622,13 @@ document.addEventListener('touchmove', (e) => {
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
-  // Agar finger neeche aa rahi hai (Matlab page ko neeche khich raha hai)
+  // Agar ungli niche khich raha hai
   if (pullDistance > 0) {
-    let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
+    let realScroll = getRealScrollTop(e.target);
     
-    // Ek aur baar check: kya sach me top pe hai?
-    if(scrollTop <= 2) {
-        if (e.cancelable) e.preventDefault(); // Scroll block karo
+    // Double check: Kya abhi bhi TOP par hi hai?
+    if(realScroll <= 1) {
+        if (e.cancelable) e.preventDefault(); // Normal scroll block karo
         
         let visualDistance = pullDistance * 0.4;
         ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
@@ -4636,13 +4643,12 @@ document.addEventListener('touchmove', (e) => {
             ptrIconBox.classList.remove('ready');
         }
     } else {
-        // Agar galti se neeche aa gaya, toh pull cancel
+        // Agar galti se scroll ho gaya, toh refresh turant cancel
         isPulling = false;
         ptrContainer.style.transform = `translate(-50%, 0px)`;
     }
   } else {
-    // 🚨 FINGER UPAR JAA RAHI HAI (Neeche scroll karne ke liye)
-    // Turant pull engine ko band kar do taaki page smoothly scroll ho sake!
+    // Ungli upar jaa rahi hai (niche dekhne ke liye)
     isPulling = false;
     ptrContainer.style.transform = `translate(-50%, 0px)`;
   }
@@ -4690,7 +4696,6 @@ document.addEventListener('touchend', () => {
   
   ptrStartY = 0;
   ptrCurrentY = 0;
-  activeScrollArea = null;
 });
 /* ==========================================================================
    📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
