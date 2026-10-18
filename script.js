@@ -1,2464 +1,4866 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RoomPe App</title>
+
+// ==========================================
+// 🛡️ ANTI-HACKER SECURITY SHIELD (XSS)
+// ==========================================
+function sanitizeInput(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str.replace(/[&<>"'/]/g, function (s) {
+        const entityMap = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+            '/': '&#x2F;'
+        };
+        return entityMap[s];
+    });
+}
+// ==========================================================================
+// 🚀 PREMIUM LOADER ENGINE (With Animation Fix)
+// ==========================================================================
+function hideAppLoader() {
+    let loader = document.getElementById('roompe-global-loader');
+    
+    // 🚨 SMART LOGIC: Loader hatne se pehle hi Dashboard ko ready kar lo taaki Gray screen na aaye
+    let activeScreen = document.querySelector('.screen:not(.hidden)');
+    if (!activeScreen) {
+        let dash = document.getElementById('screen-dashboard');
+        let nav = document.getElementById('global-nav');
+        
+        if (dash) {
+            dash.classList.remove('hidden');
+            dash.classList.add('screen-enter'); // Ye wahi CSS magic hai jo slide-up karega
+        }
+        if (nav) nav.classList.remove('hidden');
+    }
+
+    if(loader) {
+        setTimeout(() => {
+            loader.classList.add('hide-loader'); 
+            
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500); 
+        }, 800); 
+    }
+}
+
+window.addEventListener('load', hideAppLoader);
+// 🚨 SMART TRIGGER: Page ka saara CSS/Images load hone par hi ye trigger hoga
+window.addEventListener('load', hideAppLoader);
+// ==========================================================================
+// 🔔 CUSTOM ROOMPE POPUP ENGINE
+// ==========================================================================
+
+function showPopup(type, title, message, actionCallback = null) {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  const iconBox = document.getElementById('roompe-popup-icon');
+  const btnBox = document.getElementById('roompe-popup-buttons');
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet"/>
+  document.getElementById('roompe-popup-title').innerText = title;
+  document.getElementById('roompe-popup-msg').innerText = message;
+
+  window.tempPopupCallback = actionCallback; 
+  let okayAction = `closePopup(); if(window.tempPopupCallback) window.tempPopupCallback();`;
+
+  if (type === 'success') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#10b981; font-size:32px;">check_circle</span>';
+    iconBox.style.background = '#dcfce7';
+    btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#10b981; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Awesome</button>`;
+  } else if (type === 'error') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#ef4444; font-size:32px;">error</span>';
+    iconBox.style.background = '#fee2e2';
+    btnBox.innerHTML = `<button onclick="${okayAction}" style="width:100%; padding:14px; background:#ef4444; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Okay</button>`;
+  } else if (type === 'confirm') {
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="color:#f59e0b; font-size:32px;">help</span>';
+    iconBox.style.background = '#fef3c7';
+    btnBox.innerHTML = `
+      <button onclick="closePopup()" style="flex:1; padding:14px; background:#f1f5f9; color:#475569; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Cancel</button>
+      <button onclick="${okayAction}" style="flex:1; padding:14px; background:#059669; color:white; border:none; border-radius:12px; font-weight:800; font-size:15px; cursor:pointer;">Yes, Do it</button>
+    `;
+  }
+
+  overlay.style.display = 'flex';
+  setTimeout(() => {
+    box.style.opacity = '1';
+    box.style.transform = 'scale(1)';
+  }, 10);
+}
+
+function closePopup() {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  box.style.opacity = '0';
+  box.style.transform = 'scale(0.9)';
+  setTimeout(() => { overlay.style.display = 'none'; }, 200);
+}
+
+// ==========================================================================
+// ROOMPE APP - GLOBALS & SCREEN TRANSITIONS
+// ==========================================================================
+
+var currentRoomFilter = 'All';
+var currentRoomSearch = '';
+var currentMainTab = 'dashboard'; 
+var currentBillingFilter = 'All';
+var currentRoomView = 'grid';
+
+function goToLogin() {
+  document.getElementById('screen-welcome').classList.add('hidden');
+  document.getElementById('screen-login').classList.remove('hidden'); // 🚨 Yahi line missing thi!
+  document.getElementById('screen-login').style.display = 'flex';
+}
+
+function goToSetup() {
+  document.getElementById('screen-otp').classList.add('hidden');
+  document.getElementById('screen-setup').classList.remove('hidden');
+}
+
+function goToDashboard() {
+  document.getElementById('screen-setup').classList.add('hidden');
+  document.getElementById('screen-dashboard').classList.remove('hidden');
+}
+
+function selectProperty(clickedCard) {
+  let cards = document.querySelectorAll('.prop-card');
+  cards.forEach(card => card.classList.remove('active'));
+  clickedCard.classList.add('active');
+}
+
+// ==========================================================================
+// 2. MASTER DATABASE LAYER (Rooms + Properties + Bookings + Payments)
+// ==========================================================================
+var RoomPeDB = {
+  init: function() {
+    if(!localStorage.getItem('roompe_rooms')) { localStorage.setItem('roompe_rooms', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_properties')) { localStorage.setItem('roompe_properties', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_active_prop')) { localStorage.setItem('roompe_active_prop', ''); }
+    if(!localStorage.getItem('roompe_bookings')) { localStorage.setItem('roompe_bookings', JSON.stringify([])); }
+    if(!localStorage.getItem('roompe_payments')) { localStorage.setItem('roompe_payments', JSON.stringify([])); }
+  },
+
+  getRooms: function() { return JSON.parse(localStorage.getItem('roompe_rooms')) || []; },
+  saveRooms: function(roomsArray) { 
+    localStorage.setItem('roompe_rooms', JSON.stringify(roomsArray)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
+
+  getProperties: function() {
+    let props = localStorage.getItem('roompe_properties');
+    return props ? JSON.parse(props) : [];
+  },
+  saveProperties: function(propsArray) { 
+    localStorage.setItem('roompe_properties', JSON.stringify(propsArray)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
   
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* 🚀 PREMIUM ROOMPE LOADER CSS */
-#roompe-global-loader {
-  position: fixed;
-  inset: 0;
-  background: #ffffff;
-  z-index: 999999;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
-}
+  getActiveProperty: function() {
+    let active = localStorage.getItem('roompe_active_prop');
+    let props = this.getProperties();
+    if (active && props.some(p => p.id === active)) return active;
+    if (props.length > 0) {
+      localStorage.setItem('roompe_active_prop', props[0].id);
+      return props[0].id;
+    }
+    return 'prop_default';
+  },
+  
+  setActiveProperty: function(propId) { localStorage.setItem('roompe_active_prop', propId); },
 
-#roompe-global-loader.hide-loader {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
+  getBookings: function() { return JSON.parse(localStorage.getItem('roompe_bookings')) || []; },
+  saveBookings: function(b) { 
+    localStorage.setItem('roompe_bookings', JSON.stringify(b)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
+  getActivePropertyBookings: function() {
+    let all = this.getBookings();
+    let activeId = this.getActiveProperty();
+    return all.filter(b => b.propId === activeId || (!b.propId && activeId === 'prop_default'));
+  },
 
-/* 🚨 GOL LOGO AUR SPINNING RING KA CSS */
-  .premium-logo-box {
-    position: relative;
-    width: 96px;
-    height: 96px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 24px;
+  getPayments: function() { return JSON.parse(localStorage.getItem('roompe_payments')) || []; },
+  savePayments: function(p) { 
+    localStorage.setItem('roompe_payments', JSON.stringify(p)); 
+    if(window.triggerCloudSync) window.triggerCloudSync(); 
+  },
+  getActivePropertyPayments: function() {
+    let all = this.getPayments();
+    let activeId = this.getActiveProperty();
+    return all.filter(p => p.propId === activeId || (!p.propId && activeId === 'prop_default'));
   }
+};
+// ==========================================================================
+// 🧑‍💼 MORE TAB & PROFILE EDIT ENGINE
+// ==========================================================================
 
-  /* Bahar gol ghoomne wali loading ring */
-  .spinner-ring {
-    position: absolute;
-    inset: 0;
-    border: 3px solid #ecfdf5; /* Halki green track */
-    border-top: 3px solid #059669; /* Dark green ghoomne wala hissa */
-    border-radius: 50%;
-    animation: spinRing 1s linear infinite;
+function updateMoreTabStats() {
+  let props = RoomPeDB.getProperties();
+  let totalProps = props.length;
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let totalRooms = allRooms.length; 
+  
+  let propCountEl = document.getElementById('more-prop-count');
+  let roomCountEl = document.getElementById('more-room-count');
+  let profileNameEl = document.getElementById('more-profile-name');
+  let profileEmailEl = document.getElementById('more-profile-email');
+  let avatar = document.getElementById('more-profile-img');
+  
+  if(propCountEl) propCountEl.innerText = totalProps;
+  if(roomCountEl) roomCountEl.innerText = totalRooms;
+  
+  let userEmail = localStorage.getItem('roompe_logged_in_user') || 'owner@roompe.com';
+  
+  // 🚨 DATABASE SE USER KA CUSTOM DATA NIKALNA
+  let savedName = localStorage.getItem('roompe_user_name');
+  let savedPhone = localStorage.getItem('roompe_user_phone');
+  let savedAvatar = localStorage.getItem('roompe_user_avatar');
+
+  // Agar naam save nahi hai, toh email se bana lo (E.g. arun@gmail.com -> Arun)
+  let userName = savedName;
+  if(!userName) {
+      userName = userEmail.split('@')[0]; 
+      userName = userName.charAt(0).toUpperCase() + userName.slice(1); 
   }
-
-  /* Tera asli logo jo perfect circle me rahega */
-  .premium-logo-box img {
-    width: 78px; /* Ring se thoda chhota taaki gap dikhe */
-    height: 78px;
-    border-radius: 50%; /* Ekdum gol */
-    object-fit: cover;
-    background: white;
-    z-index: 2;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+  
+  // Update HTML
+  if(profileNameEl) profileNameEl.innerHTML = `${userName} <span style="font-size: 9px; background: #dcfce7; color: #16a34a; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Verified</span>`;
+  
+  // Agar phone number save kiya hai toh wo dikhao, warna email dikhao
+  if(profileEmailEl) profileEmailEl.innerText = savedPhone ? '+91 ' + savedPhone : userEmail;
+  
+  // Agar Custom Photo daali hai toh wo lagao, warna Initial wali lagao
+  if(avatar) {
+      if(savedAvatar) {
+          avatar.src = savedAvatar;
+      } else {
+          avatar.src = `https://ui-avatars.com/api/?name=${userName}&background=059669&color=fff&size=150&bold=true`;
+      }
   }
-
-  @keyframes spinRing {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-.loader-text {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.5px;
-  margin: 0 0 8px 0;
 }
 
-.loader-subtitle {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  margin: 0;
-  display: flex;
-  align-items: center;
-}
-    /* 🚨 DASHBOARD ENTRY ANIMATION */
-.screen-enter {
-  animation: screenFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes screenFadeUp {
-  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
+// 1. Edit Screen Kholna aur purana data bharna
+function openEditProfileScreen() {
+    let savedName = localStorage.getItem('roompe_user_name');
+    let savedPhone = localStorage.getItem('roompe_user_phone') || '';
+    let savedAvatar = localStorage.getItem('roompe_user_avatar');
+    let userEmail = localStorage.getItem('roompe_logged_in_user') || 'owner@roompe.com';
     
-
-/* Premium Flashing Dots */
-.dot-flashing {
-  position: relative;
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: #059669;
-  animation: dot-flashing 1s infinite linear alternate;
-  animation-delay: 0.5s;
-  margin-left: 16px;
-}
-.dot-flashing::before, .dot-flashing::after {
-  content: '';
-  display: inline-block;
-  position: absolute;
-  top: 0;
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: #059669;
-  animation: dot-flashing 1s infinite alternate;
-}
-.dot-flashing::before { left: -10px; animation-delay: 0s; }
-.dot-flashing::after { left: 10px; animation-delay: 1s; }
-
-@keyframes dot-flashing {
-  0% { background-color: #059669; }
-  50%, 100% { background-color: rgba(5, 150, 105, 0.2); }
-}
-/* 🚀 PREMIUM LOADER CSS END */
-    /* Force elements to stay inside the mobile frame */
-    .mobile-frame {
-      overflow: hidden !important;
-      position: relative !important;
-    }
+    let defaultName = savedName || (userEmail.split('@')[0].charAt(0).toUpperCase() + userEmail.split('@')[0].slice(1));
     
-    /* 🚀 PREMIUM FLOATING BOTTOM NAV (Apple Style) */
-    .bottom-nav {
-      position: fixed !important;
-      bottom: 24px !important; /* Screen se 24px upar hawa me tairne ke liye */
-      margin-bottom: env(safe-area-inset-bottom); /* iPhone ke bottom swipe bar se bachaane ke liye */
-      left: 50% !important;
-      transform: translateX(-50%) !important;
-      width: calc(100% - 32px) !important; /* Side se perfect gap */
-      max-width: 400px !important;
-      z-index: 9999 !important;
-      border-radius: 100px !important; /* Ekdum gol pill shape */
-    }
-
-    /* =========================================
-       FIX: 3-COLUMN PERFECT SQUARE CARDS 
-       ========================================= */
-    .room-grid-layout {
-      display: grid !important;
-      grid-template-columns: repeat(3, 1fr) !important; /* 3 Column layout */
-      gap: 10px !important; 
-      margin-top: 16px;
-    }
-
-    .grid-card {
-      display: flex !important;
-      flex-direction: column !important;
-      padding: 8px !important; /* Square me fit karne ke liye thodi padding kam ki */
-      border-radius: 12px !important;
-      box-sizing: border-box !important;
-      aspect-ratio: 1 / 1 !important; /* 🔥 MAGIC TRICK: Hamesha perfect Square banayega */
-      min-height: 0 !important; /* Rectangle stretch band kar diya */
-      text-align: center;
-      justify-content: space-between !important;
-    }
-
-    .gc-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .gc-header .type-badge {
-      font-size: 8px !important; 
-      padding: 2px 4px !important;
-      letter-spacing: 0.5px;
-    }
-
-    .gc-header .material-symbols-outlined {
-      font-size: 14px !important; 
-    }
-
-    .grid-card .gc-number {
-      font-size: 22px !important;
-      font-weight: 800 !important;
-      color: #0f172a;
-      margin: auto 0 2px 0 !important; /* Number ko ekdum center me set karega */
-    }
+    document.getElementById('edit-profile-name').value = defaultName;
+    document.getElementById('edit-profile-phone').value = savedPhone;
     
-    .grid-card .gc-sub {
-      font-size: 9px !important;
-      margin-bottom: auto !important;
-      color: #64748b;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis; /* Bada naam automatically cut jayega */
+    let preview = document.getElementById('edit-profile-preview');
+    preview.src = savedAvatar ? savedAvatar : `https://ui-avatars.com/api/?name=${defaultName}&background=059669&color=fff&size=150&bold=true`;
+    
+    openActionScreen('screen-edit-profile');
+}
+
+// 2. Photo Upload hone par usko Data URL (Photo) me convert karna
+function handleProfilePicUpload(input) {
+    if (input.files && input.files[0]) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let base64Image = e.target.result; 
+            document.getElementById('edit-profile-preview').src = base64Image; // Preview update
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 3. Save Button dabane par Database me data daalna
+function saveProfileDetails() {
+    let newName = document.getElementById('edit-profile-name').value.trim();
+    let newPhone = document.getElementById('edit-profile-phone').value.trim();
+    let newAvatar = document.getElementById('edit-profile-preview').src;
+    
+    if(!newName) return showToast("Enter your name!", "error");
+    
+    // Save to LocalStorage (Database)
+    localStorage.setItem('roompe_user_name', newName);
+    localStorage.setItem('roompe_user_phone', newPhone);
+    
+    // Sirf custom photo save karna (ui-avatars wali default link nahi)
+    if(!newAvatar.includes('ui-avatars.com')) {
+        localStorage.setItem('roompe_user_avatar', newAvatar);
     }
 
-    .gc-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 9px !important;
-      font-weight: 700 !important;
-      text-transform: uppercase;
-    }
+    // Refresh UI and Close Screen
+    updateMoreTabStats();
+    closeActionScreen();
+    showPopup('success', 'Profile Updated', 'Your profile details have been saved successfully.');
+}
+// ==========================================================================
+// 3. ROOMS SCREEN LOGIC & MASTER RENDER ENGINE
+// ==========================================================================
+function updateRoomStats(rooms) {
+  let total = rooms.length;
+  let occupied = rooms.filter(r => r.status === 'occupied').length;
+  let available = rooms.filter(r => r.status === 'available').length;
+  let cleaning = rooms.filter(r => r.status === 'cleaning').length;
 
-    .gc-footer .material-symbols-outlined {
-      font-size: 14px !important;
-    }
+  let topStats = document.querySelector('.grid-top-stats');
+  if (topStats) {
+    topStats.innerHTML = `
+      <span class="material-symbols-outlined" style="color:#16A34A; font-size:18px;">domain</span>
+      <strong>${total} Rooms</strong>
+      <div class="stat-dot dot-red"></div> ${occupied} Occupied
+      <div class="stat-dot dot-green"></div> ${available} Avail
+      <div class="stat-dot dot-orange"></div> ${cleaning} Clean
+    `;
+  }
 
-    <style>
-/* 🚀 FACEBOOK STYLE SMART PULL-TO-REFRESH */
-#premium-ptr {
-    position: fixed;
-    top: -60px; /* Screen ke upar chupa rahega */
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 99999;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none; 
+  let floatPill = document.querySelector('.floating-status-bar');
+  if (floatPill) {
+    floatPill.innerHTML = `
+      <div class="stat-dot dot-green"></div> Avail (${available})
+      <div class="stat-dot dot-red" style="margin-left:8px;"></div> Occ (${occupied})
+      <div class="stat-dot dot-orange" style="margin-left:8px;"></div> Dirty (${cleaning})
+    `;
+  }
+
+  let chipAll = document.getElementById('chip-count-all');
+  let chipVacant = document.getElementById('chip-count-vacant');
+  let chipOcc = document.getElementById('chip-count-occupied');
+  let chipDirty = document.getElementById('chip-count-dirty');
+  
+  if (chipAll) chipAll.innerText = total;
+  if (chipVacant) chipVacant.innerText = available;
+  if (chipOcc) chipOcc.innerText = occupied;
+  if (chipDirty) chipDirty.innerText = cleaning;
 }
-.ptr-box {
-    background: white;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: #059669; 
-    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+
+function quickBook(roomNo) {
+  openActionScreen('screen-new-booking');
+  let roomInput = document.getElementById('book-room-no');
+  if (roomInput) roomInput.value = roomNo;
 }
-.ptr-box.ready {
-    background: #059669; /* Limit cross hone par Green ho jayega */
-    color: white;
-    transform: scale(1.1); /* Thoda bada hoga */
+
+// --- MARK ROOM AS CLEAN ENGINE (Custom Popup Added) ---
+function markRoomClean(roomNo) {
+  // Purana 'confirm()' hata kar apna naya Premium Confirm lagaya
+  showCustomPopup('confirm', 'Room Cleaned?', `Mark Room ${roomNo} as Clean & Available?`, function() {
+    
+    let rooms = RoomPeDB.getRooms(); 
+    let activeId = RoomPeDB.getActiveProperty();
+    
+    // SMART LOCK: Sirf current active property ka room dhoondhega
+    let roomIndex = rooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activeId || (!r.propertyId && activeId === 'prop_default')));
+    
+    if (roomIndex !== -1) {
+      // Room ko Available kar do
+      rooms[roomIndex].status = 'available';
+      rooms[roomIndex].guest = '';
+      RoomPeDB.saveRooms(rooms);
+      
+      // UI Refresh karo
+      if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
+      if(typeof updateDashboardStats === 'function') updateDashboardStats();
+      
+      // Success Message
+      setTimeout(() => {
+        showPopup('success', 'Room Ready', `Room ${roomNo} is now clean and available for booking.`);
+      }, 400);
+
+    } else {
+      // Error ko bhi alert() ki jagah apne popup me dikhao
+      showPopup('error', 'Error', 'Room not found in current property!');
+    }
+  });
 }
-.ptr-spin span {
-    animation: ptrLoadingSpin 0.8s linear infinite;
+
+function handleRoomSearch(query) {
+  currentRoomSearch = query.toLowerCase().trim();
+  renderRoomsGrid();
 }
-@keyframes ptrLoadingSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+
+function toggleRoomView(viewType) {
+  currentRoomView = viewType;
+  let btnList = document.getElementById('view-btn-list');
+  let btnGrid = document.getElementById('view-btn-grid');
+  
+  if(!btnList || !btnGrid) return;
+
+  btnList.style.background = 'transparent'; btnList.style.color = '#64748b'; btnList.style.fontWeight = 'normal'; btnList.style.boxShadow = 'none';
+  btnGrid.style.background = 'transparent'; btnGrid.style.color = '#64748b'; btnGrid.style.fontWeight = 'normal'; btnGrid.style.boxShadow = 'none';
+
+  if(viewType === 'list') {
+    btnList.style.background = 'white'; btnList.style.color = '#059669'; btnList.style.fontWeight = '600'; btnList.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+  } else {
+    btnGrid.style.background = 'white'; btnGrid.style.color = '#059669'; btnGrid.style.fontWeight = '600'; btnGrid.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+  }
+  renderRoomsGrid(); 
 }
-    /* ==========================================================================
-       🚀 ULTRA-REALISTIC SHIMMER EFFECT (APPLE / FACEBOOK STYLE)
-       ========================================================================== */
-    .skeleton-box {
-      background-color: #e2e8f0; /* Premium Slate Gray Base */
-      /* Ye gradient wahi chamakti hui light hai jo box ke upar se guzregi */
-      background-image: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.6) 20%,
-        rgba(255, 255, 255, 0) 40%,
-        rgba(255, 255, 255, 0) 100%
+
+function setRoomFilter(filterName) {
+  currentRoomFilter = filterName;
+  document.querySelectorAll('.room-chip').forEach(chip => {
+    chip.style.background = 'white';
+    chip.style.color = '#64748b';
+    chip.style.borderColor = '#e2e8f0';
+    
+    if(chip.innerText.includes(filterName)) {
+      chip.style.background = '#059669';
+      chip.style.color = 'white';
+      chip.style.borderColor = '#059669';
+    }
+  });
+  renderRoomsGrid(); 
+}
+
+// ==========================================================================
+// 3. ROOMS SCREEN LOGIC & MASTER RENDER ENGINE (FIXED DISPLAY & DELETE)
+// ==========================================================================
+function renderRoomsGrid() {
+  let allRooms = RoomPeDB.getRooms();
+  let scrollArea = document.querySelector('#screen-rooms .rooms-scroll-area');
+  if(!scrollArea) return;
+
+  if (typeof updateRoomStats === 'function') updateRoomStats(allRooms);
+
+  // 🧠 SMART CHECK: Property Daily (Hotel) hai ya Monthly (PG)?
+  let props = RoomPeDB.getProperties();
+  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+  let isMonthlyProp = activeProp && activeProp.type === 'Monthly';
+
+  let filteredRooms = allRooms.filter(room => {
+    let matchesFilter = true;
+    if (currentRoomFilter === 'Vacant') matchesFilter = (room.status === 'available');
+    if (currentRoomFilter === 'Occupied') matchesFilter = (room.status === 'occupied');
+    if (currentRoomFilter === 'Dirty') matchesFilter = (room.status === 'cleaning');
+
+    let matchesSearch = true;
+    if (currentRoomSearch !== '') {
+      matchesSearch = (
+        String(room.no).toLowerCase().includes(currentRoomSearch) ||
+        (room.guest && room.guest.toLowerCase().includes(currentRoomSearch)) ||
+        (room.cat && room.cat.toLowerCase().includes(currentRoomSearch))
       );
-      background-size: 800px 100%;
-      background-repeat: no-repeat;
-      /* 1.2s me ek wave complete hogi, infinite time tak */
-      animation: shimmerWave 1.2s infinite linear;
+    }
+    return matchesFilter && matchesSearch;
+  });
+
+  document.querySelectorAll('#screen-rooms .floor-header, #screen-rooms .room-grid-layout, #screen-rooms .room-list-layout').forEach(el => el.remove());
+
+  if (filteredRooms.length === 0) {
+    scrollArea.insertAdjacentHTML('beforeend', `<div class="floor-header" style="text-align:center; padding: 40px 20px; color: #94a3b8;">No rooms found.</div>`);
+    return;
+  }
+
+  let floorsData = {};
+  allRooms.forEach(room => {
+    if(!floorsData[room.floor]) floorsData[room.floor] = { total: [], filtered: [] };
+    floorsData[room.floor].total.push(room);
+  });
+  filteredRooms.forEach(room => {
+    if(floorsData[room.floor]) floorsData[room.floor].filtered.push(room);
+  });
+
+  for (const [floorName, floorData] of Object.entries(floorsData)) {
+    if (floorData.filtered.length === 0) continue; 
+
+    let occupiedCount = floorData.total.filter(r => r.status === 'occupied').length;
+    let occupancyPercent = Math.round((occupiedCount / floorData.total.length) * 100) || 0;
+
+    let floorHTML = `
+      <div class="floor-header" style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 12px;">
+        <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">${floorName}</h4>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #64748b; font-weight: 600;">
+          <span>${occupancyPercent}% Occupancy</span>
+          <div style="width: 40px; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+            <div style="width: ${occupancyPercent}%; height: 100%; background: #10b981; border-radius: 4px;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (currentRoomView === 'grid') {
+      floorHTML += `<div class="room-grid-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">`;
+    } else {
+      floorHTML += `<div class="room-list-layout" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">`;
     }
 
-    /* Wave ko Left se Right bhagane ka engine */
-    @keyframes shimmerWave {
-      0% {
-        background-position: -400px 0;
+    floorData.filtered.forEach(room => {
+      let shortCat = room.cat.split(' ')[0].toUpperCase();
+      let cardClass = room.status === 'occupied' ? 'card-occupied' : (room.status === 'cleaning' ? 'card-cleaning' : 'card-available');
+      let badgeClass = room.status === 'occupied' ? 'badge-red' : (room.status === 'cleaning' ? 'badge-orange' : 'badge-green');
+      let icon = room.status === 'occupied' ? 'person_pin_circle' : (room.status === 'cleaning' ? 'cleaning_services' : 'key');
+      let footerText = room.status === 'available' ? 'AVAILABLE' : (room.status === 'cleaning' ? 'CLEANING' : 'OCCUPIED');
+      
+      let footerIcon = '';
+      let subText = '';
+      let cardAction = '';
+
+      if (room.status === 'occupied') {
+        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openRoomDetails('${room.no}')">more_vert</span>`;
+        subText = room.guest;
+        cardAction = `onclick="openRoomDetails('${room.no}')"`;
+      } else if (room.status === 'available') {
+        // 🚨 NAYA UPDATE: Yahan Delete ke liye Edit Icon aur Price Format (/mo ya /d) theek kiya gaya hai!
+        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); openEditRoom('${room.no}')" style="font-size: 18px; color: #94a3b8;">edit</span>`;
+        
+        // 🚨 GADBAD 2 FIX: Purane rooms ke liye price fallback
+        let pMonthly = room.priceMonthly || room.price || 0;
+        let pDaily = room.priceDaily || Math.round((room.price || 0) / 30);
+        subText = isMonthlyProp ? `₹${pMonthly}/mo` : `₹${pDaily}/d`;
+        
+        cardAction = `onclick="openActionScreen('screen-new-booking'); document.getElementById('book-room-no').value='${room.no}';"`;
+      } else if (room.status === 'cleaning') {
+        footerIcon = `<span class="material-symbols-outlined" onclick="event.stopPropagation(); markRoomClean('${room.no}')">check</span>`;
+        subText = 'Housekeeping';
       }
-      100% {
-        background-position: 800px 0;
-      }
-    }
-</style>
-  
-  <!-- HTML ko Image me badalne ka engine -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- PDF Generator Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-</head>
-<body>
-  
-  <div id="app-container" class="w-full min-h-screen relative flex flex-col pb-24 max-w-7xl mx-auto bg-[#f8f9fa]">
-    <!-- 🚀 CUSTOM PULL TO REFRESH UI -->
-    <div id="premium-ptr">
-      <div class="ptr-box" id="ptr-icon">
-        <span class="material-symbols-outlined" style="font-size: 24px;">refresh</span>
-      </div>
-    </div>
 
-    <!-- 🚀 ULTRA-PREMIUM SKELETON SHIMMER (STRICTLY TOP ALIGNED) -->
-<div id="roompe-global-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #f8f9fa; z-index: 9999999; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; transition: opacity 0.4s ease, visibility 0.4s;">
-  
-  <!-- Inner Container (Ye app ke width ko match karega aur top se chipka rahega) -->
-  <div style="width: 100%; max-width: 1200px; display: flex; flex-direction: column;">
-    
-    <!-- 1. HEADER MOCK -->
-    <div style="padding: 16px 24px; background: white; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-      <!-- Logo Skeleton -->
-      <div class="skeleton-box" style="width: 120px; height: 28px; border-radius: 6px;"></div>
-      <!-- Top Right Icons Skeleton -->
-      <div style="display: flex; gap: 12px;">
-         <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
-         <div class="skeleton-box" style="width: 36px; height: 36px; border-radius: 50%;"></div>
-      </div>
-    </div>
-
-    <!-- 2. BODY MOCK -->
-    <div style="padding: 20px 24px; width: 100%;">
-      
-      <!-- Overview Title -->
-      <div class="skeleton-box" style="width: 100px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
-      
-      <!-- 4 Rings Grid -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;">
-         
-         <!-- Card 1 -->
-         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
-            <div style="flex: 1;">
-               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
-               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
+      if (currentRoomView === 'grid') {
+        floorHTML += `
+          <div class="grid-card ${cardClass}" ${cardAction}>
+            <div class="gc-header">
+              <span class="type-badge ${badgeClass}">${shortCat}</span>
+              <span class="material-symbols-outlined gc-icon">${icon}</span>
             </div>
-         </div>
-
-         <!-- Card 2 -->
-         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
-            <div style="flex: 1;">
-               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
-               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
-            </div>
-         </div>
-
-         <!-- Card 3 -->
-         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
-            <div style="flex: 1;">
-               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
-               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
-            </div>
-         </div>
-
-         <!-- Card 4 -->
-         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <div class="skeleton-box" style="width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;"></div>
-            <div style="flex: 1;">
-               <div class="skeleton-box" style="width: 60px; height: 10px; border-radius: 4px; margin-bottom: 6px;"></div>
-               <div class="skeleton-box" style="width: 80px; height: 16px; border-radius: 4px;"></div>
-            </div>
-         </div>
-
-      </div>
-      
-      <!-- Quick Actions Title -->
-      <div class="skeleton-box" style="width: 120px; height: 20px; border-radius: 4px; margin-bottom: 20px;"></div>
-      
-     <!-- Quick Action Buttons (Tere purane wale) -->
-          <div style="display: flex; gap: 12px;">
-             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-             <div class="skeleton-box" style="flex: 1; height: 60px; border-radius: 16px;"></div>
-          </div>
-
-          <!-- 🚨 NAYA ADDITION: BOTTOM SCREEN BHARNE KE LIYE (List Skeletons) -->
-          <!-- Action Required Title Mock -->
-          <div class="skeleton-box" style="width: 140px; height: 16px; border-radius: 4px; margin-top: 32px; margin-bottom: 16px;"></div>
-          
-          <!-- List Items Mock (Puri screen bharne ke liye 3 cards) -->
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-             
-             <!-- List Card 1 -->
-             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
-                <div style="flex: 1;">
-                   <div class="skeleton-box" style="width: 70%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
-                   <div class="skeleton-box" style="width: 40%; height: 10px; border-radius: 4px;"></div>
-                </div>
-                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
-             </div>
-
-             <!-- List Card 2 -->
-             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
-                <div style="flex: 1;">
-                   <div class="skeleton-box" style="width: 50%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
-                   <div class="skeleton-box" style="width: 30%; height: 10px; border-radius: 4px;"></div>
-                </div>
-                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
-             </div>
-
-             <!-- List Card 3 -->
-             <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                <div class="skeleton-box" style="width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;"></div>
-                <div style="flex: 1;">
-                   <div class="skeleton-box" style="width: 80%; height: 14px; border-radius: 4px; margin-bottom: 8px;"></div>
-                   <div class="skeleton-box" style="width: 45%; height: 10px; border-radius: 4px;"></div>
-                </div>
-                <div class="skeleton-box" style="width: 28px; height: 28px; border-radius: 50%;"></div>
-             </div>
-
-          </div>
-
-    </div>
-  </div>
-</div>
-
-  
-   <!-- ================= SCREEN 1: WELCOME ================= -->
-    <div id="screen-welcome" class="screen" style="padding: 0; background-color: #f8fafc; justify-content: center; align-items: center; text-align: center; height: 100%;">
-      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px;">
-       <div style="margin-bottom: 40px; display: flex; justify-content: center;">
-      <!-- Apni Image ka Link 'src' ke andar daal dena -->
-      <img src="https://raw.githubusercontent.com/Arun0135/RoomPe/refs/heads/main/icon-192.png" alt="RoomPe Logo" style="width: 140px; height: 140px; border-radius: 32px; object-fit: cover; box-shadow: 0 12px 35px rgba(5, 150, 105, 0.15);">
-    </div>
-        <h1 style="font-size: 38px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-bottom: 16px;">
-          Manage Every<br>Room.<br>Simply.
-        </h1>
-        <p style="font-size: 16px; color: #475569; line-height: 1.5; max-width: 280px; margin: 0 auto;">
-          Manage your hotel, rental rooms, PG or hostel — all from one simple app.
-        </p>
-      </div>
-      <div style="width: 100%; padding: 24px; padding-bottom: 40px;">
-        <button class="btn-primary" onclick="goToLogin()" style="border-radius: 100px; padding: 18px; font-size: 16px; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px;">
-          Get Started <span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
-        </button>
-        <p style="margin-top: 24px; font-size: 14px; color: #475569;">
-          Already have an account? <span style="color: var(--primary-dark); font-weight: 700; cursor: pointer;" onclick="goToLogin()">Log in</span>
-        </p>
-      </div>
-    </div>
-
- <!-- ========================================== -->
-<!-- 🚀 PREMIUM LOGIN SCREEN (With Name & Google) -->
-<!-- ========================================== -->
-<div id="screen-login" class="screen hidden" style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);">
-    
-    <!-- TOP GREEN HEADER -->
-    <div class="premium-login-header">
-        <h1 id="auth-title">Hello<br>Sign in!</h1>
-        <!-- Hidden Subtitle to prevent JS Error -->
-        <p id="auth-subtitle" style="display:none;">Log in to manage your properties</p>
-    </div>
-
-    <!-- BOTTOM OVERLAPPING WHITE CARD -->
-    <div class="premium-login-card">
-        
-        <div id="auth-error-msg" style="display:none; background: #fef2f2; border: 1px solid #fecdd3; padding: 12px; border-radius: 12px; align-items: center; gap: 8px; margin-bottom: 20px;">
-            <span class="material-symbols-outlined" style="color: #ef4444; font-size: 20px;">error</span>
-            <span id="auth-error-text" style="color: #ef4444; font-size: 13px; font-weight: 600;">Error message</span>
-        </div>
-
-        <!-- 👤 FULL NAME INPUT (Hidden for Login, Shows on Signup) -->
-        <div class="premium-input-wrap" id="auth-name-wrap" style="display: none;">
-            <label>Full Name</label>
-            <div class="premium-input-row">
-                <input type="text" id="auth-name" placeholder="Name">
-                <span class="material-symbols-outlined check-icon">person</span>
-            </div>
-        </div>
-
-        <!-- ✉️ EMAIL INPUT -->
-        <div class="premium-input-wrap">
-            <label id="auth-label-email">Email Address</label>
-            <div class="premium-input-row">
-                <input type="email" id="auth-email" placeholder="name@roompe.com">
-                <span class="material-symbols-outlined check-icon">check</span>
-            </div>
-        </div>
-
-        <!-- 🔒 PASSWORD INPUT -->
-        <div class="premium-input-wrap">
-            <label>Password</label>
-            <div class="premium-input-row">
-                <input type="password" id="auth-pass" placeholder="••••••••">
-                <span class="material-symbols-outlined toggle-eye" id="toggle-password-eye" onclick="togglePasswordVisibility()">visibility_off</span>
-            </div>
-        </div>
-
-        <!-- FORGOT PASSWORD LINK -->
-        <div class="forgot-pass-link" onclick="handleForgotPassword()">Forgot password?</div>
-
-        <!-- MAIN BUTTON -->
-        <button id="auth-main-btn" onclick="handleEmailAuth(event)" class="premium-pill-btn">SIGN IN</button>
-
-        <!-- OR DIVIDER -->
-        <div style="text-align: center; margin: 24px 0; position: relative;">
-            <div style="position: absolute; top: 50%; width: 100%; height: 1px; background: #e2e8f0; z-index: 1;"></div>
-            <span style="position: relative; z-index: 2; background: white; padding: 0 12px; font-size: 12px; color: #94a3b8; font-weight: 600;">OR</span>
-        </div>
-
-        <!-- 🔴 PROPER GOOGLE BUTTON -->
-        <button onclick="handleGoogleLogin()" class="premium-google-btn-new">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style="width: 24px; height: 24px;">
-            Continue with Google
-        </button>
-
-        <!-- TOGGLE LOGIN/SIGNUP -->
-        <div class="premium-auth-toggle">
-            <span id="auth-toggle-text">Don't have an account? </span>
-            <span id="auth-toggle-btn" onclick="toggleAuthMode()">Sign up</span>
-        </div>
-    </div>
-</div>
-
-  
-
-    <!-- ================= SCREEN 4: PROPERTY SETUP ================= -->
-    <div id="screen-setup" class="screen hidden">
-     <header class="app-header" style="justify-content: flex-start; gap: 16px;">
-        <!-- NAYA BACK BUTTON YAHAN HAI -->
-        <div class="back-btn-circle" onclick="cancelSetup()">
-          <span class="material-symbols-outlined">arrow_back</span>
-        </div>
-        
-        <div class="logo-group" style="flex: 1;">
-          <div style="width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;">
-            <svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="100" cy="100" r="90" fill="#ecfdf5" />
-              <path d="M60 140 V70 Q60 60 70 60 H130 Q140 60 140 70 V140" fill="none" stroke="#059669" stroke-width="8" stroke-linecap="round"/>
-              <rect x="75" y="80" width="15" height="20" fill="#059669" rx="2"/>
-              <rect x="110" y="80" width="15" height="20" fill="#059669" rx="2"/>
-              <rect x="110" y="115" width="15" height="20" fill="#059669" rx="2"/>
-              <rect x="75" y="115" width="15" height="20" fill="#059669" rx="2"/>
-              <rect x="45" y="100" width="35" height="50" rx="4" fill="#ffffff" stroke="#059669" stroke-width="4"/>
-              <line x1="53" y1="112" x2="72" y2="112" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
-              <line x1="53" y1="122" x2="63" y2="122" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
-              <circle cx="155" cy="75" r="16" fill="#f59e0b" />
-              <path d="M155 90 V115" fill="none" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
-              <path d="M155 105 H165" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-              <path d="M155 112 H162" fill="none" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <span>RoomPe</span>
-        </div>
-        <div class="profile-icon"><span class="material-symbols-outlined">person</span></div>
-      </header>
-      <div class="setup-body">
-        <div class="setup-header-text">
-          <h2>Setup Your Property</h2>
-          <p>Let's get your business online</p>
-        </div>
-       <!-- PREMIUM PROPERTY NAME INPUT -->
-<div class="premium-form-wrap" style="margin-bottom: 32px;">
-    <label style="font-size: 14px;">Property Name</label>
-    <div class="premium-form-row" style="height: 56px;">
-        <span class="material-symbols-outlined input-icon" style="color: #059669;">domain</span>
-        <input type="text" id="setup-prop-name" placeholder="e.g., Shanti Residency" style="font-size: 16px; background: transparent; border: none; outline: none; width: 100%;">
-    </div>
-</div>
-        <div class="setup-section-title">
-          <h3>What type of property do you manage?</h3>
-        </div>
-        <div class="property-grid">
-          <div class="prop-card" onclick="selectProperty(this)">
-            <div class="prop-icon"><span class="material-symbols-outlined">hotel</span></div>
-            <h4>Hotel</h4>
-            <p>(Daily Stay)</p>
-          </div>
-          <div class="prop-card" onclick="selectProperty(this)">
-            <div class="prop-icon"><span class="material-symbols-outlined">home</span></div>
-            <h4>Monthly Rental</h4>
-          </div>
-          <div class="prop-card active" onclick="selectProperty(this)">
-            <div class="prop-icon"><span class="material-symbols-outlined">bed</span></div>
-            <h4>PG / Hostel</h4>
-          </div>
-          <div class="prop-card" onclick="selectProperty(this)">
-            <div class="prop-icon"><span class="material-symbols-outlined">autorenew</span></div>
-            <h4>Hybrid</h4>
-            <p>(Hotel + Monthly)</p>
-          </div>
-        </div>
-       <!-- Naya Fixed Button Container -->
-        <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 24px; background: white; border-top: 1px solid #e2e8f0; z-index: 10;">
-        <button class="btn-primary" onclick="saveNewProperty()" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; border-radius: 12px; padding: 16px; font-weight: 700;">
-          Continue <span class="material-symbols-outlined">arrow_forward</span>
-        </button>
-      </div>
-      </div>
-    </div>
-
-  <!-- ================= SCREEN 5: MAIN DASHBOARD (PREMIUM RINGS UI) ================= -->
-    <div id="screen-dashboard" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      
-      <!-- HEADER -->
-      <header class="dash-header" style="background: white; border-bottom: none;">
-        <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
-          <h3 style="color: #059669; font-weight: 800;">TheTaz</h3>
-          <span class="material-symbols-outlined" style="color: #059669;">expand_more</span>
-        </div>
-        <div class="header-icons" style="display: flex; align-items: center; gap: 12px;">
-          
-          <!-- ☁️ NEW: Cloud Sync Indicator -->
-          <div id="cloud-sync-indicator" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #f0fdf4; color: #10b981; transition: 0.3s;">
-            <span id="cloud-icon" class="material-symbols-outlined" style="font-size: 18px;">cloud_done</span>
-          </div>
-
-          <div class="bell-icon" onclick="openActionScreen('screen-notifications')">
-            <span class="material-symbols-outlined">notifications</span><div class="red-dot"></div>
-          </div>
-          <div class="profile-icon-small" onclick="switchTab('more')">
-            <span class="material-symbols-outlined">person</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- CLEAN DASHBOARD CONTENT -->
-      <div class="dash-scroll-area" style="padding: 20px 24px; padding-bottom: 100px; background: #f8fafc;">
-
-        <!-- 1. The Apple Rings (Stats Grid) -->
-        <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 16px;">Overview</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-            
-            <!-- Collected Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-green">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-collected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #10b981;">done_all</span></div>
-                </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Collected</p>
-                    <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">     <span id="dash-collected-amt">₹0</span>     <div id="dash-collected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div> </h4>
-                </div>
-            </div>
-
-            <!-- Pending Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-red">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-pending" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #ef4444;">warning</span></div>
-                </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pending</p>
-                    <h4 style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">
-    <span id="dash-pending-amt">₹0</span>
-    <div id="dash-pending-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div>
-</h4>
-                </div>
-            </div>
-
-            <!-- Expected Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-blue">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-expected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #3b82f6;">account_balance_wallet</span></div>
-                </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Expected</p>
-                    <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">
-    <span id="dash-expected-amt">₹0</span>
-    <div id="dash-expected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">ACTIVE ROOMS ONLY</div>
-</h4>
-                </div>
-            </div>
-
-            <!-- Occupancy Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-purple">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-occupancy" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #8b5cf6;">bed</span></div>
-                </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Occupancy</p>
-                    <h4 id="dash-occupancy" style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">0%</h4>
-                </div>
-            </div>
-        </div>
-
-        <!-- 4. Floating Quick Actions (THE ULTIMATE MIX UI) -->
-<h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 12px; text-transform: uppercase;">Quick Actions</h4>
-<div style="display: flex; gap: 12px; margin-bottom: 24px;">
-    
-    <!-- Add Room (Ocean Blue Glow) -->
-    <div class="quick-action-pill" onclick="openActionScreen('screen-add-room')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
-        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #2563eb); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">add_box</span>
-        </div>
-        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Room</span>
-    </div>
-
-    <!-- Booking (Emerald Green Glow) -->
-    <div class="quick-action-pill" onclick="openActionScreen('screen-new-booking')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
-        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #34d399, #059669); box-shadow: 0 4px 10px rgba(5, 150, 105, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">event_available</span>
-        </div>
-        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Booking</span>
-    </div>
-
-    <!-- Payment (Sunset Orange Glow) -->
-    <div class="quick-action-pill" onclick="openActionScreen('screen-add-payment')" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: white; border: 1px solid #f1f5f9; padding: 10px 12px; border-radius: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); cursor: pointer;">
-        <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 4px 10px rgba(217, 119, 6, 0.35); display: flex; align-items: center; justify-content: center; color: white;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">payments</span>
-        </div>
-        <span style="font-size: 13px; font-weight: 800; color: #0f172a;">Collect</span>
-    </div>
-
-</div>
-
-        <!-- 3. Action Required List -->
-        <div class="glass-card">
-            <h4 style="font-size: 11px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px; margin: 0 0 16px 0; display: flex; align-items: center; gap: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 16px;">error</span> ACTION REQUIRED
-            </h4>
-            <div id="action-required-list">
-                <!-- JS WILL INJECT ALERTS HERE -->
-            </div>
-        </div>
-
-      </div>
-    </div>
-
-   <!-- ================= ACTION SCREEN: SMART NOTIFICATIONS ================= -->
-    <div id="screen-notifications" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200; overflow-x: hidden;">
-      <header class="dash-header" style="justify-content: space-between; align-items: center; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; padding-top: 16px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-          <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">Notifications</h3>
-          <span id="notif-badge" style="background: #ecfdf5; color: #059669; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px;">0 New</span>
-        </div>
-        <div onclick="clearAllNotifications()" style="display: flex; align-items: center; gap: 4px; color: #059669; font-size: 12px; font-weight: 600; cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 16px;">done_all</span> Mark all read
-        </div>
-      </header>
-      
-      <!-- Filter Chips -->
-      <div style="display: flex; gap: 8px; overflow-x: auto; padding: 16px 20px 8px; background: white; border-bottom: 1px solid #f1f5f9;">
-        <div class="notif-chip" style="background: #059669; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">All (<span id="notif-count-all">0</span>)</div>
-        <div class="notif-chip" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Payments</div>
-        <div class="notif-chip" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Bookings</div>
-      </div>
-
-      <div class="rooms-scroll-area" style="padding: 16px 20px 100px;">
-        <p style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Recent Updates</p>
-        <!-- JS will inject real notifications here -->
-        <div id="real-notification-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
-      </div>
-      
-      <!-- Slide Out Animation CSS -->
-      <style>
-        .notif-card { transition: all 0.3s ease; position: relative; left: 0; }
-        .slide-out { transform: translateX(120%); opacity: 0; }
-      </style>
-    </div>
-
-   <!-- ================= SCREEN 16: SEND REMINDER (BEAUTIFUL & DYNAMIC) ================= -->
-    <div id="screen-send-reminder" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; font-size: 18px;">Send Rent Reminder</h3>
-        <span class="material-symbols-outlined" style="color:var(--text-light);">info</span>
-      </header>
-      
-      <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 150px;">
-        
-        <div class="rem-guest-card">
-          <div style="display:flex; gap:12px; align-items:center;">
-            <div style="width:48px; height:48px; background:var(--primary); color:white; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:700; position:relative;">
-              <!-- ID for JS -->
-              <span id="rem-initials">RK</span>
-              <div style="position:absolute; bottom:0; right:0; width:12px; height:12px; background:white; border:2px solid var(--red); border-radius:50%;"></div>
-            </div>
-            <div style="flex:1;">
-              <h4 style="font-size:16px; margin-bottom:2px;"><span id="rem-name">Rahul Kumar</span> <span style="font-size:9px; background:#dcfce7; color:var(--primary-dark); padding:2px 6px; border-radius:4px; vertical-align:middle;">Deluxe</span></h4>
-              <!-- ID for JS -->
-              <p id="rem-room" style="font-size:12px; color:var(--text-light);"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">door_front</span> Room 101 • Tenant since Jun '24</p>
-            </div>
-            <div class="rd-call-btn" style="background:white; border:1px solid #e2e8f0; color:var(--text-dark); width:36px; height:36px;"><span class="material-symbols-outlined" style="font-size:18px;">call</span></div>
-          </div>
-          
-          <div class="rem-due-box">
-            <div style="display:flex; gap:8px; align-items:center;">
-              <span class="material-symbols-outlined text-red" style="background:#fef2f2; padding:4px; border-radius:50%;">error</span>
-              <div>
-                <p style="font-size:10px; font-weight:700; color:var(--red); letter-spacing:0.5px;">DUE AMOUNT</p>
-                <p style="font-size:12px; color:var(--text-dark);">Due Date: Today, 5 Nov</p>
-              </div>
-            </div>
-            <div style="text-align:right;">
-              <p style="font-size:10px; color:var(--text-light);">Pending</p>
-              <!-- ID for JS -->
-              <h3 id="rem-amount" style="color:var(--red); font-size:20px;">₹6,000</h3>
+            <h3 class="gc-number">${room.no}</h3>
+            <p class="gc-sub">${subText}</p>
+            <div class="gc-footer">
+              <strong>${footerText}</strong>
+              ${footerIcon}
             </div>
           </div>
-        </div>
+        `;
+      } else {
+        let listBorder = room.status === 'occupied' ? '#fecdd3' : (room.status === 'cleaning' ? '#fed7aa' : '#bbf7d0');
+        let listBg = room.status === 'occupied' ? '#fff1f2' : (room.status === 'cleaning' ? '#fff7ed' : '#f0fdf4');
+        let listColor = room.status === 'occupied' ? '#e11d48' : (room.status === 'cleaning' ? '#f97316' : '#16a34a');
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h4 style="font-size:11px; font-weight:700; letter-spacing:0.5px; color:var(--text-dark);">TEMPLATE PRESET</h4>
-          <span style="font-size:11px; color:var(--primary); font-weight:600; cursor:pointer;"><span class="material-symbols-outlined" style="font-size:12px; vertical-align:middle;">edit</span> Edit Copy</span>
-        </div>
-        
-        <!-- TEENO CHIPS WAPAS AA GAYE -->
-        <div style="display:flex; gap:10px;">
-    <button id="btn-tpl-standard" onclick="switchReminderTemplate('standard')" style="padding: 8px 16px; border-radius: 20px; cursor:pointer;">Standard Due</button>
-    <button id="btn-tpl-gentle" onclick="switchReminderTemplate('gentle')" style="padding: 8px 16px; border-radius: 20px; cursor:pointer;">Gentle Reminder</button>
-    <button id="btn-tpl-urgent" onclick="switchReminderTemplate('urgent')" style="padding: 8px 16px; border-radius: 20px; cursor:pointer;">Urgent / Overdue</button>
-</div>
-
-        <div class="rem-msg-box">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #bbf7d0; padding-bottom:8px;">
-            <span style="font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; color:var(--primary-dark);"><span class="material-symbols-outlined" style="font-size:14px;">chat</span> Message Preview</span>
-            <span style="font-size:9px; background:white; padding:2px 6px; border-radius:10px; color:#94a3b8; border:1px solid #e2e8f0;">SMS: 1 Segment</span>
-          </div>
-          <!-- ID for JS: Yahan default design rahega, par click hone par JS isko badal dega -->
-          <div id="rem-msg-text">
-             <p>Dear <strong>Rahul</strong>, your rent of <strong>₹6,000</strong> for <strong>Room 101</strong> at Shanti Residency is <span style="color:var(--red);">due today (05 Nov)</span>.</p><br>
-             <p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p><br>
-             <div style="background:white; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:var(--primary-dark);">
-               <span class="material-symbols-outlined" style="font-size:14px;">link</span> pay.roompe.in/r/101-nov
-             </div>
-          </div>
-        </div>
-      </div>
-      
-      <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 24px; background: white; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); display:flex; flex-direction:column; gap:12px;">
-        <!-- UPDATE KIYA HUA PREMIUM IMAGE INVOICE BUTTON -->
-<button id="rem-wa-btn" onclick="sendPremiumImageInvoice('Rohit Kumar', '210', 5700, 400, 200)" class="btn-primary" style="background: #059669; color:white; font-size:15px; border:none; padding:16px; border-radius:12px; font-weight:700; cursor:pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(5,150,105,0.3);">
-   <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/WhatsApp_icon.png" alt="WA" style="width: 20px; height: 20px;">
-   Send Invoice
-</button>
-        <button id="rem-sms-btn" class="btn-primary" style="background:white; color:var(--primary-dark); border:1.5px solid var(--primary-dark); font-size:15px; padding:16px; border-radius:12px; font-weight:700; cursor:pointer; display: flex; justify-content: center; align-items: center; gap: 8px;">
-          <span class="material-symbols-outlined" style="font-size:18px;">chat</span> Send SMS
-        </button>
-      </div>
-    </div>
-   <!-- ================= SCREEN 6: ROOMS LIST (NEW GRID DESIGN) ================= -->
-    <div id="screen-rooms" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      <header class="dash-header">
-        <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
-          <h3 class="active-hotel-name">Loading...</h3>
-          <span class="material-symbols-outlined">expand_more</span>
-        </div>
-        <!-- WORKING HEADER ICONS -->
-        <div class="header-icons">
-          <div class="bell-icon" onclick="openNotifications()" style="cursor: pointer;">
-            <span class="material-symbols-outlined">notifications</span><div id="global-notif-dot" class="red-dot"></div>
-          </div>
-          <div class="profile-icon-small" onclick="switchTab('more')" style="cursor: pointer;">
-            <span class="material-symbols-outlined">person</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- 🚨 FIXED: THE MISSING SCROLL AREA WRAPPER 🚨 -->
-      <div class="rooms-scroll-area" style="padding: 16px 20px 100px;">
-        
-        <!-- SEARCH & VIEW TOGGLE -->
-        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-          <div style="flex: 1; position: relative;">
-            <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 8px; color: #94a3b8; font-size: 20px;">search</span>
-            <input type="text" id="room-search-input" oninput="handleRoomSearch(this.value)" placeholder="Search room, tenant..." style="width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; outline: none; box-sizing: border-box;">
-          </div>
-          <div style="display: flex; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 4px;">
-            <div id="view-btn-list" onclick="toggleRoomView('list')" style="padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap:4px; color: #64748b; cursor: pointer; font-size:12px; transition: 0.2s;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">view_list</span> List
-            </div>
-            <div id="view-btn-grid" onclick="toggleRoomView('grid')" style="padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap:4px; background: white; color: #059669; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; font-size:12px; transition: 0.2s;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">grid_view</span> Grid
-            </div>
-          </div>
-        </div>
-
-        <!-- DYNAMIC FILTER CHIPS -->
-        <div class="filter-chips" style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; white-space: nowrap;">
-          <div class="chip room-chip" onclick="setRoomFilter('All')" style="background: #059669; color: white; border: 1px solid #059669; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">All (<span id="chip-count-all">0</span>)</div>
-          <div class="chip room-chip" onclick="setRoomFilter('Vacant')" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Vacant (<span id="chip-count-vacant">0</span>)</div>
-          <div class="chip room-chip" onclick="setRoomFilter('Occupied')" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Occupied (<span id="chip-count-occupied">0</span>)</div>
-          <div class="chip room-chip" onclick="setRoomFilter('Dirty')" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Dirty (<span id="chip-count-dirty">0</span>)</div>
-        </div>
-
-        <!-- JS WILL MAGICALLY INJECT REAL ROOMS HERE -->
-
-      </div> <!-- CLOSING SCROLL AREA -->
-      
-      <button class="fab-btn" style="bottom: 75px;" onclick="openActionScreen('screen-add-room')"><span class="material-symbols-outlined">add</span></button>
-
-    </div>
-
-
-   <!-- ================= SCREEN 7: BOOKINGS ================= -->
-    <div id="screen-bookings" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      <header class="dash-header">
-        <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
-          <h3 class="active-hotel-name">Loading...</h3>
-          <span class="material-symbols-outlined">expand_more</span>
-        </div>
-       <!-- WORKING HEADER ICONS -->
-        <div class="header-icons">
-          <div class="bell-icon" onclick="openNotifications()" style="cursor: pointer;">
-            <span class="material-symbols-outlined">notifications</span><div id="global-notif-dot" class="red-dot"></div>
-          </div>
-          <div class="profile-icon-small" onclick="switchTab('more')" style="cursor: pointer;">
-            <span class="material-symbols-outlined">person</span>
-          </div>
-        </div>
-      </header>
-
-      <div class="rooms-scroll-area">
-        <h2 class="section-heading" style="margin-top: 10px;">Bookings</h2>
-        
-        <!-- SMART CHIPS (Active aur History Feature ke sath) -->
-        <div class="filter-chips">
-          <div id="chip-active" class="chip active" onclick="toggleBookingView('active')" style="cursor: pointer;">Active Stays</div>
-          <div id="chip-history" class="chip" onclick="toggleBookingView('history')" style="cursor: pointer;">History</div>
-        </div>
-
-        <!-- SEARCH BAR -->
-        <div style="position: relative; margin: 16px;">
-          <span class="material-symbols-outlined" style="position: absolute; left: 12px; top: 10px; color: #94a3b8; font-size: 20px;">search</span>
-          <input type="text" id="booking-search" oninput="handleBookingSearch(this.value)" placeholder="Search bookings..." style="width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px; outline: none; box-sizing: border-box; background: white;">
-        </div>
-
-        <!-- 🚨 JAVASCRIPT YAHAN CARDS RENDER KAREGA (Vikash Sharma ki jagah) 🚨 -->
-        <div class="room-cards-list" id="bookings-list-container" style="padding-bottom: 80px;">
-          <!-- Cards automatically ayenge -->
-        </div>
-      </div>
-
-      <!-- TUMHARA ORIGINAL ADD BUTTON -->
-      <button class="fab-btn" onclick="openActionScreen('screen-new-booking')"><span class="material-symbols-outlined">add</span></button>
-
-      <!-- TUMHARA ORIGINAL BOTTOM NAV -->
-      <div class="bottom-nav">
-        <div class="nav-item" onclick="switchTab('dashboard')">
-          <span class="material-symbols-outlined">dashboard</span>
-          <span>Dashboard</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('rooms')">
-          <span class="material-symbols-outlined">bed</span>
-          <span>Rooms</span>
-        </div>
-        <div class="nav-item active" onclick="switchTab('bookings')">
-          <span class="material-symbols-outlined">calendar_month</span>
-          <span>Bookings</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('billing')">
-          <span class="material-symbols-outlined">receipt_long</span>
-          <span>Billing</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('more')">
-          <span class="material-symbols-outlined">more_horiz</span>
-          <span>More</span>
-        </div>
-      </div>
-    </div>
-
-   <!-- ================= SCREEN 8: BILLING ================= -->
-    <div id="screen-billing" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      
-      <!-- Top Header -->
-      <header class="dash-header">
-        <div class="property-title" onclick="openPropertySwitcher()" style="cursor: pointer;">
-          <h3 class="active-hotel-name">Loading...</h3>
-          <span class="material-symbols-outlined">expand_more</span>
-        </div>
-        <!-- WORKING HEADER ICONS (Paste this in Rooms, Bookings, and Billing headers) -->
-        <div class="header-icons">
-          <div class="bell-icon" onclick="openNotifications()" style="cursor: pointer;">
-            <span class="material-symbols-outlined">notifications</span><div id="global-notif-dot" class="red-dot"></div>
-          </div>
-          <div class="profile-icon-small" onclick="switchTab('more')" style="cursor: pointer;">
-            <span class="material-symbols-outlined">person</span>
-          </div>
-        </div>
-      </header>
-
-      <div class="rooms-scroll-area" style="padding-top: 10px; padding-bottom: 120px;">
-        
-        <!-- Summary Card (Dynamic ID Added) -->
-        <div class="billing-summary">
-          <div class="bs-header">
-            <div class="bs-month" id="billing-month-display"><span class="material-symbols-outlined">account_balance_wallet</span> Loading...</div>
-            <button class="bs-statement" onclick="downloadStatement()"><span class="material-symbols-outlined" style="font-size:16px;">download</span> Statement</button>
-          </div>
-          
-          <div class="bs-body">
-            <div class="bs-left">
-              <p class="bs-label">Received</p>
-              <h3 class="bs-amount text-green" id="billing-received-amt">₹0</h3>
-              <p class="bs-trend"><span class="material-symbols-outlined" style="font-size:14px;">trending_up</span> Good</p>
-            </div>
-            <div class="bs-divider"></div>
-            <div class="bs-right">
-              <p class="bs-label">Pending Dues <span class="bs-badge" id="billing-pending-count">0 left</span></p>
-              <h3 class="bs-amount text-red" id="billing-pending-amt">₹0</h3>
-              <p class="bs-trend text-red-faint"><span class="material-symbols-outlined" style="font-size:14px;">schedule</span> Due this month</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Filter Chips (OnClick Added) -->
-<div class="filter-chips" style="margin-bottom: 20px;">
-    <!-- Yahan active-green lagaya -->
-    <div class="chip billing-chip active-green" onclick="setBillingFilter('All')">All (<span id="count-all">0</span>)</div>
-    <div class="chip billing-chip" onclick="setBillingFilter('Pending')">Pending (<span id="count-pending">0</span>)</div>
-    <!-- Yahan se active-green hata diya -->
-    <div class="chip billing-chip" onclick="setBillingFilter('Received')">Received (<span id="count-received">0</span>)</div>
-</div>
-
-        <!-- Transaction Cards (JS se draw hongi) -->
-        <div class="room-cards-list">
-        </div>
-      </div>
-
-      <button class="fab-pill" onclick="openActionScreen('screen-add-payment')">
-        <span class="material-symbols-outlined">add</span> Add Payment
-      </button>
-
-    </div>
-
-  <!-- ================= SCREEN 9: MORE (PROFILE & SETTINGS) ================= -->
-    <div id="screen-more" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      <header class="dash-header">
-      <!-- PREMIUM HEADER WITH SUBTITLE -->
-<div style="display: flex; flex-direction: column; cursor: pointer;" onclick="openPropertySwitcher()">
-    <div class="property-title" style="align-items: center; gap: 4px; display: flex; margin-bottom: 2px;">
-        <h3>The Arrah Resort</h3>
-        <span class="material-symbols-outlined" style="font-size: 20px; color: #059669;">expand_more</span>
-    </div>
-    <!-- 🚨 Naya Subtitle Line -->
-    <span id="header-prop-type" style="font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.3px;">Daily Stays (Hotel)</span>
-</div>
-        <div class="header-icons">
-          <div class="bell-icon" onclick="openNotifications()"><span class="material-symbols-outlined">notifications</span><div class="red-dot"></div></div>
-          <div class="profile-icon-small"><span class="material-symbols-outlined">person</span></div>
-        </div>
-      </header>
-
-      <div class="rooms-scroll-area" style="padding-top: 10px; padding-bottom: 120px;">
-        
-        <!-- Profile Card -->
-        <div class="profile-card-main">
-          <div class="profile-card-header">
+        floorHTML += `
+          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 16px; background: white; border: 1px solid ${listBorder}; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); cursor: pointer;" ${cardAction}>
             <div style="display: flex; gap: 16px; align-items: center;">
-              <div class="avatar-wrapper">
-                <img id="more-profile-img" src="" alt="Profile" onclick="openEditProfileScreen()" style="cursor: pointer;">
-                <div class="verified-badge"><span class="material-symbols-outlined" style="font-size: 12px;">verified</span></div>
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: ${listBg}; color: ${listColor}; display: flex; justify-content: center; align-items: center;">
+                <span class="material-symbols-outlined" style="font-size: 24px;">${icon}</span>
               </div>
-              <div class="profile-info-text">
-                <h2 id="more-profile-name">Loading...</h2>
-                <p>Property Owner</p>
-                <p class="text-phone" id="more-profile-email">loading@email.com</p>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                  <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Room ${room.no}</h3>
+                  <span style="font-size: 9px; font-weight: 700; background: ${listBg}; color: ${listColor}; padding: 2px 6px; border-radius: 6px;">${shortCat}</span>
+                </div>
+                <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 500;">${subText}</p>
               </div>
             </div>
-           <button class="edit-btn" onclick="openEditProfileScreen()"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+            <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+              <span style="font-size: 10px; font-weight: 800; color: ${listColor}; background: ${listBg}; padding: 4px 8px; border-radius: 8px;">${footerText}</span>
+              ${footerIcon}
+            </div>
           </div>
-          <div class="profile-stats-row">
-            <div class="stat-box"><span class="stat-label">Properties</span><span class="stat-val" id="more-prop-count">0</span></div>
-            <div class="stat-box"><span class="stat-label">Rooms</span><span class="stat-val" id="more-room-count">0</span></div>
-            <div class="stat-box"><span class="stat-label" style="color: #b45309;">Tier</span><span class="stat-val" style="font-size: 13px;">Pro Member</span></div>
-          </div>
-        </div>
+        `;
+      }
+    });
+    
+    floorHTML += `</div>`;
+    scrollArea.insertAdjacentHTML('beforeend', floorHTML);
+  }
+}
 
-        <!-- Pro Banner -->
-        <div class="pro-banner">
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="pro-icon"><span class="material-symbols-outlined">workspace_premium</span></div>
-            <div>
-              <h4 style="color: white; font-size: 14px; margin-bottom: 2px;">RoomPe Pro Plan</h4>
-              <p style="color: #dcfce7; font-size: 12px;">Renews on 12 Nov, 2026</p>
-            </div>
-          </div>
-          <button class="btn-manage" onclick="showPopup('success', 'Subscription', 'You are currently on the lifetime Pro plan!')">Manage</button>
-        </div>
+// ==========================================
+// BOOKINGS & HISTORY ENGINE VARIABLES
+// ==========================================
+let currentBookingView = 'active'; 
+let currentBookingSearch = '';
 
-        <!-- Settings Section 1 -->
-        <div class="settings-section">
-          <h4 class="section-title">PROPERTY MANAGEMENT</h4>
-          <div class="settings-card">
-           <div class="setting-item" onclick="openPropertyDetailsScreen()">
-              <div class="setting-icon"><span class="material-symbols-outlined">domain</span></div>
-              <div class="setting-text"><h5>Property Details</h5><p>Address, amenities, house rules</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-            </div>
-            <div class="setting-item" onclick="openStaffRolesScreen()">
-              <div class="setting-icon"><span class="material-symbols-outlined">badge</span></div>
-              <div class="setting-text"><h5>Staff & Roles</h5><p>Manage caretakers & managers</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-            </div>
-           <div class="setting-item" onclick="openPricingSetupScreen()">
-              <div class="setting-icon"><span class="material-symbols-outlined">percent</span></div>
-              <div class="setting-text"><h5>Pricing & Tax Setup</h5><p>GSTIN, rent cycles, electricity uni...</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+function toggleBookingView(view) {
+  currentBookingView = view;
+  
+  let chipAct = document.getElementById('chip-active');
+  let chipHist = document.getElementById('chip-history');
+  
+  if (chipAct && chipHist) {
+    if (view === 'active') {
+      chipAct.classList.add('active');
+      chipHist.classList.remove('active');
+    } else {
+      chipHist.classList.add('active');
+      chipAct.classList.remove('active');
+    }
+  }
+  renderBookingsList(); 
+}
+
+function handleBookingSearch(val) {
+  currentBookingSearch = val.toLowerCase().trim();
+  renderBookingsList();
+}
+
+// ==========================================================================
+// 4. NAVIGATION & ANIMATION ENGINE (PWA HARDWARE BACK FIX)
+// ==========================================================================
+function switchTab(tabName) {
+  screenHistory = []; // Reset screen memory
+  let globalNav = document.getElementById('global-nav');
+  if(globalNav) globalNav.classList.remove('hidden');
+  currentMainTab = tabName; 
+
+  // 🚨 PWA FIX: Phone ko batao ki naya tab open hua hai
+  window.history.pushState({ tab: tabName }, "", "");
+
+  document.querySelectorAll('.screen').forEach(screen => screen.classList.add('hidden'));
+  
+  let targetScreen = document.getElementById('screen-' + tabName);
+  if (targetScreen !== null) targetScreen.classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') === `switchTab('${tabName}')`) {
+      item.classList.add('active');
+    }
+  });
+
+  if(tabName === 'rooms') renderRoomsGrid();
+  if(tabName === 'dashboard') updateDashboardStats();
+  if(tabName === 'bookings') renderBookingsList();
+  if(tabName === 'billing') renderBillingList(); 
+  if(tabName === 'more') updateMoreTabStats();
+  document.getElementById('global-nav').classList.remove('hidden');
+}
+
+// ==========================================
+// 🚀 THE PREMIUM NUMBER PULSE ENGINE
+// ==========================================
+function animateNumber(elementId, endValue, prefix = '₹', duration = 1200) {
+    let obj = document.getElementById(elementId);
+    if (!obj) return;
+    
+    // Agar amount 0 hai toh animation ki zaroorat nahi
+    if (endValue === 0) {
+        obj.innerHTML = prefix + '0';
+        return;
+    }
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // EaseOut effect: end me aakar number dhire ghumega (CRED App jaisa)
+        const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+        const currentVal = Math.floor(easeOutProgress * endValue);
+        
+        obj.innerHTML = prefix + currentVal.toLocaleString('en-IN');
+        
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = prefix + endValue.toLocaleString('en-IN'); // Final stop exact value par
+        }
+    };
+    window.requestAnimationFrame(step);
+}
+// ==========================================================================
+// 🚀 SMART NATIVE NAVIGATION ENGINE (WITH OVERLAP ANIMATION)
+// ==========================================================================
+let screenStack = []; 
+
+function openActionScreen(screenId) {
+  const oldScreen = document.querySelector('.screen:not(.hidden)');
+  if (oldScreen && oldScreen.id !== screenId) {
+    screenStack.push(oldScreen.id);
+  }
+
+  let targetScreen = document.getElementById(screenId);
+
+  // 🪄 THE OVERLAP MAGIC: Nayi screen ko upar laao, purani ko peeche roko
+  if (oldScreen && oldScreen.id !== screenId) {
+      targetScreen.style.zIndex = "100"; // Nayi screen top par
+      targetScreen.classList.remove('hidden');
+      
+      oldScreen.style.zIndex = "10"; // Purani screen peeche
+      // 350ms wait karo jab tak nayi screen ka animation poora na ho jaye
+      setTimeout(() => {
+          oldScreen.classList.add('hidden');
+          targetScreen.style.zIndex = ""; 
+          oldScreen.style.zIndex = "";
+      }, 350); 
+  } else if (targetScreen) {
+      targetScreen.classList.remove('hidden');
+  }
+
+  // Bottom Nav Hide Logic
+  const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
+  let globalNav = document.getElementById('global-nav');
+  if (globalNav) {
+    if (!mainTabs.includes(screenId)) {
+      globalNav.classList.add('hidden');
+    } else {
+      globalNav.classList.remove('hidden');
+    }
+  }
+  window.history.pushState({ page: screenId }, "", "");
+}
+
+function closeActionScreen() {
+  window.history.back();
+}
+
+window.addEventListener('popstate', function(event) {
+  if (screenStack.length > 0) {
+    const previousScreenId = screenStack.pop(); 
+    
+    // Yahan hum normal switch karenge kyunki piche jaa rahe hain
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    const prevScreen = document.getElementById(previousScreenId);
+    if (prevScreen) prevScreen.classList.remove('hidden');
+
+    const mainTabs = ['screen-dashboard', 'screen-rooms', 'screen-bookings', 'screen-billing', 'screen-more'];
+    let globalNav = document.getElementById('global-nav');
+    if (globalNav) {
+      if (mainTabs.includes(previousScreenId)) {
+        globalNav.classList.remove('hidden');
+      } else {
+        globalNav.classList.add('hidden');
+      }
+    }
+  } else {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    let dash = document.getElementById('screen-dashboard');
+    if (dash) dash.classList.remove('hidden');
+    
+    let globalNav = document.getElementById('global-nav');
+    if (globalNav) globalNav.classList.remove('hidden');
+  }
+});
+
+// Tab switch karne par bhi overlap magic chalega
+function switchTab(tabName) {
+  screenStack = []; 
+  currentMainTab = tabName; 
+  
+  let targetScreen = document.getElementById('screen-' + tabName);
+  let oldScreen = document.querySelector('.screen:not(.hidden)');
+
+  // 🪄 THE OVERLAP MAGIC FOR TABS
+  if (oldScreen && oldScreen.id !== 'screen-' + tabName) {
+      targetScreen.style.zIndex = "50"; // Naya tab upar
+      targetScreen.classList.remove('hidden');
+      
+      oldScreen.style.zIndex = "10"; // Purana tab peeche
+      setTimeout(() => {
+          oldScreen.classList.add('hidden');
+          targetScreen.style.zIndex = ""; 
+          oldScreen.style.zIndex = "";
+      }, 350);
+  } else if (targetScreen) {
+      targetScreen.classList.remove('hidden');
+  }
+
+  let globalNav = document.getElementById('global-nav');
+  if(globalNav) globalNav.classList.remove('hidden');
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') === `switchTab('${tabName}')`) {
+      item.classList.add('active');
+    }
+  });
+
+  // Background me data refresh
+  if(tabName === 'rooms' && typeof renderRoomsGrid === 'function') renderRoomsGrid();
+  if(tabName === 'dashboard' && typeof updateDashboardStats === 'function') updateDashboardStats();
+  if(tabName === 'bookings' && typeof renderBookingsList === 'function') renderBookingsList();
+  if(tabName === 'billing' && typeof renderBillingList === 'function') renderBillingList(); 
+  if(tabName === 'more' && typeof updateMoreTabStats === 'function') updateMoreTabStats();
+  
+  window.history.pushState({ page: tabName }, "", "");
+}
+// ==========================================================================
+// 🚀 REAL-TIME DASHBOARD ENGINE (PRO VERSION WITH TRENDS & INSIGHTS)
+// ==========================================================================
+function updateDashboardStats() {
+    if (typeof RoomPeDB.getActivePropertyRooms !== 'function') return;
+
+    // --- 1. SMART AI GREETING ---
+    let hour = new Date().getHours();
+    let greeting = "Good Evening";
+    let emoji = "🌙";
+    if (hour >= 5 && hour < 12) { greeting = "Good Morning"; emoji = "🌅"; }
+    else if (hour >= 12 && hour < 17) { greeting = "Good Afternoon"; emoji = "☀️"; }
+    
+    let greetTitle = document.getElementById('smart-greeting-title');
+    if(greetTitle) greetTitle.innerText = `${greeting}, Boss! ${emoji}`;
+
+    // --- 2. DATA CALCULATION ---
+    let rooms = RoomPeDB.getActivePropertyRooms();
+    let payments = RoomPeDB.getActivePropertyPayments();
+    
+    let totalRooms = rooms.length;
+    let occupiedRooms = rooms.filter(r => r.status === 'occupied');
+    let vacantRooms = rooms.filter(r => r.status === 'available'); // FEATURE 4: Khali rooms
+    let occupancyRate = totalRooms === 0 ? 0 : Math.round((occupiedRooms.length / totalRooms) * 100);
+
+    // ==========================================
+    // 🟢 FEATURE 1: TRENDS & MIX LOGIC (Collected)
+    // ==========================================
+    let now = new Date();
+    let currentMonth = now.getMonth();
+    let currentYear = now.getFullYear();
+    let lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    let lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    let lifetimeCollected = 0;
+    let thisMonthCollected = 0;
+    let lastMonthCollected = 0;
+
+    payments.forEach(p => {
+        let amt = parseInt(p.amount || 0);
+        lifetimeCollected += amt;
+
+        // Date parse with Cloud Fallback
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+        let pDate = new Date(timeValue);
+        
+        if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
+            thisMonthCollected += amt;
+        } else if (pDate.getMonth() === lastMonth && pDate.getFullYear() === lastMonthYear) {
+            lastMonthCollected += amt;
+        }
+    });
+
+    let growthPercent = 0;
+    let trendHTML = `<span style="color: #94a3b8; font-size: 10px;">No past data</span>`;
+    if (lastMonthCollected > 0) {
+        growthPercent = Math.round(((thisMonthCollected - lastMonthCollected) / lastMonthCollected) * 100);
+        if (growthPercent >= 0) {
+            trendHTML = `<span style="color: #10b981; font-size: 11px; font-weight: 800;">⬆️ +${growthPercent}%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+        } else {
+            trendHTML = `<span style="color: #ef4444; font-size: 11px; font-weight: 800;">⬇️ ${growthPercent}%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+        }
+    } else if (thisMonthCollected > 0) {
+        trendHTML = `<span style="color: #10b981; font-size: 11px; font-weight: 800;">⬆️ 100%</span> <span style="color: #64748b; font-size: 9px; font-weight: 600;">vs last month</span>`;
+    }
+
+    // ==========================================
+    // 🔵 & 🔴 FEATURE 2: AGING DUES & EXPECTED MATH
+    // ==========================================
+    let totalExpected = 0; // Active Rooms Expected
+    let totalPendingAmt = 0; // Lifetime Pending
+    let pendingRoomsList = [];
+    let dangerOverdueAmount = 0; // > 30 Days purani udhaari
+
+    occupiedRooms.forEach(r => {
+        let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+        
+        let isMonthlyStay = r.stayType === 'Monthly';
+        let priceDaily = parseInt(r.priceDaily || r.price || 0);
+        let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
+        let duration = parseInt(r.duration || 1);
+
+        let expectedRent = 0;
+        let expectedCheckoutDate = new Date(r.checkinDate || new Date());
+        expectedCheckoutDate.setHours(0,0,0,0);
+
+        if (isMonthlyStay) {
+            expectedRent = priceMonthly * duration;
+            expectedCheckoutDate.setMonth(expectedCheckoutDate.getMonth() + duration);
+        } else {
+            expectedRent = priceDaily * duration;
+            expectedCheckoutDate.setDate(expectedCheckoutDate.getDate() + duration);
+        }
+
+        let isOverstay = false;
+        let extraFine = 0;
+        let overstayDays = 0;
+        let today = new Date();
+        today.setHours(0,0,0,0);
+
+        if (today > expectedCheckoutDate) {
+            let diffTime = Math.abs(today - expectedCheckoutDate);
+            overstayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            let perDayFine = isMonthlyStay ? Math.round(priceMonthly / 30) : priceDaily;
+            extraFine = overstayDays * perDayFine;
+            expectedRent += extraFine;
+            isOverstay = true;
+        }
+
+        totalExpected += expectedRent;
+        let remainingDue = expectedRent - roomTotalPaid;
+
+        if (remainingDue > 0) {
+            totalPendingAmt += remainingDue;
+            pendingRoomsList.push({ ...r, remainingDue, isOverstay, extraFine, overstayDays });
+            
+            // Risk Indicator check (> 30 days)
+            if (overstayDays > 30) {
+                dangerOverdueAmount += remainingDue;
+            }
+        }
+    });
+
+    // ==========================================
+    // 🪫 FEATURE 4: VACANCY LOSS MATH
+    // ==========================================
+    let dailyVacancyLoss = vacantRooms.reduce((sum, r) => {
+        let pDaily = parseInt(r.priceDaily || r.price || 0);
+        let pMonthly = parseInt(r.priceMonthly || 0);
+        let effectiveDaily = pDaily > 0 ? pDaily : Math.round(pMonthly / 30);
+        return sum + effectiveDaily;
+    }, 0);
+
+    // --- 3. UI TEXT UPDATES (DOM Manipulation) ---
+    
+    // 🟢 Collected Card Animation
+  animateNumber('dash-collected-amt', thisMonthCollected, '₹'); 
+  let collectedSubEl = document.getElementById('dash-collected-sub');
+  if(collectedSubEl) {
+      collectedSubEl.innerHTML = `LIFETIME: ₹${lifetimeCollected.toLocaleString('en-IN')}${trendHTML}`;
+  }
+
+  // 🔵 Expected Card Animation
+  animateNumber('dash-expected-amt', totalExpected, '₹'); 
+
+  // 🔴 Pending Card Animation
+  // Note: Tere code me variable 'totalPendingAmt' hai, isliye wahi use kiya hai
+  animateNumber('dash-pending-amt', totalPendingAmt, '₹'); 
+  let pendingSubEl = document.getElementById('dash-pending-sub');
+  if(pendingSubEl) {
+      let dangerTag = dangerOverdueAmount > 0 ? `<div style="background: #fef2f2; color: #ef4444; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 800; border: 1px solid #fecdd3; display: inline-block; margin-top: 2px;">⚠️ ₹${dangerOverdueAmount.toLocaleString('en-IN')} > 30 DAYS</div>` : `<div style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;">LIFETIME DUES</div>`;
+      pendingSubEl.innerHTML = dangerTag;
+  }
+
+    // 🪫 Occupancy Card (Percentage + Vacancy Loss)
+    let occEl = document.getElementById('dash-occupancy');
+    if(occEl) {
+        let lossTag = dailyVacancyLoss > 0 ? `<div style="color: #ef4444; font-size: 9px; font-weight: 800; margin-top: 2px;">LOSING ₹${dailyVacancyLoss.toLocaleString('en-IN')} / DAY</div>` : `<div style="color: #10b981; font-size: 9px; font-weight: 800; margin-top: 2px;">FULL HOUSE 🏠</div>`;
+        occEl.innerHTML = `${occupancyRate}%<br>${lossTag}`;
+        occEl.style.lineHeight = '1.3';
+    }
+
+    // --- 4. 🍏 APPLE RINGS ANIMATION MATH ---
+    let maxRevenueBase = totalExpected > 0 ? totalExpected : (thisMonthCollected > 0 ? thisMonthCollected : 1);
+    
+    let colPercent = Math.min(Math.round((thisMonthCollected / maxRevenueBase) * 100), 100);
+    let expPercent = totalExpected > 0 ? 100 : 0; 
+    let pendPercent = Math.min(Math.round((totalPendingAmt / maxRevenueBase) * 100), 100);
+    
+    if (totalExpected === 0 && thisMonthCollected === 0) { colPercent = 0; expPercent = 0; pendPercent = 0; }
+
+    setTimeout(() => {
+        let ringCol = document.getElementById('ring-collected');
+        let ringPend = document.getElementById('ring-pending');
+        let ringExp = document.getElementById('ring-expected');
+        let ringOcc = document.getElementById('ring-occupancy');
+
+        if(ringCol) ringCol.setAttribute('stroke-dasharray', `${colPercent}, 100`);
+        if(ringPend) ringPend.setAttribute('stroke-dasharray', `${pendPercent}, 100`);
+        if(ringExp) ringExp.setAttribute('stroke-dasharray', `${expPercent}, 100`);
+        if(ringOcc) ringOcc.setAttribute('stroke-dasharray', `${occupancyRate}, 100`);
+    }, 100); 
+
+    // --- 5. ACTION REQUIRED LIST (FROSTED GLASS / GLASSMORPHISM UI) ---
+    let actionContainer = document.getElementById('action-required-list');
+    if(!actionContainer) return;
+    let actionHTML = '';
+    let actionCount = 0;
+
+    pendingRoomsList.forEach(r => {
+        actionCount++;
+        let alertColor = r.isOverstay ? '#ef4444' : '#f59e0b'; // Red or Orange
+        let iconName = r.isOverstay ? 'warning' : 'payments';
+
+        // ⚠️ Enhanced Danger Tag in Action List
+        let overstayTag = r.isOverstay ? `<span style="font-size:9px; background: rgba(239, 68, 68, 0.1); color:#ef4444; padding:2px 6px; border-radius:8px; margin-left:6px; border: 1px solid rgba(239, 68, 68, 0.2); font-weight: 800; letter-spacing: 0.5px;">${r.overstayDays} DAYS OVERDUE</span>` : '';
+
+        actionHTML += `
+          <div onclick="openRoomDetails('${r.no}')" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.04); transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+            
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <div style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: ${alertColor}; box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 2px 12px ${alertColor}25;">
+                <span class="material-symbols-outlined" style="font-size: 20px;">${iconName}</span>
+              </div>
+              <div>
+                <h5 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a; font-weight: 800; display: flex; align-items: center;">Room ${r.no} ${overstayTag}</h5>
+                <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">Due: <span style="color: ${alertColor}; font-weight: 800;">₹${r.remainingDue.toLocaleString('en-IN')}</span></p>
+              </div>
             </div>
             
-            <!-- Manage Properties Button (REAL) -->
-            <div class="setting-item" onclick="openManageProperties()" style="cursor: pointer; border-bottom: none; border-top: 1px solid #e2e8f0;">
-              <div class="setting-icon" style="background: #fef2f2; color: #ef4444;"><span class="material-symbols-outlined">real_estate_agent</span></div>
-              <div class="setting-text"><h5 style="color: #ef4444;">Manage Properties</h5><p>View or delete properties</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
+            <div style="background: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
+                <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 14px;">arrow_forward_ios</span>
             </div>
           </div>
-        </div>
+        `;
+    });
 
-        <!-- Settings Section 2 -->
-        <div class="settings-section">
-          <h4 class="section-title">APP PREFERENCES</h4>
-          <div class="settings-card">
-            <div class="setting-item" onclick="openAppSettingsScreen()">
-              <div class="setting-icon"><span class="material-symbols-outlined">tune</span></div>
-              <div class="setting-text"><h5>App Settings</h5><p>Notifications, dark mode, backup</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-            </div>
-            <div class="setting-item" style="border-bottom: none;" onclick="openLanguageScreen()">
-              <div class="setting-icon"><span class="material-symbols-outlined">language</span></div>
-              <div class="setting-text"><h5>Language</h5><p>Preferred display dialect</p></div>
-              <div class="setting-action"><span class="action-text">English (IN)</span><span class="material-symbols-outlined arrow-icon">chevron_right</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Settings Section 3 -->
-        <div class="settings-section">
-          <h4 class="section-title">SUPPORT & LEGAL</h4>
-          <div class="settings-card">
-            <div class="setting-item" onclick="window.open('https://wa.me/919823456789', '_blank')">
-              <div class="setting-icon" style="background: #f1f5f9; color: #475569;"><span class="material-symbols-outlined">support_agent</span></div>
-              <div class="setting-text"><h5>Help & Support</h5><p>24/7 WhatsApp assistance</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-            </div>
-            <div class="setting-item" onclick="showPopup('success', 'Legal', 'Privacy policy and terms of service.')">
-              <div class="setting-icon" style="background: #f1f5f9; color: #475569;"><span class="material-symbols-outlined">verified_user</span></div>
-              <div class="setting-text"><h5>Terms & Privacy Policy</h5><p>Legal agreements and privacy</p></div>
-              <span class="material-symbols-outlined arrow-icon">chevron_right</span>
-            </div>
-            <div class="setting-item" style="border-bottom: none;">
-              <div class="setting-icon" style="background: #f1f5f9; color: #475569;"><span class="material-symbols-outlined">info</span></div>
-              <div class="setting-text"><h5>App Version</h5><p>Build 2.4.1 (Stable Release)</p></div>
-              <div class="setting-action"><span class="action-text" style="background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 11px;">Up to date</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Logout Button (REAL) -->
-        <button class="logout-btn-main" onclick="showCustomPopup('logout', 'Log Out?', 'Are you sure you want to log out from this device?', logOutApp)">
-          <span class="material-symbols-outlined">logout</span> Log Out 
-        </button>
-
-      </div> 
-      
-    </div>
-
-    <!-- ================= SCREEN 11: GUEST PROFILE ================= -->
-    <div id="screen-guest-profile" class="screen hidden" style="padding: 0; background-color: #f8f9fa;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px;">
-        <div class="back-btn-circle" onclick="openRoomDetails()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; text-align: center; font-size: 18px;">Guest Profile</h3>
-        <div class="edit-btn-circle"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></div>
-      </header>
-
-      <div class="rooms-scroll-area" style="padding-top: 10px;">
-        
-        <!-- Profile Info -->
-        <div class="gp-profile-section">
-          <img src="https://i.pravatar.cc/150?img=11" alt="Guest" class="gp-avatar">
-          <h2>Rahul Kumar</h2>
-          <p>+91 98765 43210</p>
-          <div class="gp-verified"><span class="material-symbols-outlined" style="font-size:14px;">verified</span> Verified ID</div>
-        </div>
-
-        <!-- Contact Actions -->
-        <div class="gp-contact-actions">
-          <button class="btn-outline-green flex-1"><span class="material-symbols-outlined" style="font-size:18px;">call</span> Call</button>
-          <button class="btn-outline-green flex-1"><span class="material-symbols-outlined" style="font-size:18px;">chat</span> WhatsApp</button>
-        </div>
-
-        <!-- Room Info Card -->
-        <div class="rd-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h2 style="font-size:22px; color:var(--text-dark);">Room 101</h2>
-            <div class="gp-badge">Deluxe AC</div>
-          </div>
-          <div class="rd-time-item mb-12">
-            <span class="material-symbols-outlined" style="color:var(--primary);">login</span>
-            <div><p>Check-in</p><h5 style="font-size:15px;">2 Sept 2026</h5></div>
-          </div>
-          <div class="rd-time-item">
-            <span class="material-symbols-outlined" style="color:var(--orange);">event</span>
-            <div><p>Checkout / Rent Due</p><h5 style="font-size:15px;">5 Sept 2026</h5></div>
-          </div>
-        </div>
-
-        <!-- Recent Payments -->
-        <h4 class="gp-section-title">Recent Payments</h4>
-        
-        <div class="gp-payment-card">
-          <div class="gp-pay-icon"><span class="material-symbols-outlined">account_balance_wallet</span></div>
-          <div style="flex:1;">
-            <h4 style="font-size:16px; color:var(--text-dark);">₹1,500</h4>
-            <p style="font-size:12px; color:var(--text-light);">Advance (UPI) • 2 Sept</p>
-          </div>
-          <div class="gp-success-badge"><span class="material-symbols-outlined" style="font-size:12px;">check_circle</span> Success</div>
-        </div>
-
-        <div class="gp-payment-card">
-          <div class="gp-pay-icon"><span class="material-symbols-outlined">payments</span></div>
-          <div style="flex:1;">
-            <h4 style="font-size:16px; color:var(--text-dark);">₹5,000</h4>
-            <p style="font-size:12px; color:var(--text-light);">Monthly Rent (Cash) • 1 Aug</p>
-          </div>
-          <div class="gp-success-badge"><span class="material-symbols-outlined" style="font-size:12px;">check_circle</span> Success</div>
-        </div>
-
-        <button class="btn-text-red w-100 mt-24">Block Guest</button>
-      </div>
-    </div>
-
-    <!-- ========================================== -->
-<!-- 🚀 PREMIUM ADD NEW ROOM SCREEN -->
-<!-- ========================================== -->
-<div id="screen-add-room" class="screen hidden" style="background: #f8fafc; min-height: 100vh; position: relative;">
-    
-    <!-- Header -->
-    <div class="dash-header" style="box-shadow: none; border-bottom: 1px solid #e2e8f0; background: white;">
-        <div class="property-title" onclick="closeActionScreen()">
-            <span class="material-symbols-outlined" style="color: #0f172a; font-size: 24px;">arrow_back</span>
-            <h3 style="color: #0f172a;">Add New Room</h3>
-        </div>
-    </div>
-
-    <!-- Scrollable Form Area -->
-    <div class="setup-body" style="padding: 24px; padding-bottom: 100px; overflow-y: auto;">
-        <div style="background: white; border-radius: 20px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;">
+    let cleaningRooms = rooms.filter(r => r.status === 'cleaning');
+    cleaningRooms.forEach(r => {
+        actionCount++;
+        actionHTML += `
+          <div onclick="openRoomDetails('${r.no}')" style="background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 8px 32px rgba(0,0,0,0.04); transition: transform 0.15s ease;" onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
             
-            <!-- 1. Room Number(s) -->
-            <div class="premium-form-wrap">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label>Room Number(s)</label>
-                    <span style="font-size: 9px; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; font-weight: 800; letter-spacing: 0.5px;">BULK ENABLED</span>
-                </div>
-                <div class="premium-form-row">
-                    <span class="material-symbols-outlined input-icon">meeting_room</span>
-                    <input type="text" id="new-room-no" placeholder="e.g., 201 or 201-205">
-                </div>
-                <p style="font-size: 11px; color: #94a3b8; margin-top: 6px;">Use a hyphen (201-205) or comma (201, 202) for multiple</p>
-            </div>
-
-            <!-- 2. Smart Floor Input -->
-            <div class="premium-form-wrap" style="margin-top: 24px;">
-                <label>Floor</label>
-                <div class="premium-form-row">
-                    <span class="material-symbols-outlined input-icon">layers</span>
-                    <input type="text" id="new-room-floor" placeholder="e.g., Ground Floor, Basement, Floor 12">
-                </div>
-                <!-- Quick Chips for Auto-fill -->
-                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Ground Floor'">Ground</span>
-                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 1'">1st</span>
-                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 2'">2nd</span>
-                    <span class="quick-chip" onclick="document.getElementById('new-room-floor').value='Floor 3'">3rd</span>
-                </div>
-            </div>
-
-            <!-- 3. Editable Category (Datalist Magic) -->
-            <div class="premium-form-wrap" style="margin-top: 24px;">
-                <label>Room Category</label>
-                <div class="premium-form-row">
-                    <span class="material-symbols-outlined input-icon">bed</span>
-                    <!-- Datalist allows both typing and selecting -->
-                    <input list="category-options" id="new-room-cat" placeholder="Select or type custom category...">
-                    <datalist id="category-options">
-                        <option value="Standard Non-AC">
-                        <option value="Deluxe AC">
-                        <option value="Suite">
-                        <option value="Family Room">
-                        <option value="Single Sharing">
-                        <option value="Double Sharing">
-                        <option value="Dormitory">
-                    </datalist>
-                </div>
-            </div>
-
-            <!-- 4. Rent Prices (Side by Side) -->
-            <div style="display: flex; gap: 16px; margin-top: 24px;">
-                <div class="premium-form-wrap" style="flex: 1;">
-                    <label>Daily Rent</label>
-                    <div class="premium-form-row">
-                        <span style="font-weight: 700; color: #64748b; margin-right: 8px;">₹</span>
-                        <input type="number" id="new-room-price-daily" placeholder="1500">
-                    </div>
-                </div>
-                <div class="premium-form-wrap" style="flex: 1;">
-                    <label>Monthly Rent</label>
-                    <div class="premium-form-row">
-                        <span style="font-weight: 700; color: #64748b; margin-right: 8px;">₹</span>
-                        <input type="number" id="new-room-price-monthly" placeholder="6000">
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- Fixed Save Button at Bottom -->
-    <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: white; padding: 16px 24px; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); z-index: 10;">
-        <button onclick="saveNewRoom()" class="premium-pill-btn" style="box-shadow: 0 4px 15px rgba(5,150,105,0.2);">Save Room(s)</button>
-    </div>
-</div>
-
-    <!-- ================= ✏️ EDIT PROFILE SCREEN ================= -->
-    <div id="screen-edit-profile" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <!-- Header -->
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Edit Profile</h3>
-      </div>
-      
-      <div style="padding: 24px 20px;">
-        <!-- Profile Pic Upload Box -->
-        <div style="text-align: center; margin-bottom: 32px;">
-          <div style="position: relative; display: inline-block;">
-            <!-- Real time photo preview yahan dikhega -->
-            <img id="edit-profile-preview" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #ecfdf5; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-            
-            <!-- Camera Button & Hidden Input -->
-            <label for="profile-pic-upload" style="position: absolute; bottom: 0; right: 0; background: #059669; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; cursor: pointer; box-shadow: 0 2px 6px rgba(5,150,105,0.3);">
-              <span class="material-symbols-outlined" style="font-size: 16px;">photo_camera</span>
-            </label>
-            <input type="file" id="profile-pic-upload" accept="image/*" style="display: none;" onchange="handleProfilePicUpload(this)">
-          </div>
-          <p style="font-size: 11px; color: #94a3b8; margin-top: 8px;">Tap camera to change photo</p>
-        </div>
-        
-        <!-- Form Inputs -->
-        <div style="margin-bottom: 20px;">
-          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Full Name</label>
-          <input type="text" id="edit-profile-name" placeholder="E.g. Arun Kumar" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
-        </div>
-        <div style="margin-bottom: 32px;">
-          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Phone Number</label>
-          <input type="tel" id="edit-profile-phone" placeholder="E.g. 9876543210" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
-        </div>
-        
-        <!-- Save Button -->
-        <button onclick="saveProfileDetails()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Changes</button>
-      </div>
-    </div>
-    <!-- ================= 🏨 PROPERTY DETAILS SCREEN ================= -->
-    <div id="screen-property-details" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <!-- Header -->
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Property Details</h3>
-      </div>
-      
-      <div style="padding: 24px 20px;">
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Add your property information here. This will be shared with guests during booking and checkout.</p>
-        
-        <!-- Address Box -->
-        <div style="margin-bottom: 20px;">
-          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Full Address (Map Location)</label>
-          <textarea id="prop-detail-address" rows="3" placeholder="E.g. 123 Main Street, Near Metro Station, Patna..." style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; resize: none; font-family: inherit;" onfocus="this.style.borderColor='#059669'"></textarea>
-        </div>
-
-        <!-- Quick Amenities -->
-        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">WiFi Password</label>
-            <input type="text" id="prop-detail-wifi" placeholder="e.g. FreeGuest123" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Checkout Time</label>
-            <input type="time" id="prop-detail-checkout" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; color: #0f172a;" onfocus="this.style.borderColor='#059669'">
-          </div>
-        </div>
-        
-        <!-- House Rules -->
-        <div style="margin-bottom: 32px;">
-          <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">House Rules & Policies</label>
-          <textarea id="prop-detail-rules" rows="4" placeholder="1. No smoking inside rooms&#10;2. Valid ID proof mandatory&#10;3. No loud music after 10 PM" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; resize: none; font-family: inherit;" onfocus="this.style.borderColor='#059669'"></textarea>
-        </div>
-        
-        <!-- Save Button -->
-        <button onclick="savePropertyDetails()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Property Details</button>
-      </div>
-    </div>
-
-    <!-- ================= 💰 PRICING & TAX SETUP SCREEN ================= -->
-    <div id="screen-pricing-tax" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <!-- Header -->
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Pricing & Tax Setup</h3>
-      </div>
-      
-      <div style="padding: 24px 20px;">
-        <p style="font-size: 12px; color: #64748b; margin-bottom: 24px;">Configure GST details and additional charges like electricity for this property.</p>
-        
-        <!-- GST Box -->
-        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 16px 0; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined" style="color: #059669; font-size: 18px;">account_balance</span> Tax Details</h4>
-          
-          <div style="margin-bottom: 16px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">GSTIN Number (Optional)</label>
-            <input type="text" id="prop-tax-gstin" placeholder="E.g. 22AAAAA0000A1Z5" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; text-transform: uppercase;" onfocus="this.style.borderColor='#059669'">
-          </div>
-          
-          <div>
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Default GST Percentage (%)</label>
-            <input type="number" id="prop-tax-percent" placeholder="E.g. 12 or 18" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#059669'">
-          </div>
-        </div>
-
-        <!-- Utility Box -->
-        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 32px;">
-          <h4 style="margin: 0 0 16px 0; font-size: 14px; color: #0f172a; display: flex; align-items: center; gap: 8px;"><span class="material-symbols-outlined" style="color: #d97706; font-size: 18px;">electric_bolt</span> Utility & Rent Settings</h4>
-          
-          <div style="margin-bottom: 16px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Electricity Rate (₹ per unit)</label>
-            <input type="number" id="prop-tax-electricity" placeholder="E.g. 10" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#d97706'">
-          </div>
-          
-          <div>
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Rent Collection Cycle</label>
-            <select id="prop-tax-cycle" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; background: white; color: #0f172a;" onfocus="this.style.borderColor='#059669'">
-              <option value="1st">1st of every month</option>
-              <option value="30days">Every 30 days from check-in</option>
-            </select>
-          </div>
-        </div>
-
-       <!-- 💳 UPI & Payment Settings Card -->
-<div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-    
-    <!-- Card Header -->
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-        <span class="material-symbols-outlined" style="color: #059669; font-size: 20px;">qr_code_scanner</span>
-        <h4 style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 700;">UPI & Payment Settings</h4>
-    </div>
-
-    <!-- Input 1 -->
-    <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px;">UPI ID (For Rent Collection)</label>
-        <input type="text" id="prop-upi-id" placeholder="e.g. ownername@okicici" style="width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #0f172a; outline: none; font-family: inherit;" />
-    </div>
-    
-    <!-- Input 2 -->
-    <div>
-        <label style="display: block; font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px;">Business / Payee Name</label>
-        <input type="text" id="prop-upi-name" placeholder="e.g. RoomPe PG" style="width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; color: #0f172a; outline: none; font-family: inherit;" />
-    </div>
-
-</div>
-        <!-- Save Button -->
-        <button onclick="savePricingSetup()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Pricing Setup</button>
-      </div>
-    </div>
-
-    <!-- ================= 👥 STAFF & ROLES SCREEN ================= -->
-    <div id="screen-staff-roles" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <!-- Header -->
-      <div style="background: white; padding: 16px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-        <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #475569;">arrow_back</span>
-        <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">Staff & Roles</h3>
-      </div>
-      
-      <div style="padding: 24px 20px;">
-        <!-- Active Staff List -->
-        <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #475569; font-weight: 700; text-transform: uppercase;">Active Staff</h4>
-        <div id="staff-list-container" style="margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px;">
-           <!-- JS automatically purane staff yahan dikhayega -->
-        </div>
-
-        <!-- Add New Staff Form -->
-        <h4 style="margin: 0 0 12px 0; font-size: 13px; color: #475569; font-weight: 700; text-transform: uppercase;">Add New Staff</h4>
-        <div style="background: white; padding: 16px; border-radius: 16px; border: 1px solid #e2e8f0;">
-          <div style="margin-bottom: 16px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Staff Name</label>
-            <input type="text" id="staff-name" placeholder="E.g. Rahul Kumar" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#0f172a'">
-          </div>
-          <div style="margin-bottom: 16px;">
-            <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Mobile Number (Login ID)</label>
-            <input type="tel" id="staff-phone" placeholder="E.g. 9876543210" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s;" onfocus="this.style.borderColor='#0f172a'">
-          </div>
-          
-          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-            <div style="flex: 1;">
-              <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Role</label>
-              <select id="staff-role" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; background: white;" onfocus="this.style.borderColor='#0f172a'">
-                <option value="Manager">Manager</option>
-                <option value="Receptionist">Receptionist</option>
-                <option value="Caretaker">Caretaker</option>
-              </select>
-            </div>
-            <div style="flex: 1;">
-              <label style="font-size: 12px; color: #64748b; font-weight: 700; margin-bottom: 8px; display: block;">Login PIN</label>
-              <input type="password" id="staff-pin" placeholder="4-Digit" maxlength="4" style="width: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 14px; outline: none; transition: 0.2s; letter-spacing: 2px;" onfocus="this.style.borderColor='#0f172a'">
-            </div>
-          </div>
-          
-          <button onclick="saveNewStaff()" style="width: 100%; padding: 16px; background: #0f172a; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(15,23,42,0.2);">+ Add Staff Member</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ================= ⚙️ APP SETTINGS (PREMIUM UI) ================= -->
-    <style>
-      .premium-card { background: #fff; border-radius: 16px; padding: 0 16px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.02); }
-      .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
-      .setting-row:last-child { border-bottom: none; }
-      .icon-box { width: 40px; height: 40px; border-radius: 12px; display: flex; justify-content: center; align-items: center; background: #f8fafc; color: #475569; margin-right: 16px; }
-      .icon-box.green { background: #ecfdf5; color: #059669; }
-      .section-title { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin: 0 0 12px 8px; letter-spacing: 0.5px; }
-      
-      /* iOS Toggle Switch */
-      .ios-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-      .ios-switch input { opacity: 0; width: 0; height: 0; }
-      .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 24px; }
-      .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-      input:checked + .slider { background-color: #059669; }
-      input:checked + .slider:before { transform: translateX(20px); }
-      
-      /* Big Save Button */
-      .giant-btn { background: #059669; color: white; border-radius: 20px; padding: 32px 16px; width: 100%; border: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 8px 24px rgba(5,150,105,0.25); transition: 0.2s; }
-      .giant-btn:active { transform: scale(0.98); }
-    </style>
-
-    <div id="screen-app-settings" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <!-- Header -->
-      <div style="background: transparent; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px);">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <span class="material-symbols-outlined" onclick="closeActionScreen()" style="cursor: pointer; color: #0f172a; font-weight: 600;">arrow_back_ios</span>
-          <div>
-            <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Settings</h3>
-            <p style="margin: 0; font-size: 11px; color: #64748b;">RoomPe Workspace & System</p>
-          </div>
-        </div>
-        <span style="font-size: 10px; background: #dcfce7; color: #059669; padding: 4px 8px; border-radius: 12px; font-weight: 700;">v2.4.1</span>
-      </div>
-      
-      <div style="padding: 20px;">
-        <h4 class="section-title">Display & Notifications</h4>
-        <div class="premium-card">
-          <div class="setting-row">
-            <div style="display: flex; align-items: center;">
-              <div class="icon-box"><span class="material-symbols-outlined">dark_mode</span></div>
-              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">Dark Mode</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Sync with system theme</p></div>
-            </div>
-            <label class="ios-switch"><input type="checkbox" id="toggle-dark"><span class="slider"></span></label>
-          </div>
-          <div class="setting-row">
-            <div style="display: flex; align-items: center;">
-              <div class="icon-box green"><span class="material-symbols-outlined">notifications_active</span></div>
-              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">Push Notifications</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Rent dues & alerts</p></div>
-            </div>
-            <label class="ios-switch"><input type="checkbox" id="toggle-notif" checked><span class="slider"></span></label>
-          </div>
-        </div>
-
-        <h4 class="section-title">Localization & Language</h4>
-        <div class="premium-card" onclick="openLanguageScreen()" style="cursor: pointer;">
-          <div class="setting-row">
-            <div style="display: flex; align-items: center;">
-              <div class="icon-box" style="background: #fffbeb; color: #d97706;"><span class="material-symbols-outlined">translate</span></div>
-              <div><h5 style="margin: 0 0 2px 0; font-size: 14px; color: #0f172a;">App Language</h5><p style="margin: 0; font-size: 12px; color: #059669; font-weight: 600;" id="stg-lang-preview">English (IN) • Default</p></div>
-            </div>
-            <div style="font-size: 12px; color: #94a3b8; display: flex; align-items: center;">Change <span class="material-symbols-outlined" style="font-size: 16px;">chevron_right</span></div>
-          </div>
-        </div>
-
-        <h4 class="section-title" style="display: flex; justify-content: space-between;">Data Management <span style="text-transform: none; font-weight: 500;">Last synced: Just now</span></h4>
-        <div class="premium-card" style="padding: 16px;">
-          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-            <span class="material-symbols-outlined" style="color: #0ea5e9; font-size: 28px;">cloud_sync</span>
-            <div><h5 style="margin: 0 0 4px 0; font-size: 14px;">Cloud Sync & Storage</h5><p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.4;">Automatically archives your rent ledgers and KYC to encrypted cloud.</p></div>
-          </div>
-          <div style="background: #f0f9ff; border: 1px dashed #bae6fd; border-radius: 12px; padding: 16px; text-align: center; color: #0284c7; font-weight: 700; cursor: pointer;" onclick="forceCloudBackup()">
-            <span class="material-symbols-outlined" style="font-size: 40px; margin-bottom: 8px;">cloud_upload</span><br>Force Cloud Backup
-          </div>
-        </div>
-
-        <button class="giant-btn" onclick="saveAppSettings()">
-          <span class="material-symbols-outlined" style="font-size: 64px;">check</span>
-          <span style="font-size: 18px;">Save Preferences</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- ================= 🌐 APP LANGUAGE (PREMIUM UI) ================= -->
-    <style>
-      .lang-card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
-      .lang-card.active { border-color: #059669; background: #f0fdf4; }
-      .circle-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #cbd5e1; display: flex; justify-content: center; align-items: center; }
-      .lang-card.active .circle-check { background: #059669; border-color: #059669; color: white; }
-    </style>
-
-    <div id="screen-language" class="screen hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #f8f9fa; z-index: 1000; overflow-y: auto;">
-      <div style="background: transparent; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px);">
-        <div style="display: flex; align-items: center; gap: 16px;">
-          <span class="material-symbols-outlined" onclick="openAppSettingsScreen()" style="cursor: pointer; color: #0f172a; font-weight: 600;">arrow_back_ios</span>
-          <div>
-            <h3 style="margin: 0; font-size: 18px; color: #0f172a; font-weight: 800;">App Language</h3>
-            <p style="margin: 0; font-size: 11px; color: #64748b;">Choose your preferred dialect</p>
-          </div>
-        </div>
-        <span style="font-size: 10px; background: #dcfce7; color: #059669; padding: 4px 8px; border-radius: 12px; font-weight: 700; border: 1px solid #bbf7d0;">4 Available</span>
-      </div>
-      
-      <div style="padding: 20px;">
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 12px; display: flex; gap: 12px; margin-bottom: 24px;">
-          <span class="material-symbols-outlined" style="background: #059669; color: white; border-radius: 8px; padding: 4px; font-size: 16px; height: fit-content;">translate</span>
-          <div><h5 style="margin: 0 0 4px 0; font-size: 12px; color: #064e3b;">Localized Property Experience</h5><p style="margin: 0; font-size: 11px; color: #047857; line-height: 1.4;">Invoices and guest reminders will format using your selected language.</p></div>
-        </div>
-
-        <h4 class="section-title">Supported Languages</h4>
-        
-        <!-- Language Options -->
-        <div class="lang-card active" id="lang-btn-en" onclick="selectLang('en')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #059669;">EN</div>
-            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">English (IN) <span style="font-size: 9px; background: #059669; color: white; padding: 2px 6px; border-radius: 4px; vertical-align: middle; margin-left: 4px;">Default</span></h5><p style="margin: 0; font-size: 12px; color: #059669;">English (India)</p></div>
-          </div>
-          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px;">check</span></div>
-        </div>
-
-        <div class="lang-card" id="lang-btn-hi" onclick="selectLang('hi')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #475569;">हिं</div>
-            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">हिंदी</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Hindi</p></div>
-          </div>
-          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px; display:none;">check</span></div>
-        </div>
-
-        <div class="lang-card" id="lang-btn-bn" onclick="selectLang('bn')">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            <div style="width: 36px; height: 36px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-weight: 800; color: #475569;">বাং</div>
-            <div><h5 style="margin: 0 0 2px 0; font-size: 15px; color: #0f172a;">বাংলা</h5><p style="margin: 0; font-size: 12px; color: #64748b;">Bengali</p></div>
-          </div>
-          <div class="circle-check"><span class="material-symbols-outlined" style="font-size: 14px; display:none;">check</span></div>
-        </div>
-
-        <button class="giant-btn" style="margin-top: 32px;" onclick="saveLanguageSetting()">
-          <span class="material-symbols-outlined" style="font-size: 64px;">sync</span>
-          <span style="font-size: 18px;">Update Language</span>
-        </button>
-      </div>
-    </div>
-
-
-  
-  <!-- ================= ACTION SCREEN: NEW BOOKING (PRO STACKED CARDS) ================= -->
-    <div id="screen-new-booking" class="screen hidden" style="background-color: #f1f5f9;">
-        <!-- Header -->
-        <div class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; position: sticky; top: 0; z-index: 10;">
-            <div class="back-btn-circle" onclick="closeActionScreen()"><span class="icon" style="font-size: 20px;">⬅️</span></div>
-            <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">New Booking</h3>
-        </div>
-
-        <div class="rooms-scroll-area" style="padding: 20px; padding-bottom: 120px;">
-            
-            <!-- 🃏 CARD 1: GUEST DETAILS -->
-            <div class="stacked-card stagger-1">
-                <div class="card-header-flex">
-                    <span class="step-badge">1</span>
-                    <h4 class="card-title">Guest Details</h4>
-                </div>
-                
-                <div class="premium-form-wrap">
-                    <label>Guest Full Name*</label>
-                    <div class="premium-form-row">
-                        <span class="input-icon">👤</span>
-                        <input type="text" id="book-guest-name" placeholder="Enter full name">
-                    </div>
-                </div>
-                
-                <div class="premium-form-wrap" style="margin-bottom: 0;">
-                    <label>WhatsApp / Mobile*</label>
-                    <div class="premium-form-row">
-                        <span class="input-icon" style="font-size:13px; font-weight:800; color:var(--text-dark);">+91</span>
-                        <input type="tel" id="book-guest-phone" placeholder="Mobile number">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🃏 CARD 2: STAY & BILLING -->
-            <div class="stacked-card stagger-2">
-                <div class="card-header-flex">
-                    <span class="step-badge">2</span>
-                    <h4 class="card-title">Stay & Billing</h4>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:16px;">
-                    <div class="premium-form-row">
-                        <span class="input-icon">🛏️</span>
-                        <input type="text" id="book-room-no" placeholder="Room No.*">
-                    </div>
-                    <div class="premium-form-row">
-                        <select id="book-stay-type" style="border:none; outline:none; background:transparent; width:100%; font-weight:600; color:#0f172a;">
-                            <option value="Daily">Daily (Hotel)</option>
-                            <option value="Monthly">Monthly (PG)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:16px;">
-                    <div class="premium-form-wrap" style="margin:0;">
-                         <label style="font-size:11px;">Check-in Date</label>
-                        <div class="premium-form-row" style="padding:0 12px;">
-                            <input type="datetime-local" id="book-checkin" style="font-size: 12px; width:100%;">
-                        </div>
-                    </div>
-                    <div class="premium-form-wrap" style="margin:0;">
-                         <label style="font-size:11px;">Duration</label>
-                        <div class="premium-form-row">
-                            <input type="number" id="book-duration" placeholder="Days/Months">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="premium-form-wrap" style="margin-bottom: 0;">
-                    <label>Advance Collected (₹)</label>
-                    <!-- Highlighted Green Box for Money -->
-                    <div class="premium-form-row" style="border-color: #34d399; background: #ecfdf5;">
-                        <span class="input-icon" style="color:#059669; font-weight:bold;">₹</span>
-                        <input type="number" id="book-advance" placeholder="0.00" style="color: #064e3b; font-weight: 800; font-size: 16px;">
-                    </div>
-                </div>
-            </div>
-
-            <!-- 🃏 CARD 3: SMART KYC & ADD-ONS -->
-            <div class="stacked-card stagger-3">
-                <div class="card-header-flex">
-                    <span class="step-badge">3</span>
-                    <h4 class="card-title">KYC & Add-ons</h4>
-                </div>
-                
-                <!-- ID Selection -->
-                <div class="premium-form-row" style="margin-bottom: 16px;">
-                    <span class="input-icon">💳</span>
-                    <select id="book-id-type" style="border:none; outline:none; background:transparent; width:100%; font-weight:600; color:#0f172a;">
-                        <option value="Aadhar">Aadhar Card</option>
-                        <option value="PAN">PAN Card</option>
-                        <option value="Passport">Passport</option>
-                    </select>
-                </div>
-                
-                <!-- Smart Image Uploaders -->
-                <input type="file" id="id-front-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'front-preview', 'front')">
-                <input type="file" id="id-back-input" accept="image/*" style="display:none;" onchange="handleKycUpload(this, 'back-preview', 'back')">
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:20px;">
-                    <div class="smart-upload-box" onclick="document.getElementById('id-front-input').click()">
-                        <img id="front-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
-                        <span class="icon" style="position: relative; z-index: 1;">📷</span>
-                        <p style="position: relative; z-index: 1;">Front Photo</p>
-                    </div>
-                    <div class="smart-upload-box" onclick="document.getElementById('id-back-input').click()">
-                        <img id="back-preview" src="" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2;">
-                        <span class="icon" style="position: relative; z-index: 1;">📷</span>
-                        <p style="position: relative; z-index: 1;">Back Photo</p>
-                    </div>
-                </div>
-
-                <!-- Sleek Signature Pad -->
-                <div class="signature-wrapper">
-                    <div class="sig-header">
-                        <span style="font-size:12px; font-weight:700; color:#475569;">✍️ Guest Signature</span>
-                        <button onclick="clearSignature('signature-pad')" class="clear-sig-btn">Clear</button>
-                    </div>
-                    <canvas id="signature-pad"></canvas>
-                    <button onclick="openFullScreenSignature()" class="expand-sig-btn">🔍 Expand Pad for Signature</button>
-                </div>
-
-                <hr style="border: 0; height: 1px; background: #e2e8f0; margin: 24px 0;">
-
-                <!-- Pro Add-ons -->
-                <label class="pro-toggle-label">
-                    <input type="checkbox" id="book-is-corporate" onchange="toggleGSTBox()">
-                    <span>🏢 Corporate Booking (GST)</span>
-                </label>
-                
-                <div id="corporate-gst-box" style="display: none; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px;">
-                    <input type="text" id="book-company-name" placeholder="Company Name" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; font-size: 13px; outline: none;">
-                    <input type="text" id="book-gstin" placeholder="GSTIN Number" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; outline: none;">
-                </div>
-                
-                <label class="pro-toggle-label" style="background: #f0fdf4; border-color: #bbf7d0;">
-                    <input type="checkbox" id="book-smart-menu" checked>
-                    <span style="color: #065f46;">💬 Auto-send Smart Menu on WhatsApp</span>
-                </label>
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <div style="width: 42px; height: 42px; background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: #3b82f6; box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 2px 12px rgba(59, 130, 246, 0.15);">
+                <span class="material-symbols-outlined" style="font-size: 20px;">cleaning_services</span>
+              </div>
+              <div>
+                <h5 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a; font-weight: 800; display: flex; align-items: center;">Room ${r.no}</h5>
+                <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">Status: <span style="color: #3b82f6; font-weight: 800;">Needs Cleaning</span></p>
+              </div>
             </div>
             
-            <!-- FINAL SUBMIT BUTTON (Giant & Beautiful) -->
-            <button class="ultimate-submit-btn" onclick="saveNewBooking()">
-                ✔️ Confirm Booking
-            </button>
-        </div>
-    </div>
-    <!-- ================= ACTION SCREEN: SMART NOTIFICATIONS ================= -->
-    <div id="screen-notifications" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 200;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">Notifications</h3>
-      </header>
-      
-      <div class="rooms-scroll-area" style="padding: 16px 20px 100px;">
-        <!-- JS will inject real notifications here -->
-        <div id="real-notification-list"></div>
-      </div>
-    </div>
-
-  <!-- ================= SCREEN 14: ADD PAYMENT FORM ================= -->
-<div id="screen-add-payment" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100; position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow-y: auto;">
-  <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
-    <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-    <h3 style="flex: 1; font-size: 18px; color: #0f172a; margin: 0; font-weight: 800;">Record Payment</h3>
-  </header>
-  
-  <div class="rooms-scroll-area" style="padding: 24px; padding-bottom: 100px;">
-    
-    <!-- Room Number Field -->
-    <div class="premium-form-wrap" style="margin-bottom: 24px;">
-      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Room Number</label>
-      <div class="premium-form-row">
-        <span class="material-symbols-outlined input-icon">door_front</span>
-        <input type="text" id="pay-room-no" placeholder="e.g., 101" readonly style="background: transparent; border: none; outline: none; width: 100%; font-size: 15px; font-weight: 600; color: #0f172a;">
-      </div>
-    </div>
-
-    <!-- Amount Field (Green Highlighted) -->
-    <div class="premium-form-wrap" style="margin-bottom: 24px;">
-      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Amount Received (₹)</label>
-      <div class="premium-form-row" style="height: 64px; border-color: #059669; background: #ecfdf5;">
-        <span style="font-size: 24px; font-weight: 800; color: #059669; margin-right: 8px;">₹</span>
-        <input type="number" id="pay-amount" placeholder="0" style="background: transparent; border: none; outline: none; width: 100%; font-size: 28px; font-weight: 800; color: #059669;">
-      </div>
-    </div>
-
-    <!-- Payment Mode -->
-    <div class="premium-form-wrap" style="margin-bottom: 24px;">
-      <label style="font-size: 13px; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Payment Mode</label>
-      <div style="display: flex; gap: 12px;">
-        <div id="pay-mode-upi" onclick="selectPayMode('UPI')" style="flex: 1; padding: 14px; text-align: center; border-radius: 12px; border: 2px solid #059669; background: #f0fdf4; color: #059669; font-weight: 700; cursor: pointer; transition: 0.2s;">UPI / Online</div>
-        <div id="pay-mode-cash" onclick="selectPayMode('Cash')" style="flex: 1; padding: 14px; text-align: center; border-radius: 12px; border: 1px solid #e2e8f0; background: white; color: #64748b; font-weight: 600; cursor: pointer; transition: 0.2s;">Cash</div>
-      </div>
-      <input type="hidden" id="pay-mode-value" value="UPI">
-    </div>
-
-  </div>
-  
-  <!-- Save Button -->
-  <div style="position: absolute; bottom: 0; left: 0; width: 100%; padding: 16px 24px; background: white; border-top: 1px solid #e2e8f0; z-index: 10;">
-    <button onclick="saveNewPayment()" style="width: 100%; padding: 16px; background: #059669; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Save Payment</button>
-  </div>
-</div>
-    
-  
- <!-- ================= FIXED SCREEN 7: ROOM DETAILS & GUEST PROFILE ================= -->
-  <div id="screen-room-details" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 100;">
-  
-  <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: none; padding-bottom: 8px;">
-    <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-    <div style="flex: 1;">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <h3 id="rd-room-title" style="font-size: 20px; color: #0f172a; margin: 0;">Room --</h3>
-        <span id="rd-room-cat" style="background: #ecfdf5; color: #059669; font-size: 10px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Category</span>
-      </div>
-      <p id="rd-room-floor" style="font-size: 12px; color: #64748b; margin-top: 2px;">Property • Floor</p>
-    </div>
-  </header>
-  
-  <div class="rooms-scroll-area" style="padding: 16px 20px 120px;">
-  
-    <!-- Guest Info Card -->
-    <div style="background: white; border-radius: 16px; padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div id="rd-guest-initials" style="width: 44px; height: 44px; background: #059669; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 700; font-size: 16px;">G</div>
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <h4 id="rd-guest-name" style="font-size: 16px; color: #0f172a; margin: 0;">Guest Name</h4>
-              <span style="font-size: 9px; display: flex; align-items: center; gap: 4px; color: #059669; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 10px;"><div style="width: 6px; height: 6px; background: #059669; border-radius: 50%;"></div> Occupied</span>
-            </div>
-            <!-- Yahan CALL ka action lagaya hai -->
-            <p id="rd-call-btn" style="font-size: 12px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-             <span id="rd-guest-phone" style="font-size:12px; color:#64748b;">+91 98765 43210</span>
-            </p>
-          </div>
-        </div>
-        <!-- Yahan CHAT (WhatsApp) ka action lagaya hai -->
-        <div id="rd-chat-btn" style="width: 36px; height: 36px; background: #ecfdf5; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #059669; cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
-        </div>
-      </div>
-     <div style="border-top: 1px solid #f1f5f9; padding-top: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b;">
-  <span style="display: flex; align-items: center; gap: 6px;">
-    <span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">draw</span> 
-    Sign:
-    <img id="rd-guest-signature" src="" style="height: 22px; max-width: 80px; object-fit: contain; display: none; background: #f8fafc; padding: 2px 4px; border-radius: 4px; border: 1px solid #e2e8f0;" alt="Signature">
-  </span>
-  <span style="color: #cbd5e1;">•</span>
-  <span>ID Verified: <strong style="color: #059669;">Yes ✓</strong></span>
-</div>
-    </div>
-  
-    <!-- TABS BUTTONS -->
-    <div style="display: flex; background: white; border-radius: 12px; border: 1px solid #e2e8f0; padding: 4px; margin-bottom: 24px;">
-      <div id="rd-btn-overview" onclick="switchRoomDetailsTab('overview')" style="flex: 1; text-align: center; padding: 8px 0; background: #059669; color: white; font-size: 13px; font-weight: 600; border-radius: 8px; cursor:pointer; transition: 0.2s;">Overview</div>
-      <div id="rd-btn-payments" onclick="switchRoomDetailsTab('payments')" style="flex: 1; text-align: center; padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600; border-radius: 8px; cursor:pointer; transition: 0.2s;">Payments</div>
-      <div id="rd-btn-documents" onclick="switchRoomDetailsTab('documents')" style="flex: 1; text-align: center; padding: 8px 0; color: #64748b; font-size: 13px; font-weight: 600; border-radius: 8px; cursor:pointer; transition: 0.2s;">Documents</div>
-    </div>
-  
-    <!-- TAB 1: OVERVIEW (Default) -->
-    <div id="rd-tab-overview">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h4 style="font-size: 11px; font-weight: 700; color: #94a3b8; letter-spacing: 0.5px;">STAY & RENTAL OVERVIEW</h4>
-        <span class="material-symbols-outlined" style="font-size: 16px; color: #059669; cursor:pointer;" id="rd-edit-btn">edit</span>
-      </div>
-      
-      
-      <!-- DYNAMIC OVERVIEW GRID -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
-          <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 8px;"><span style="font-size: 11px;">Check-in Date</span><span class="material-symbols-outlined" style="font-size: 14px; color: #3b82f6;">calendar_today</span></div>
-          <h4 id="rd-checkin-date" style="font-size: 14px; color: #0f172a; margin-bottom: 2px;">--</h4>
-          <p id="rd-stay-duration" style="font-size: 10px; color: #94a3b8;">-- days staying</p>
-        </div>
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
-          <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 8px;"><span style="font-size: 11px;">Total Rent</span><span class="material-symbols-outlined" style="font-size: 14px; color: #10b981; background: #ecfdf5; padding: 2px; border-radius: 4px;">currency_rupee</span></div>
-          <h4 style="font-size: 14px; color: #0f172a; margin-bottom: 2px;"><span id="rd-room-rent">₹0</span></h4>
-          <p style="font-size: 10px; color: #10b981;">Base room charges</p>
-        </div>
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; position: relative;">
-          <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; margin-bottom: 8px;">
-            <span style="font-size: 11px;">Amount Paid</span>
-            <!-- YAHAN HAI TERA PLUS ICON JO POPUP KHOLEGA -->
-            <button onclick="openActionScreen('screen-add-payment')" style="background: #ecfdf5; border: none; border-radius: 6px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669;">
-              <span class="material-symbols-outlined" style="font-size: 14px; font-weight: bold;">add</span>
-            </button>
-          </div>
-          <!-- ID BADAL DI GAYI HAI CALCULATION KE LIYE -->
-          <h4 id="ui-amount-paid" style="font-size: 14px; color: #0f172a; margin-bottom: 2px;">₹0</h4>
-          <p style="font-size: 10px; color: #94a3b8;">Advance & Payments</p>
-        </div>
-        <div id="rd-due-card" style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span id="rd-due-title" style="font-size: 11px; color: #e11d48;">Net Payable</span>
-            <span class="material-symbols-outlined" id="rd-due-icon" style="font-size: 14px; color: #e11d48;">receipt_long</span>
-          </div>
-          <!-- ID BADAL DI GAYI HAI CALCULATION KE LIYE -->
-          <h4 id="ui-net-payable" style="font-size: 14px; color: #e11d48; margin-bottom: 2px;">₹0</h4>
-          <p id="rd-due-status" style="font-size: 10px; color: #e11d48; font-weight: 600;">Total Pending Due</p>
-        </div>
-      </div>
-
-      <!-- NEW: ROOM SERVICE & EXTRAS SECTION -->
-      <div id="extras-wrapper">
-        <!-- ADD-ONS AND EXTRAS HEADER -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase;">ADD-ONS & EXTRAS</h4>
-            <div style="display: flex; gap: 8px;">
-                <!-- Naya Electricity Button -->
-                <button onclick="openElectricityModal(document.getElementById('rd-room-title').innerText.replace('Room ', ''))" style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">bolt</span> Meter
-                </button>
-                <!-- Purana Add Extra Button -->
-                <button id="rd-add-extra-btn" style="background: #eff6ff; color: #3b82f6; border: 1px solid #bfdbfe; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">add</span> Add Item
-                </button>
-            </div>
-        </div>
-        
-        <!-- EXTRAS LIST -->
-        <div id="rd-extras-list" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 8px;">
-            <!-- Javascript yahan items dale ga -->
-        </div>
-      </div>
-    </div> <!-- 🚨 MAIN FIX: YAHAN PAR OVERVIEW KA DABBA BAND HUA 🚨 -->
-
-   <!-- TAB 2: PAYMENTS (Hidden by default) -->
-    <div id="rd-tab-payments" class="hidden" style="display: none; padding-top: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase;">TRANSACTION HISTORY</h4>
-        </div>
-        <div id="rd-payments-list" style="display: flex; flex-direction: column; gap: 8px;">
-            <!-- JS will inject payments here -->
-        </div>
-    </div>
-
-    <!-- TAB 3: DOCUMENTS & KYC (PREMIUM LOCKER UI) -->
-    <div id="rd-tab-documents" class="hidden" style="display: none; padding-top: 16px; padding-bottom: 60px;">
-        <h4 style="font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;">GUEST KYC & ID</h4>
-        
-        <!-- Naya Gallery Grid -->
-        <div id="rd-docs-gallery" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
-            <!-- JS yahan Front aur Back ID ke premium cards banayega -->
-        </div>
-
-        <!-- Clean Signature Area -->
-        <div style="padding-top: 16px; border-top: 1px dashed #e2e8f0;">
-            <h4 style="font-size: 13px; color: #475569; margin: 0 0 12px 0; font-weight: 700;">Guest Signature</h4>
-            <div id="rd-sig-container" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; text-align: center; min-height: 80px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                <!-- JS yahan Signature dale ga -->
-            </div>
-        </div>
-
-        <!-- 🪄 THE MAGIC FLOATING '+' BUTTON -->
-        <div onclick="toggleDocActionMenu()" style="position: fixed; bottom: 85px; right: 20px; width: 52px; height: 52px; background: #3b82f6; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4); cursor: pointer; z-index: 50; transition: 0.2s;">
-            <span class="material-symbols-outlined" style="font-size: 30px;">add</span>
-        </div>
-
-        <!-- Naya Mini Action Menu (Hidden by default) -->
-        <div id="doc-action-menu" style="display: none; position: fixed; bottom: 145px; right: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 8px; z-index: 51; flex-direction: column; gap: 4px; min-width: 160px;">
-            <div onclick="triggerDocUpload('front')" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 10px; transition: 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 20px; color: #3b82f6;">badge</span> Scan Front ID
-            </div>
-            <div onclick="triggerDocUpload('back')" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 10px; transition: 0.2s;">
-                <span class="material-symbols-outlined" style="font-size: 20px; color: #3b82f6;">credit_card</span> Scan Back ID
-            </div>
-            <div onclick="document.getElementById('doc-action-menu').style.display='none'; openFullScreenSignature();" style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #0f172a; display: flex; align-items: center; gap: 10px; cursor: pointer; border-radius: 10px; transition: 0.2s; border-top: 1px solid #f1f5f9;">
-                <span class="material-symbols-outlined" style="font-size: 20px; color: #059669;">draw</span> Signature
-            </div>
-        </div>
-
-        <!-- Hidden Camera Inputs (Taaki background mein kaam ho) -->
-        <input type="file" id="rd-kyc-front-input" accept="image/*" capture="environment" style="display:none;" onchange="uploadSpecificKyc(this, 'idFront')">
-        <input type="file" id="rd-kyc-back-input" accept="image/*" capture="environment" style="display:none;" onchange="uploadSpecificKyc(this, 'idBack')">
-    </div>
-    <!-- Yahan tak -->
-  </div> <!-- 🚨 Yahan rooms-scroll-area properly band ho raha hai -->
-
-      <!-- BOTTOM FIXED BUTTONS (FIXED - UPDATED) -->
-      <div style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 16px 20px; background: white; box-shadow: 0 -10px 20px rgba(0,0,0,0.05); display: flex; gap: 12px; border-top: 1px solid #e2e8f0; z-index: 9999;">
-        
-        <button id="rd-checkout-btn" onclick="checkoutGuest(document.getElementById('rd-room-title').innerText.replace('Room ', ''))" style="flex: 1; background: white; color: #e11d48; border: 1.5px solid #fecdd3; border-radius: 12px; font-size: 14px; font-weight: 600; padding: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">logout</span> Checkout
-        </button>
-        
-        <button id="rd-add-pay-btn" onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value = document.getElementById('rd-room-title').innerText.replace('Room ', '');" style="flex: 1; background: #059669; color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; padding: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer;">
-          <span class="material-symbols-outlined" style="font-size: 18px;">add</span> Add Payment
-        </button>
-
-      </div>
-    </div> <!-- 🚨 Yahan screen-room-details poori tarah band ho raha hai -->
-<!-- ================= 🛏️ SCREEN: ROOMS LIST (Main Tab) ================= -->
-    <div id="screen-rooms" class="screen hidden" style="position: absolute; inset: 0; background: #f8f9fa; z-index: 10; overflow-y: auto; padding-bottom: 100px;">
-      <div style="background: white; padding: 16px 20px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800;">Rooms & Guests</h3>
-        <span class="material-symbols-outlined" style="color: #059669; background: #ecfdf5; padding: 8px; border-radius: 10px; cursor: pointer;">add</span>
-      </div>
-      
-      <div style="padding: 20px;">
-        <p style="margin: 0 0 16px 0; font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Occupied Rooms</p>
-        
-        <!-- Room Card 1 (Occupied) -->
-        <div onclick="openRoomDetails('101', 'Rahul Kumar', '₹6,000')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div style="width: 44px; height: 44px; background: #ecfdf5; color: #059669; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 16px;">101</div>
-            <div>
-              <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;">Rahul Kumar</h4>
-              <p style="margin: 0; font-size: 11px; color: #64748b;">Check-in: 12 Oct 2025</p>
+            <div style="background: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.5);">
+                <span class="material-symbols-outlined" style="color: #94a3b8; font-size: 14px;">arrow_forward_ios</span>
             </div>
           </div>
-          <span class="badge-pill" style="background: #ecfdf5; color: #059669; font-size: 10px; border: 1px solid #bbf7d0;">OCCUPIED</span>
-        </div>
+        `;
+    });
 
-        <!-- Room Card 2 (Occupied) -->
-        <div onclick="openRoomDetails('102', 'Amit Singh', '₹8,500')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div style="width: 44px; height: 44px; background: #ecfdf5; color: #059669; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 16px;">102</div>
-            <div>
-              <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;">Amit Singh</h4>
-              <p style="margin: 0; font-size: 11px; color: #64748b;">Check-in: 05 Nov 2025</p>
-            </div>
-          </div>
-          <span class="badge-pill" style="background: #ecfdf5; color: #059669; font-size: 10px; border: 1px solid #bbf7d0;">OCCUPIED</span>
-        </div>
-      </div>
-    </div>
+    if(actionCount === 0) {
+        actionHTML = `
+          <div style="text-align:center; padding: 20px 10px; background: transparent; color:#94a3b8; font-size:13px; font-weight:600;">
+            <span class="material-symbols-outlined" style="font-size:36px; color:#10b981; display:block; margin-bottom:8px; opacity: 0.3;">check_circle</span> 
+            All dues clear! No pending actions.
+          </div>`;
+    }
+    actionContainer.innerHTML = actionHTML;
 
+    // --- Sub-greeting Logic ---
+    let subGreet = document.getElementById('smart-greeting-sub');
+    if (subGreet) {
+        if (dangerOverdueAmount > 0) subGreet.innerHTML = `<span style="color: #ef4444; font-weight: 700;">Critical: ₹${dangerOverdueAmount.toLocaleString('en-IN')} is heavily overdue!</span>`;
+        else if (totalPendingAmt > 0) subGreet.innerText = `You have ₹${totalPendingAmt.toLocaleString('en-IN')} pending to collect.`;
+        else subGreet.innerText = "All dues are clear. Great job!";
+    }
+
+    // --- 6. TRIGGER THE REVENUE GRAPH ---
+    if (typeof renderDashboardChart === 'function') {
+        renderDashboardChart();
+    }
+}
+
+// ==========================================================================
+// 5. FORMS & DATA ACTIONS (Rooms)
+// ==========================================================================
+// --- UPDATED SAVE ROOM LOGIC (WITH BULK ADD & AUTO-MATH) ---
+function saveNewRoom() {
+  const roomInput = document.getElementById('new-room-no').value.trim();
+  const floor = document.getElementById('new-room-floor').value;
+  const category = document.getElementById('new-room-cat').value;
+  const priceDaily = Number(document.getElementById('new-room-price-daily').value) || 0;
+  const priceMonthly = Number(document.getElementById('new-room-price-monthly').value) || 0;
+
+  if (!roomInput) {
+    showPopup('error', 'Missing Details', 'Please enter Room Number(s).');
+    return;
+  }
+
+  // 🪄 AUTO-MATH: Ek price daalo, dusra khud nikal jayega
+  const finalDaily = priceDaily > 0 ? priceDaily : Math.round(priceMonthly / 30);
+  const finalMonthly = priceMonthly > 0 ? priceMonthly : (priceDaily * 30);
+
+  const activePropId = RoomPeDB.getActiveProperty();
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+
+  // 🚀 BULK PARSING ENGINE (Comma aur Hyphen ko samajhna)
+  let roomsToAdd = [];
+  let inputParts = roomInput.split(','); // Pehle comma se alag karo (e.g. "101, 201-205")
+
+  for (let part of inputParts) {
+    part = part.trim();
+    if (part.includes('-')) {
+      // Agar Hyphen (-) hai, toh range banao (e.g. 201-205)
+      let rangeParts = part.split('-');
+      let start = parseInt(rangeParts[0].trim());
+      let end = parseInt(rangeParts[1].trim());
+
+      // Number check karo aur loop chalao
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        for (let i = start; i <= end; i++) {
+          roomsToAdd.push(String(i));
+        }
+      } else {
+         roomsToAdd.push(part); // Agar kisine galat format dala
+      }
+    } else if (part !== "") {
+      // Single room number (e.g. 201)
+      roomsToAdd.push(part);
+    }
+  }
+
+  // 💾 DUPLICATE CHECK & SAVE
+  let addedCount = 0;
+  let duplicateCount = 0;
+
+  roomsToAdd.forEach((rNo, index) => {
+    // Check karo ki ye specific room pehle se toh nahi hai
+    let exists = allRooms.find(r => String(r.no) === String(rNo) && r.propertyId === activePropId);
     
-   <!-- ================= NEW SCREEN: EDIT / DELETE ROOM ================= -->
-  <div id="screen-edit-room" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 105;">
-    <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0;">
-      <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-      <h3 style="flex: 1; font-size: 18px;">Edit Room</h3>
-    </header>
-    
-    <div class="rooms-scroll-area" style="padding: 24px;">
-      <input type="hidden" id="edit-original-room-no">
-      
-      <div class="form-group mb-24">
-        <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Room Number</label>
-        <input type="text" id="edit-room-no" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px;">
-      </div>
-      
-      <div class="form-group mb-24">
-        <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Rent Price (₹)</label>
-        <input type="number" id="edit-room-price" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px;">
-      </div>
-      
-      <div class="form-group mb-24">
-        <label style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: block;">Category</label>
-        <select id="edit-room-cat" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; background: white;">
-          <option value="Standard Non-AC">Standard Non-AC</option>
-          <option value="Deluxe AC">Deluxe AC</option>
-          <option value="Suite">Suite</option>
-          <option value="Family Room">Family Room</option>
-        </select>
-      </div>
-      
-      <button onclick="saveRoomEdits()" style="width: 100%; background-color: #059669; color: white; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: 600; margin-bottom: 16px;">Save Changes</button>
-      <button onclick="deleteRoom()" style="width: 100%; background-color: white; color: #e11d48; border: 1px solid #e11d48; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: 600;">Delete Room</button>
-    </div>
-  </div>
-
- <!-- ================= PROPERTY SWITCHER MODAL (STITCH DESIGN) ================= -->
-    <div id="modal-property-switcher" class="hidden" style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
-      <!-- Bottom Sheet Content -->
-      <div id="property-sheet-content" style="background: white; width: 100%; box-sizing: border-box; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 20px;">
-        
-        <!-- Modal Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <h3 style="margin: 0; font-size: 20px; color: #0f172a; font-weight: 800; letter-spacing: -0.5px;">Select Property</h3>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Switch active workspace or manage branches</p>
-          </div>
-          <div style="width: 32px; height: 32px; background: #f8fafc; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; flex-shrink: 0;" onclick="closePropertySwitcher()">
-            <span class="material-symbols-outlined" style="color: #475569; font-size: 18px;">close</span>
-          </div>
-        </div>
-        
-        <!-- Properties List (JS se bharega) -->
-        <div id="dynamic-prop-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 50vh; overflow-y: auto; width: 100%;">
-        </div>
-        
-        <!-- Add New Property Button -->
-        <button onclick="goToAddProperty()" style="width: 100%; box-sizing: border-box; padding: 16px; background: #ffffff; color: #059669; border: 2px dashed #10b981; border-radius: 16px; font-weight: 700; font-size: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; transition: transform 0.1s ease;">
-          <span class="material-symbols-outlined" style="font-size: 20px;">add_circle</span> Add New Property
-        </button>
-
-      </div>
-    </div>
-
-  <!-- ================= SCREEN 17: MANAGE PROPERTIES ================= -->
-    <div id="screen-manage-properties" class="screen hidden" style="padding: 0; background-color: #f8f9fa; z-index: 105;">
-      <header class="dash-header" style="justify-content: flex-start; gap: 16px; background: white; border-bottom: 1px solid #e2e8f0;">
-        <div class="back-btn-circle" onclick="closeActionScreen()"><span class="material-symbols-outlined">arrow_back</span></div>
-        <h3 style="flex: 1; font-size: 18px;">Manage Properties</h3>
-      </header>
-      
-      <div class="rooms-scroll-area" style="padding: 24px;">
-        <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">Warning: Deleting a property will also delete all its rooms and guests.</p>
-        
-        <!-- Yahan JS apne aap saari properties ki list banayega -->
-        <div id="manage-prop-list" style="display: flex; flex-direction: column; gap: 12px;">
-        </div>
-      </div>
-    </div>
-
-  </div> <!-- END OF MOBILE FRAME -->
-
-  <!-- ================= 🌟 GLOBAL NAVIGATION (SIDEBAR ON PC, BOTTOM ON MOBILE) ================= -->
-    <div id="global-nav" class="bottom-nav hidden">
-      <div class="nav-item active" onclick="switchTab('dashboard')"><span class="material-symbols-outlined">dashboard</span><span>Dashboard</span></div>
-      <div class="nav-item" onclick="switchTab('rooms')"><span class="material-symbols-outlined">bed</span><span>Rooms</span></div>
-      <div class="nav-item" onclick="switchTab('bookings')"><span class="material-symbols-outlined">calendar_month</span><span>Bookings</span></div>
-      <div class="nav-item" onclick="switchTab('billing')"><span class="material-symbols-outlined">receipt_long</span><span>Billing</span></div>
-      <div class="nav-item" onclick="switchTab('more')"><span class="material-symbols-outlined">more_horiz</span><span>More</span></div>
-    </div>
-  <!-- ================= FULL-SCREEN SIGNATURE MODAL ================= -->
-    <div id="fullscreen-sig-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 9999; flex-direction: column; padding: 20px; box-sizing: border-box;">
-       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: white;">
-         <h3 style="margin: 0; font-size: 18px; font-weight: 700;">Please Sign Here</h3>
-         <span class="material-symbols-outlined" onclick="closeFullScreenSignature()" style="cursor: pointer; font-size: 28px; color: #ef4444;">close</span>
-       </div>
-       <div style="flex: 1; background: white; border-radius: 12px; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-         <canvas id="fs-signature-pad" style="width: 100%; height: 100%; touch-action: none; display: block;"></canvas>
-       </div>
-       <div style="display: flex; gap: 12px; margin-top: 20px;">
-         <button onclick="clearSignature('fs-signature-pad')" style="flex: 1; padding: 16px; background: transparent; border: 1.5px solid #ef4444; color: #ef4444; border-radius: 12px; font-weight: 800; font-size: 15px;">Clear</button>
-         <button onclick="saveFSSignature()" style="flex: 2; padding: 16px; background: #10b981; border: none; color: white; border-radius: 12px; font-weight: 800; font-size: 15px;">Done & Save</button>
-       </div>
-    </div>
-  <!-- ================= CUSTOM ADD PAYMENT MODAL ================= -->
-<div id="modal-add-payment" style="display: none; background: rgba(0,0,0,0.5); padding: 20px; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; backdrop-filter: blur(4px);">
-  <div style="background: white; width: 100%; max-width: 360px; border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-    <h3 style="margin-bottom: 16px; font-size: 18px; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
-      <span class="material-symbols-outlined" style="color: var(--primary-dark);">payments</span> Add Payment
-    </h3>
-    
-    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px; color: var(--text-light);">Amount Received (₹)</label>
-    <input type="number" id="pay-amount-input" placeholder="e.g. 1500" style="width: 100%; padding: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px; margin-bottom: 16px; font-size: 16px; font-weight: 600; outline: none;">
-    
-    <label style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 8px; color: var(--text-light);">Payment Mode</label>
-    <select id="pay-mode-input" style="width: 100%; padding: 14px; border: 1.5px solid #cbd5e1; border-radius: 12px; margin-bottom: 24px; font-size: 15px; outline: none; background: white;">
-      <option value="UPI">UPI / GPay / PhonePe</option>
-      <option value="Cash">Cash</option>
-      <option value="Bank Transfer">Bank Transfer</option>
-    </select>
-    
-    <div style="display: flex; gap: 12px;">
-      <button onclick="document.getElementById('modal-add-payment').style.display='none'" style="flex: 1; padding: 14px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer;">Cancel</button>
-      <button onclick="submitNewPayment()" style="flex: 1; padding: 14px; border-radius: 12px; background: var(--primary-dark); color: white; border: none; font-weight: 700; cursor: pointer;">Save Payment</button>
-    </div>
-  </div>
-</div>
-  <!-- ================= CUSTOM ROOMPE POPUP ENGINE ================= -->
-    <div id="roompe-popup-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 10000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(4px);">
-      <div id="roompe-popup-box" style="background: white; width: 100%; max-width: 320px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transform: scale(0.9); transition: 0.2s ease-out; opacity: 0;">
-        
-        <div id="roompe-popup-icon" style="width: 64px; height: 64px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px;">
-          <!-- JS will inject icon here -->
-        </div>
-        
-        <h3 id="roompe-popup-title" style="margin: 0 0 8px 0; font-size: 20px; color: #0f172a; font-weight: 800;"></h3>
-        <p id="roompe-popup-msg" style="margin: 0 0 24px 0; font-size: 14px; color: #64748b; line-height: 1.5; font-weight: 500;"></p>
-        
-        <div id="roompe-popup-buttons" style="display: flex; gap: 12px; justify-content: center;">
-          <!-- JS will inject buttons here -->
-        </div>
-
-      </div>
-    </div>
- <!-- ================= FIREBASE CLOUD ENGINE ================= -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-      // 🚨 NAYA: 'enableIndexedDbPersistence' yahan add kiya hai offline data ke liye
-      import { getFirestore, doc, setDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-      import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-      
-      // 🚨 NAYA: Auth Imports
-      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-
-      // Tumhari Secret API Keys
-      const firebaseConfig = {
-        apiKey: "AIzaSyBvOQno0LP6sLtf5imwbajp5lUc4b9udx4",
-        authDomain: "roompe-1.firebaseapp.com",
-        projectId: "roompe-1",
-        storageBucket: "roompe-1.firebasestorage.app",
-        messagingSenderId: "896517024802",
-        appId: "1:896517024802:web:b86eb9ee8f271b42c62e7b"
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      const auth = getAuth(app); // 🚨 NAYA: Auth Initialize kiya
-
-      // 🚨 OFFLINE MODE ON KARO (Screen band hone par app crash nahi hoga)
-      enableIndexedDbPersistence(db).catch((err) => {
-          console.log("Offline mode error: ", err.code);
+    if (!exists) {
+      allRooms.push({
+        id: 'room_' + Date.now() + '_' + index, // Loop ke liye unique ID
+        propertyId: activePropId,
+        no: String(rNo),
+        floor: floor,
+        cat: category,
+        price: finalMonthly, // Default display rent
+        priceDaily: finalDaily,
+        priceMonthly: finalMonthly,
+        status: 'available',
+        guest: '',
+        createdAt: new Date().getTime()
       });
+      addedCount++;
+    } else {
+      duplicateCount++;
+    }
+  });
 
-      // JS File ke liye global variables
-      window.db = db;
-      window.fbDoc = doc;
-      window.fbSetDoc = setDoc;
-      window.fbOnSnapshot = onSnapshot;
-      
-      // 🚨 NAYA: Auth functions ko global banaya
-      window.fbAuth = auth;
-      window.fbCreateUser = createUserWithEmailAndPassword;
-      window.fbSignIn = signInWithEmailAndPassword;
-      window.fbGoogleProvider = new GoogleAuthProvider();
-      window.fbSignInPopup = signInWithPopup;
-      window.fbOnAuthChange = onAuthStateChanged;
-      window.fbSignOut = signOut;
-      
-      window.fbStorage = getStorage(app);
-      window.fbRef = ref;
-      window.fbUploadString = uploadString;
-      window.fbGetDownloadURL = getDownloadURL;
+  // Final Action & Messages
+  if (addedCount > 0) {
+    RoomPeDB.saveRooms(allRooms);
+    
+    // Form Inputs Clear karo
+    document.getElementById('new-room-no').value = '';
+    document.getElementById('new-room-price-daily').value = '';
+    document.getElementById('new-room-price-monthly').value = '';
+    
+    let msg = `Successfully added ${addedCount} room(s).`;
+    if (duplicateCount > 0) msg += ` (${duplicateCount} skipped because they already exist).`;
+    
+    showPopup('success', 'Rooms Added', msg);
+    closeActionScreen();
+    switchTab('rooms');
+  } 
+  else if (duplicateCount > 0) {
+    showPopup('error', 'Rooms Exist', 'All entered rooms already exist in this property.');
+  } 
+  else {
+    showPopup('error', 'Invalid Input', 'Please enter valid room numbers.');
+  }
+}
 
-      console.log("🔥 Firebase Live Sync, Auth & OFFLINE MODE Ready!");
-    </script>
-  <!-- PREMIUM TOAST NOTIFICATION CONTAINER -->
-  <div id="toast-container"></div>
-  <!-- ================= METER READING MODAL (SMART ENGINE) ================= -->
-<div id="modal-electricity" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-  <div style="background: white; width: 90%; max-width: 350px; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-    <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-        <span class="material-symbols-outlined" style="color: #f59e0b;">bolt</span> Electricity Bill
-    </h3>
-    <input type="hidden" id="elec-room-no">
-    
-    <label style="font-size: 12px; font-weight: 600; color: #475569;">Previous Reading (Editable)</label>
-    <input type="number" id="elec-prev-reading" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; margin-top: 4px; font-size: 16px;">
-    
-    <label style="font-size: 12px; font-weight: 600; color: #475569;">Current Reading</label>
-    <input type="number" id="elec-curr-reading" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; margin-top: 4px; font-size: 16px;" placeholder="e.g. 1350">
-    
-    <div id="elec-rate-info" style="font-size: 11px; color: #10b981; font-weight: 600; margin-bottom: 20px; text-align: right;">Rate: ₹10/unit</div>
-    
-    <div style="display: flex; gap: 12px;">
-      <button onclick="document.getElementById('modal-electricity').style.display='none'" style="flex: 1; padding: 12px; border-radius: 8px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer;">Cancel</button>
-      <button onclick="saveElectricityBill()" style="flex: 1; padding: 12px; border-radius: 8px; background: #f59e0b; color: white; border: none; font-weight: 700; cursor: pointer;">Add Bill</button>
-    </div>
-  </div>
-</div>
-    <!-- ================= CHECKOUT BLOCKED (PENDING DUE) MODAL ================= -->
-<div id="modal-checkout-blocked" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-  <div style="background: white; width: 90%; max-width: 320px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-    
-    <!-- Yellow Warning Icon -->
-    <div style="width: 60px; height: 60px; background: #fffbeb; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px auto; color: #f59e0b;">
-      <span class="material-symbols-outlined" style="font-size: 32px;">warning</span>
-    </div>
-    
-    <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #0f172a; font-weight: 800;">Checkout Blocked!</h3>
-    <p id="checkout-blocked-text" style="margin: 0 0 20px 0; font-size: 14px; color: #64748b; line-height: 1.5;">Room has a pending due. Please collect the payment first.</p>
-    
-    <div style="display: flex; gap: 12px;">
-      <button onclick="document.getElementById('modal-checkout-blocked').style.display='none'" style="flex: 1; padding: 12px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer;">Cancel</button>
-      
-      <!-- Direct Pay Button -->
-      <button onclick="document.getElementById('modal-checkout-blocked').style.display='none'; openActionScreen('screen-add-payment');" style="flex: 1.2; padding: 12px; border-radius: 12px; background: #f59e0b; color: white; border: none; font-weight: 700; cursor: pointer;">Collect Payment</button>
-    </div>
-  </div>
-</div>
-
+// ==========================================
+// RENDER BOOKINGS (ACTIVE VS HISTORY)
+// ==========================================
+function renderBookingsList() {
+  if (typeof RoomPeDB.getActivePropertyBookings !== 'function') return;
   
-  <!-- ================= MID-CYCLE SETTLEMENT MODAL ================= -->
-<div id="modal-mid-cycle-checkout" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
-  <div style="background: white; width: 90%; max-width: 340px; border-radius: 20px; padding: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-    
-    <!-- Icon -->
-    <div style="width: 60px; height: 60px; background: #eff6ff; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px auto; color: #3b82f6;">
-      <span class="material-symbols-outlined" style="font-size: 32px;">rule_settings</span>
-    </div>
-    
-    <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #0f172a; font-weight: 800;">Mid-Cycle Checkout</h3>
-    <p style="margin: 0 0 16px 0; font-size: 13px; color: #64748b; line-height: 1.5;">Guest is leaving early. How do you want to settle the final bill?</p>
-
-    <!-- Rent Details Box -->
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: left;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span style="font-size: 12px; color: #475569; font-weight: 600;">Full Cycle Rent:</span>
-            <span style="font-size: 13px; color: #0f172a; font-weight: 800;" id="mc-full-rent">₹0</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-            <span style="font-size: 12px; color: #475569; font-weight: 600;">Actual Days Stayed:</span>
-            <span style="font-size: 13px; color: #059669; font-weight: 800;" id="mc-pro-rent">₹0</span>
-        </div>
-    </div>
-
-    <!-- Smart Action Buttons -->
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <button id="mc-btn-prorata" style="width: 100%; padding: 14px; border-radius: 12px; background: #059669; color: white; border: none; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 4px 12px rgba(5,150,105,0.2);">Charge Pro-Rata (Days)</button>
-      
-      <button id="mc-btn-full" style="width: 100%; padding: 14px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; cursor: pointer; font-size: 14px;">Charge Full Month</button>
-      
-      <button onclick="document.getElementById('modal-mid-cycle-checkout').style.display='none'" style="width: 100%; padding: 10px; background: transparent; color: #94a3b8; border: none; font-weight: 600; cursor: pointer; font-size: 13px; margin-top: 4px;">Cancel</button>
-    </div>
-  </div>
-</div>
-
+  let allBookings = RoomPeDB.getActivePropertyBookings();
+  let listContainer = document.getElementById('bookings-list-container');
+  if(!listContainer) return;
   
-  <!-- ========================================== -->
-<!-- 🚀 PREMIUM ADD EXTRA ITEM MODAL -->
-<!-- ========================================== -->
-<div id="modal-add-extra" class="screen hidden" style="background: rgba(0,0,0,0.4); z-index: 99999; justify-content: center; align-items: center; padding: 20px; position: fixed;">
-    <div style="background: white; width: 100%; max-width: 360px; border-radius: 24px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); transform: scale(0.95); transition: 0.2s;" id="add-extra-box">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 36px; height: 36px; background: #f0fdf4; color: #059669; border-radius: 10px; display: flex; justify-content: center; align-items: center;">
-                    <span class="material-symbols-outlined" style="font-size: 20px;">add_shopping_cart</span>
-                </div>
-                <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">Add Extra Item</h3>
+  let targetStatus = currentBookingView === 'active' ? 'confirmed' : 'completed';
+  let filteredBookings = allBookings.filter(b => b.status === targetStatus);
+
+  if (currentBookingSearch !== '') {
+    filteredBookings = filteredBookings.filter(b => 
+      (b.guest && b.guest.toLowerCase().includes(currentBookingSearch)) ||
+      (b.room && String(b.room).toLowerCase().includes(currentBookingSearch)) ||
+      (b.phone && String(b.phone).includes(currentBookingSearch))
+    );
+  }
+
+  let html = '';
+  
+  if(filteredBookings.length === 0) {
+     html = `<div style="text-align:center; padding: 40px 20px; color: #94a3b8; font-weight: 500;">
+               <span class="material-symbols-outlined" style="font-size: 40px; opacity: 0.5; margin-bottom: 8px; display: block;">receipt_long</span>
+               No ${currentBookingView} bookings found.
+             </div>`;
+  } else {
+     filteredBookings.sort((a,b) => b.createdAt - a.createdAt);
+     
+     filteredBookings.forEach(b => {
+       let inDate = new Date(b.checkin);
+       let outDate = b.checkoutDate ? new Date(b.checkoutDate) : new Date(inDate);
+       if(!b.checkoutDate) outDate.setDate(outDate.getDate() + parseInt(b.duration));
+       
+       let inStr = inDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'}) + ', ' + inDate.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+       let outStr = outDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'}) + ', ' + outDate.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+       
+       let totalAmt = b.totalBilled || (b.advance || 0); 
+       let phoneStr = b.phone ? `+91 ${b.phone}` : 'No phone saved';
+       
+       let tagHTML = currentBookingView === 'active' 
+         ? `<div class="status-tag tag-available" style="background:#dcfce7; color:#166534;"><div class="dot" style="background:#16a34a;"></div> Confirmed</div>`
+         : `<div class="status-tag" style="background:#f1f5f9; color:#475569;"><div class="dot" style="background:#94a3b8;"></div> Checked Out</div>`;
+
+       // 🚨 NAYA: Card par Click Engine laga diya
+       let clickAction = currentBookingView === 'active' 
+         ? `onclick="openRoomDetails('${b.room}')"` 
+         : `onclick="openHistoricalBooking('${b.id}')"`;
+
+       html += `
+        <div class="room-card" ${clickAction} style="cursor:pointer; transition: 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <div class="room-card-header" style="margin-bottom: 12px;">
+            <div class="guest-info" style="margin-bottom: 0;">
+              <div class="guest-avatar" style="background:#f8fafc; border:1px solid #e2e8f0;"><span class="material-symbols-outlined" style="color:#64748b;">person</span></div>
+              <div>
+                <h4 class="guest-name" style="margin:0; font-size:15px;">${b.guest || 'Unknown'}</h4>
+                <p class="guest-label" style="margin:0; font-size:11px;">${phoneStr}</p>
+              </div>
             </div>
-            <span class="material-symbols-outlined" style="color: #94a3b8; cursor: pointer;" onclick="closeAddExtraModal()">close</span>
-        </div>
-
-        <!-- Hidden input to store room number -->
-        <input type="hidden" id="extra-room-no">
-
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Item / Service Name</label>
-            <div style="background: #f8fafc; border-radius: 12px; padding: 12px 16px; border: 1.5px solid #e2e8f0; display: flex; align-items: center;">
-                <input type="text" id="extra-item-name" placeholder="e.g. Tea, Water, Laundry" style="width: 100%; border: none; background: transparent; outline: none; font-size: 14px; font-weight: 600; color: #0f172a;">
-            </div>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-            <label style="display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px;">Price (₹)</label>
-            <div style="background: #f8fafc; border-radius: 12px; padding: 12px 16px; border: 1.5px solid #e2e8f0; display: flex; align-items: center;">
-                <input type="number" id="extra-item-price" placeholder="e.g. 50" style="width: 100%; border: none; background: transparent; outline: none; font-size: 14px; font-weight: 600; color: #0f172a;">
-            </div>
-        </div>
-
-        <div style="display: flex; gap: 12px;">
-            <button onclick="closeAddExtraModal()" style="flex: 1; padding: 14px; border-radius: 12px; background: #f1f5f9; color: #475569; border: none; font-weight: 700; font-size: 14px; cursor: pointer;">Cancel</button>
-            <button onclick="submitRoomExtra()" style="flex: 1; padding: 14px; border-radius: 12px; background: #059669; color: white; border: none; font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(5,150,105,0.25);">Save Item</button>
-        </div>
-    </div>
-</div>
-
-  <!-- 📸 HIDDEN PREMIUM INVOICE TEMPLATE (For WhatsApp Image) -->
-<div id="premium-invoice-template" style="position: absolute; top: -9999px; left: -9999px; width: 400px; background: white; padding: 0; font-family: 'Inter', sans-serif; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-    
-    <!-- Header (Green Gradient) -->
-    <div style="background: linear-gradient(135deg, #059669 0%, #047857 100%); padding: 30px 24px; text-align: center;">
-        <h1 id="inv-prop-title" style="margin: 0; color: white; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">The Arrah Resort</h1>
-        <p style="margin: 4px 0 0 0; color: #a7f3d0; font-size: 11px; font-weight: 600; letter-spacing: 2px;">DIGITAL INVOICE</p>
-    </div>
-
-    <div style="padding: 24px;">
-        <!-- Guest Info -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 16px;">
+            ${tagHTML}
+          </div>
+          <div style="font-size: 14px; color: #0f172a; font-weight: 600; margin-bottom: 12px;">
+            ${b.stayType || 'Daily'} Stay - Room ${b.room}
+          </div>
+          <div class="room-footer" style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700;">BILLED TO</p>
-                <h3 id="inv-guest-name" style="margin: 2px 0 0 0; font-size: 18px; color: #0f172a; font-weight: 800;">Rohit Kumar</h3>
-                <p id="inv-room-no" style="margin: 2px 0 0 0; font-size: 13px; color: #475569; font-weight: 600;">Room 210</p>
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">In: ${inStr}</div>
+              <div style="font-size: 12px; color: #64748b;">Out: ${outStr}</div>
             </div>
             <div style="text-align: right;">
-                <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700;">DATE</p>
-                <h3 id="inv-date-text" style="margin: 2px 0 0 0; font-size: 14px; color: #0f172a; font-weight: 700;">08 Oct 2026</h3>
+              <div class="price-big" style="font-size: 18px; color:#0f172a;">₹${parseInt(totalAmt).toLocaleString('en-IN')}</div>
+              <div style="font-size: 11px; color: ${currentBookingView === 'active' ? '#16A34A' : '#64748b'}; font-weight: 600;">
+                ${currentBookingView === 'active' ? 'Advance' : 'Total Billed'}
+              </div>
             </div>
+          </div>
         </div>
+       `;
+     });
+  }
+  listContainer.innerHTML = html;
+}
 
-        <!-- Bill Items -->
-        <div style="margin-bottom: 24px;">
-            <p style="margin: 0 0 12px 0; font-size: 10px; color: #94a3b8; font-weight: 800; letter-spacing: 1px;">BILL BREAKDOWN</p>
+// ==========================================================================
+// 6. BILLING & PAYMENTS LOGIC
+// ==========================================================================
+function setBillingFilter(filterName) {
+  currentBillingFilter = filterName;
+  document.querySelectorAll('.billing-chip').forEach(c => {
+    c.classList.remove('active-green');
+    if(c.innerText.includes(filterName)) c.classList.add('active-green');
+  });
+  renderBillingList();
+}
+
+function downloadStatement() {
+  // 1. PDF kis area ka banana hai? (Humne Billing Summary card ko select kiya)
+  const element = document.querySelector('.billing-summary');
+  
+  if(!element) {
+    alert("Error: Billing summary not found!");
+    return;
+  }
+
+  // 2. PDF ki settings set karo
+  const opt = {
+    margin:       10,
+    filename:     'RoomPe_Billing_Statement.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  // 3. UX Magic: Button ka text change karke 'Downloading...' dikhao
+  let btn = document.querySelector('.bs-statement');
+  let oldHTML = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">hourglass_empty</span> Wait...`;
+  btn.style.pointerEvents = 'none'; // Jab tak ban raha hai, button disable kar do
+  
+  // 4. Library ko call karke PDF Generate & Download karo
+  html2pdf().set(opt).from(element).save().then(() => {
+      // 5. PDF banne ke baad button normal kardo aur Success Popup dikhao
+      btn.innerHTML = oldHTML;
+      btn.style.pointerEvents = 'auto';
+      showPopup('success', 'PDF Downloaded!', 'Your billing statement has been saved successfully.');
+  }).catch(err => {
+      btn.innerHTML = oldHTML;
+      btn.style.pointerEvents = 'auto';
+      showPopup('error', 'Download Failed', 'Something went wrong. Please try again.');
+  });
+}
+
+function selectPayMode(mode) {
+  let upiBtn = document.getElementById('pay-mode-upi');
+  let cashBtn = document.getElementById('pay-mode-cash');
+  let valInput = document.getElementById('pay-mode-value');
+
+  // 1. Pehle dono buttons ko normal grey (inactive) kar do
+  if(upiBtn) {
+      upiBtn.style.background = 'white';
+      upiBtn.style.border = '1px solid #e2e8f0';
+      upiBtn.style.color = '#64748b';
+      upiBtn.style.fontWeight = '600';
+      upiBtn.style.userSelect = 'none'; // Text highlight hone se rokega
+  }
+  if(cashBtn) {
+      cashBtn.style.background = 'white';
+      cashBtn.style.border = '1px solid #e2e8f0';
+      cashBtn.style.color = '#64748b';
+      cashBtn.style.fontWeight = '600';
+      cashBtn.style.userSelect = 'none'; // Text highlight hone se rokega
+  }
+
+  // 2. Jo click hua hai usko Premium Green (active) kar do
+  if(mode === 'UPI' && upiBtn) {
+      upiBtn.style.background = '#f0fdf4';
+      upiBtn.style.border = '2px solid #059669';
+      upiBtn.style.color = '#059669';
+      upiBtn.style.fontWeight = '700';
+  } else if (mode === 'Cash' && cashBtn) {
+      cashBtn.style.background = '#f0fdf4';
+      cashBtn.style.border = '2px solid #059669';
+      cashBtn.style.color = '#059669';
+      cashBtn.style.fontWeight = '700';
+  }
+
+  // 3. Database me bhejne ke liye hidden value update karo
+  if(valInput) valInput.value = mode;
+}
+
+function saveNewPayment() {
+  let roomEl = document.getElementById('pay-room-no');
+  let amtEl = document.getElementById('pay-amount');
+  let modeEl = document.getElementById('pay-mode-value');
+
+  if (!roomEl || !amtEl) { showToast("Payment form inputs missing!", "error"); return; }
+
+  let roomNo = roomEl.value.trim();
+  let amount = amtEl.value.trim();
+  let mode = modeEl ? modeEl.value : 'UPI';
+  let activePropId = RoomPeDB.getActiveProperty();
+
+  if (roomNo === "" || amount === "") {
+    showToast("Please enter both Room Number and Amount!", "error");
+    return;
+  }
+
+  let allRooms = RoomPeDB.getActivePropertyRooms();
+  let room = allRooms.find(r => String(r.no) === String(roomNo));
+  let guestName = room && room.guest ? room.guest : "Unknown Guest";
+  
+  let currentBookingId = room && room.currentBookingId ? room.currentBookingId : null;
+
+  let payments = RoomPeDB.getPayments();
+  payments.push({
+    id: 'pay_' + Date.now(),
+    propId: activePropId,
+    room: roomNo,
+    guest: guestName,
+    bookingId: currentBookingId, // 🔐 Locked to ID
+    amount: amount,
+    mode: mode,
+    date: new Date().getTime()
+  });
+  
+  RoomPeDB.savePayments(payments);
+
+  roomEl.value = '';
+  amtEl.value = '';
+
+  // 🚨 NAYA SMART ROUTING LOGIC
+  closeActionScreen(); // Sirf popup band hoga
+  smartRefresh(); // Wahi screen background me refresh ho jayegi
+  showToast('Payment saved successfully!', 'success');
+}
+
+function renderBillingList() {
+  if (typeof RoomPeDB.getActivePropertyPayments !== 'function') return;
+
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let rooms = RoomPeDB.getActivePropertyRooms();
+  
+  let occupiedRooms = rooms.filter(r => r.status === 'occupied');
+
+  let totalReceived = payments.reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+  
+  // 🚨 NAYA SMART CALCULATION ENGINE START (WITH AUTO-RENEWAL) 🚨
+  let totalExpected = 0;
+  let totalPendingAmount = 0; 
+  let pendingRooms = [];
+
+  occupiedRooms.forEach(r => {
+    // 1. Unique Booking ID wala filter
+    let roomTotalPaid = payments
+      .filter(p => p.bookingId ? (p.bookingId === r.currentBookingId) : (String(p.room) === String(r.no) && p.guest === r.guest))
+      .reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    
+    // 2. Smart Math (Daily/Monthly) Setup
+    let isMonthlyStay = r.stayType === 'Monthly';
+    let priceDaily = parseInt(r.priceDaily || r.price || 0);
+    let priceMonthly = parseInt(r.priceMonthly || r.price || 0);
+    let baseDuration = parseInt(r.duration || 1);
+
+    let expectedRent = 0;
+    let checkinDate = new Date(r.checkinDate || new Date());
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    checkinDate.setHours(0,0,0,0);
+
+    // 3. The Auto-Renewal Engine
+    if (isMonthlyStay) {
+      // PG Logic: Check karega kitne mahine shuru ho chuke hain
+      let monthsPassed = 0;
+      let tempDate = new Date(checkinDate);
+      while (tempDate <= today) {
+          monthsPassed++;
+          tempDate.setMonth(tempDate.getMonth() + 1);
+      }
+      let totalCycles = Math.max(baseDuration, monthsPassed);
+      expectedRent = priceMonthly * totalCycles;
+    } else {
+      // Hotel Logic: Pay per night auto-increment
+      let diffTimeCurrent = Math.abs(today - checkinDate);
+      let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+      if(daysStaying === 0) daysStaying = 1;
+      let totalDays = Math.max(baseDuration, daysStaying);
+      expectedRent = priceDaily * totalDays;
+    }
+
+    // 4. Extras Calculation
+    let extrasTotal = 0;
+    if (r.extras && r.extras.length > 0) {
+      r.extras.forEach(ext => extrasTotal += parseInt(ext.price || 0));
+    }
+
+    let finalExpectedRent = expectedRent + extrasTotal;
+    totalExpected += finalExpectedRent;
+
+    let remainingDue = finalExpectedRent - roomTotalPaid;
+
+    if (remainingDue > 0) {
+      totalPendingAmount += remainingDue;
+      pendingRooms.push({ ...r, remainingDue: remainingDue, totalPaid: roomTotalPaid });
+    }
+  });
+  // 🚨 NAYA SMART CALCULATION ENGINE END 🚨
+
+  let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  let currentMonthStr = monthNames[new Date().getMonth()] + " " + new Date().getFullYear();
+  
+  if(document.getElementById('billing-month-display')) document.getElementById('billing-month-display').innerHTML = `<span class="material-symbols-outlined">account_balance_wallet</span> ${currentMonthStr}`;
+  if(document.getElementById('billing-received-amt')) document.getElementById('billing-received-amt').innerText = '₹' + totalReceived.toLocaleString('en-IN');
+  if(document.getElementById('billing-pending-amt')) document.getElementById('billing-pending-amt').innerText = '₹' + totalPendingAmount.toLocaleString('en-IN');
+  if(document.getElementById('billing-pending-count')) document.getElementById('billing-pending-count').innerText = pendingRooms.length + ' left';
+
+  if(document.getElementById('count-received')) document.getElementById('count-received').innerText = payments.length;
+  if(document.getElementById('count-pending')) document.getElementById('count-pending').innerText = pendingRooms.length;
+  if(document.getElementById('count-all')) document.getElementById('count-all').innerText = payments.length + pendingRooms.length;
+
+  let listContainer = document.querySelector('#screen-billing .room-cards-list');
+  if(!listContainer) return;
+  let html = '';
+
+  let showReceived = currentBillingFilter === 'Received' || currentBillingFilter === 'All';
+  let showPending = currentBillingFilter === 'Pending' || currentBillingFilter === 'All';
+  let itemsCount = 0;
+
+  if (showPending) {
+    pendingRooms.forEach(r => {
+      itemsCount++;
+      let initials = r.guest ? r.guest.charAt(0).toUpperCase() : "G";
+      let partialBadge = r.totalPaid > 0 
+        ? `<span style="font-size: 9px; color: #b45309; border: 1px solid #fcd34d; background: #fffbeb; padding: 2px 4px; border-radius: 4px; margin-left: 6px;">PARTIAL PAID: ₹${r.totalPaid}</span>` 
+        : '';
+
+      html += `
+        <div class="bill-card" onclick="openRoomDetails('${r.no}')" style="background: white; border: 1px solid #fecdd3; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <div class="bill-header" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="guest-info" style="margin-bottom: 0; display:flex; gap:10px; align-items:center;">
+              <div style="width:40px; height:40px; background:#fef2f2; color:#e11d48; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:16px;">
+                ${initials}
+              </div>
+              <div>
+                <h4 class="guest-name" style="margin:0; font-size:15px; color:#0f172a; font-weight: 700;">${r.guest || 'Unknown'} <span style="font-weight:400; color:#64748b;">• Room ${r.no}</span></h4>
+                <p class="guest-label" style="margin:0; font-size:12px; color:#e11d48;">Rent Due ${partialBadge}</p>
+              </div>
+            </div>
+            <div class="bill-amount-box text-right">
+              <div class="bill-price text-red" style="font-size: 18px; font-weight: 800; color:#e11d48;">₹${parseInt(r.remainingDue).toLocaleString('en-IN')}</div>
+              <div class="bill-tag tag-unpaid" style="font-size: 10px; font-weight: 700; color: #e11d48; background: #fff1f2; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">UNPAID</div>
+            </div>
+          </div>
+          <div class="bill-footer" style="background: #fff1f2; padding: 12px 16px; border-top: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">error</span> Due this month</div>
+            <div style="display:flex; gap:8px;">
+              <!-- 🚨 NOTICE: yahan event.stopPropagation() add kiya hai -->
+              <button onclick="event.stopPropagation(); openReminderScreen('${r.guest || 'Guest'}', '${r.no}', '${r.remainingDue}', '${r.phone || ''}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
+              <button onclick="event.stopPropagation(); openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  if (showReceived) {
+    let sortedPayments = [...payments].sort((a,b) => b.date - a.date);
+    sortedPayments.forEach(p => {
+      itemsCount++;
+      let dateStr = new Date(p.date).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+      let icon = p.mode === 'UPI' ? 'phone_iphone' : 'payments';
+      
+      html += `
+        <div class="bill-card" onclick="openRoomDetails('${p.room}')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+          <div class="bill-header" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="guest-info" style="margin-bottom: 0; display:flex; gap:10px; align-items:center;">
+              <div style="width:40px; height:40px; background:#f1f5f9; color:#475569; border-radius:50%; display:flex; justify-content:center; align-items:center;">
+                <span class="material-symbols-outlined">${icon}</span>
+              </div>
+              <div>
+                <h4 class="guest-name" style="margin:0; font-size:15px; color:#0f172a; font-weight: 700;">${p.guest} <span style="font-weight:400; color:#64748b;">• Room ${p.room}</span></h4>
+                <p class="guest-label" style="margin:0; font-size:12px; color:#64748b;">Paid via ${p.mode}</p>
+              </div>
+            </div>
+            <div class="bill-amount-box text-right">
+              <div class="bill-price text-green" style="font-size: 18px; font-weight: 800; color:#059669;">₹${parseInt(p.amount).toLocaleString('en-IN')}</div>
+              <div class="bill-tag tag-paid" style="font-size: 10px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px;">PAID</div>
+            </div>
+          </div>
+          <div class="bill-footer bg-green-lightest" style="background: #f8fafc; padding: 12px 16px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; color: #64748b; font-weight: 500;">Received on ${dateStr}</div>
+            <!-- 🚨 NOTICE: yahan event.stopPropagation() aur downloadReceipt function call add kiya hai -->
+            <button onclick="event.stopPropagation(); downloadReceipt('${p.guest}')" style="background: transparent; color: #059669; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">receipt</span> Receipt
+            </button>
+          </div>
+        </div>
+      `;
+    });
+  }
+
+  if(itemsCount === 0) {
+    html = `<div style="text-align:center; padding: 40px 20px; color: #94a3b8; font-weight: 500;">No records found.</div>`;
+  }
+  listContainer.innerHTML = html;
+}
+
+// ==========================================================================
+// 7. ROOM DETAILS, CHECKOUT & EDIT LOGIC (MASTER ENGINE)
+// ==========================================================================
+
+// 1. Modal Kholne wala function
+function addRoomExtra(roomNo) {
+    // Purana data clean karo aur room no set karo
+    document.getElementById('extra-room-no').value = roomNo;
+    document.getElementById('extra-item-name').value = '';
+    document.getElementById('extra-item-price').value = '';
+    
+    // Naya Custom Modal Kholo
+    let modal = document.getElementById('modal-add-extra');
+    let box = document.getElementById('add-extra-box');
+    
+    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        box.style.transform = 'scale(1)';
+    }, 10);
+}
+
+// 2. Modal Band karne wala function
+function closeAddExtraModal() {
+    let modal = document.getElementById('modal-add-extra');
+    let box = document.getElementById('add-extra-box');
+    
+    box.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    }, 200);
+}
+
+// 3. Item ko Database me Save karne wala function
+function submitRoomExtra() {
+    let roomNo = document.getElementById('extra-room-no').value;
+    let itemName = document.getElementById('extra-item-name').value.trim();
+    let itemPrice = parseInt(document.getElementById('extra-item-price').value);
+
+    // Validation
+    if (!itemName) return showToast("Please enter an item name!", "error");
+    if (!itemPrice || isNaN(itemPrice) || itemPrice <= 0) return showToast("Please enter a valid price!", "error");
+
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
+    
+    if (absIndex !== -1) {
+        if (!absoluteRooms[absIndex].extras) absoluteRooms[absIndex].extras = [];
+        
+        // Naya item array me push karo
+        absoluteRooms[absIndex].extras.push({
+            item: itemName,
+            price: itemPrice,
+            date: new Date().getTime()
+        });
+        
+        // Firebase Cloud aur Local Storage dono me save karo (Bug Fix Included)
+        RoomPeDB.saveRooms(absoluteRooms);
+        
+        // Modal band karo aur Success Popup/Toast dikhao
+        closeAddExtraModal();
+        showToast(`${itemName} added successfully!`, "success");
+        
+        // UI ko instantly refresh karo taaki item list me aur bill me dikh jaye
+        openRoomDetails(roomNo); 
+    }
+}
+
+function openRoomDetails(roomNo) {
+  // 🚨 1. SMART MEMORY (Pichli screen ko yaad rakho taaki Back sahi jagah jaye)
+  let currentVisible = document.querySelector('.screen:not(.hidden)');
+  if (currentVisible && currentVisible.id !== 'screen-room-details') {
+     if(typeof screenStack !== 'undefined') screenStack.push(currentVisible.id);
+  }
+
+  // 🚨 2. UI CLEANUP (Baaki sab chupao, sirf Room Details dikhao bina kisi blink ke)
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  let rdScreen = document.getElementById('screen-room-details');
+  if (rdScreen) {
+     rdScreen.classList.remove('hidden');
+     rdScreen.classList.add('screen'); 
+  }
+
+  // 🚨 3. BROWSER HISTORY (Phone ko batao ki naya page aa gaya hai)
+  window.history.pushState({ screen: 'screen-room-details' }, "", "");
+
+  // 🚨 4. BOTTOM NAV HIDE (Room details me niche ka menu nahi dikhna chahiye)
+  let globalNav = document.getElementById('global-nav');
+  if (globalNav) globalNav.classList.add('hidden');
+
+  let rooms = RoomPeDB.getActivePropertyRooms();
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let room = rooms.find(r => String(r.no) === String(roomNo));
+  if(!room) return;
+
+  // Basic Info Setup
+  let titleEl = document.getElementById('rd-room-title');
+  let catEl = document.getElementById('rd-room-cat');
+  let floorEl = document.getElementById('rd-room-floor');
+  let guestNameEl = document.getElementById('rd-guest-name');
+  let guestInitEl = document.getElementById('rd-guest-initials');
+
+  if(titleEl) titleEl.innerText = 'Room ' + room.no;
+  if(catEl) catEl.innerText = room.cat;
+  
+  // Property ka asli naam laane ka engine
+  let props = RoomPeDB.getProperties();
+  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+  let propName = activeProp ? activeProp.name : 'My Property';
+
+  if(floorEl) floorEl.innerText = propName + ' • ' + room.floor;
+
+  if(room.status === 'occupied') {
+    if(guestNameEl) guestNameEl.innerText = room.guest || 'Guest';
+    if(guestInitEl) guestInitEl.innerText = room.guest ? room.guest.charAt(0).toUpperCase() : 'G';
+    
+    // NAYA: Phone, Chhota Signature aur Bada Signature (Documents tab) sab yahan hai
+    let guestPhoneEl = document.getElementById('rd-guest-phone');
+    let guestSigEl = document.getElementById('rd-guest-signature');
+    let docSigEl = document.getElementById('rd-doc-signature'); // Bada wala sign
+    let docNoSigEl = document.getElementById('rd-doc-no-sig');  // No sign text
+    
+    if(guestPhoneEl) guestPhoneEl.innerText = room.phone ? '+91 ' + room.phone : 'No Phone';
+    
+    if(room.signature) {
+        if(guestSigEl) { guestSigEl.src = room.signature; guestSigEl.style.display = 'block'; }
+        if(docSigEl) { docSigEl.src = room.signature; docSigEl.style.display = 'block'; }
+        if(docNoSigEl) { docNoSigEl.style.display = 'none'; }
+    } else {
+        if(guestSigEl) { guestSigEl.style.display = 'none'; }
+        if(docSigEl) { docSigEl.style.display = 'none'; }
+        if(docNoSigEl) { docNoSigEl.style.display = 'block'; }
+    }
+  } else {
+    // Agar room khali (Vacant) hai
+    if(guestNameEl) guestNameEl.innerText = 'Vacant';
+    if(guestInitEl) guestInitEl.innerText = '-';
+    
+    let guestPhoneEl = document.getElementById('rd-guest-phone');
+    let guestSigEl = document.getElementById('rd-guest-signature');
+    let docSigEl = document.getElementById('rd-doc-signature');
+    let docNoSigEl = document.getElementById('rd-doc-no-sig');
+    
+    if(guestPhoneEl) guestPhoneEl.innerText = '-';
+    if(guestSigEl) guestSigEl.style.display = 'none';
+    if(docSigEl) docSigEl.style.display = 'none';
+    if(docNoSigEl) docNoSigEl.style.display = 'block';
+  }
+
+  // Actions Assignment
+  let chatBtn = document.getElementById('rd-chat-btn');
+  let callBtn = document.getElementById('rd-call-btn');
+  if(chatBtn) chatBtn.setAttribute('onclick', `contactGuestAction('whatsapp', '${roomNo}')`);
+  if(callBtn) callBtn.setAttribute('onclick', `contactGuestAction('call', '${roomNo}')`);
+
+  let editBtn = document.getElementById('rd-edit-btn');
+  if(editBtn) editBtn.setAttribute('onclick', `openEditRoom('${room.no}')`);
+  let checkoutBtn = document.getElementById('rd-checkout-btn');
+  if(checkoutBtn) checkoutBtn.setAttribute('onclick', `checkoutGuest('${room.no}')`);
+
+  // ==========================================
+  // 🚀 NAYA SMART BILLING ENGINE START (PRO)
+  // ==========================================
+  if (room.status === 'occupied') {
+    if(!room.checkinDate) {
+      room.checkinDate = new Date().toISOString().slice(0,16);
+      room.duration = 1;
+      let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+      let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && r.propertyId === RoomPeDB.getActiveProperty());
+      if(absIndex !== -1) {
+         absoluteRooms[absIndex].checkinDate = room.checkinDate;
+         absoluteRooms[absIndex].duration = 1;
+         RoomPeDB.saveRooms(absoluteRooms);
+      }
+    }
+
+    let checkinDate = new Date(room.checkinDate);
+    let today = new Date();
+    today.setHours(0,0,0,0);
+    checkinDate.setHours(0,0,0,0);
+
+    let isMonthlyStay = room.stayType === 'Monthly';
+    let priceDaily = parseInt(room.priceDaily || room.price || 0);
+    let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
+    let baseDuration = parseInt(room.duration || 1);
+
+    let totalRoomRent = 0;
+    let cycleText = "";
+
+    if (isMonthlyStay) {
+      // 🟢 PG MODE (ADVANCE CYCLE & AUTO-RENEWAL)
+      let monthsPassed = 0;
+      let tempDate = new Date(checkinDate);
+      
+      // Calculate active months
+      while (tempDate <= today) {
+          monthsPassed++;
+          tempDate.setMonth(tempDate.getMonth() + 1);
+      }
+      
+      let totalCycles = Math.max(baseDuration, monthsPassed);
+      totalRoomRent = priceMonthly * totalCycles;
+
+      // Cycle Dates Format for UI
+      let cycleStartDate = new Date(checkinDate);
+      cycleStartDate.setMonth(cycleStartDate.getMonth() + (totalCycles - 1));
+      let cycleEndDate = new Date(cycleStartDate);
+      cycleEndDate.setMonth(cycleEndDate.getMonth() + 1);
+      cycleEndDate.setDate(cycleEndDate.getDate() - 1);
+
+      let startStr = cycleStartDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+      let endStr = cycleEndDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+      cycleText = `Cycle: ${startStr} to ${endStr}`;
+    } else {
+      // 🔵 HOTEL MODE (DAILY PAY-AS-YOU-GO)
+      let diffTimeCurrent = Math.abs(today - checkinDate);
+      let daysStaying = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+      if(daysStaying === 0) daysStaying = 1;
+
+      let totalDays = Math.max(baseDuration, daysStaying);
+      totalRoomRent = priceDaily * totalDays;
+      cycleText = `${daysStaying} days staying`;
+    }
+
+    // EXTRAS & ELECTRICITY CALCULATION
+    let extrasTotal = 0;
+    let extrasHTML = '';
+    if (room.extras && room.extras.length > 0) {
+      room.extras.forEach(ext => {
+        extrasTotal += ext.price;
+        extrasHTML += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 1px dashed #e2e8f0;">
+            <span style="font-size: 13px; color: #475569;">${ext.item}</span>
+            <span style="font-size: 13px; font-weight: 700; color: #0f172a;">₹${ext.price}</span>
+          </div>`;
+      });
+      extrasHTML += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px;">
+          <span style="font-size: 11px; font-weight: 700; color: #64748b;">TOTAL EXTRAS</span>
+          <span style="font-size: 13px; font-weight: 800; color: #4f46e5;">₹${extrasTotal}</span>
+        </div>`;
+    } else {
+      extrasHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px 0;">No extra orders yet.</div>`;
+    }
+
+    let grandTotal = totalRoomRent + extrasTotal;
+    let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+    let remainingDue = grandTotal - roomTotalPaid;
+
+    // UPDATE UI ELEMENTS
+    let checkinEl = document.getElementById('rd-checkin-date');
+    if(checkinEl) checkinEl.innerText = checkinDate.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+    
+    let durationEl = document.getElementById('rd-stay-duration');
+    if(durationEl) durationEl.innerText = cycleText; // 🚨 MAGIC: Ye ab auto-switch hoga Daily/Monthly pe
+    
+    let rentEl = document.getElementById('rd-room-rent');
+    if(rentEl) rentEl.innerText = '₹' + grandTotal.toLocaleString('en-IN');
+    
+    let advEl = document.getElementById('ui-amount-paid');
+    if(advEl) advEl.innerText = '₹' + roomTotalPaid.toLocaleString('en-IN');
+    
+    let extrasListEl = document.getElementById('rd-extras-list');
+    if(extrasListEl) extrasListEl.innerHTML = extrasHTML;
+
+    let addExtraBtn = document.getElementById('rd-add-extra-btn');
+    if(addExtraBtn) addExtraBtn.setAttribute('onclick', `addRoomExtra('${room.no}')`);
+    let addPayBtn = document.getElementById('rd-add-pay-btn');
+    if(addPayBtn) addPayBtn.setAttribute('onclick', `goToAddPaymentFromDetails('${room.no}', ${remainingDue})`);
+
+    let dueCard = document.getElementById('rd-due-card');
+    let dueTitle = document.getElementById('rd-due-title');
+    let dueDate = document.getElementById('rd-due-date');
+    let dueStatus = document.getElementById('rd-due-status');
+    let dueIcon = document.getElementById('rd-due-icon');
+
+    if(typeof calculateNetPayable === 'function') calculateNetPayable();
+  }
+  // ==========================================
+  // 🚀 ENGINE END
+  // ==========================================
+
+  // ==========================================
+  // 💸 PAYMENTS TAB UPDATE (SUPER FIX FOR CLOUD & LOCAL DATA)
+  // ==========================================
+  let roomPayments = payments.filter(p => {
+      let pRoom = String(p.room || '').replace('Room ', '').trim();
+      let currRoom = String(roomNo || '').replace('Room ', '').trim();
+      return pRoom === currRoom && p.guest === room.guest; // Extra security for correct guest
+  }).sort((a, b) => {
+      let timeA = a.date ? (a.date.seconds ? a.date.seconds * 1000 : new Date(a.date).getTime()) : 0;
+      let timeB = b.date ? (b.date.seconds ? b.date.seconds * 1000 : new Date(b.date).getTime()) : 0;
+      return timeB - timeA;
+  });
+  
+  let payListContainer = document.getElementById('rd-payments-list');
+  
+  if(payListContainer) {
+    let payHTML = '';
+    if(roomPayments.length === 0) {
+      payHTML = `
+        <div style="text-align:center; padding: 24px 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px;">
+            <span class="material-symbols-outlined" style="font-size: 32px; color: #94a3b8; margin-bottom: 8px; display: block;">receipt_long</span>
+            <p style="margin: 0; font-size: 13px; color: #64748b; font-weight: 600;">No payments recorded yet.</p>
+        </div>`;
+    } else {
+      roomPayments.forEach(p => {
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+        let dStr = new Date(timeValue).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        
+        payHTML += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:white; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:10px;">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div style="width:36px; height:36px; background:#f0fdf4; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#10b981;">
+                <span class="material-symbols-outlined" style="font-size:18px;">${p.mode === 'UPI' ? 'phone_iphone' : 'payments'}</span>
+              </div>
+              <div>
+                <h5 style="margin:0; font-size:15px; color:#0f172a; font-weight:800;">₹${parseInt(p.amount).toLocaleString('en-IN')}</h5>
+                <p style="margin:0; font-size:11px; color:#64748b;">${dStr} • via ${p.mode || 'Cash'}</p>
+              </div>
+            </div>
+            <span style="font-size:10px; background:#ecfdf5; color:#059669; padding:4px 8px; border-radius:6px; font-weight:700; border: 1px solid #a7f3d0;">Success</span>
+          </div>`;
+      });
+    }
+    payListContainer.innerHTML = payHTML;
+  }
+
+  // Clean UI and Open Tab
+  let docPreview = document.getElementById('uploaded-doc-preview');
+  if (docPreview) docPreview.classList.add('hidden');
+  let uploadInput = document.getElementById('kyc-upload');
+  if (uploadInput) uploadInput.value = '';
+  if(document.getElementById('rd-edit-btn')) document.getElementById('rd-edit-btn').style.display = '';
+  if(document.getElementById('rd-checkout-btn')) document.getElementById('rd-checkout-btn').style.display = '';
+  if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = '';
+  if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = '';
+  
+  // ==========================================
+  // 📸 DISPLAY KYC DOCUMENTS (SMART GALLERY UI)
+  // ==========================================
+  let docsGallery = document.getElementById('rd-docs-gallery');
+  let sigContainer = document.getElementById('rd-sig-container');
+
+  // 1. SMART DOC CARD GENERATOR (WITH PRO NAMING)
+  const createDocCard = (title, imgUrl) => {
+      // 🚨 SMART FILENAME ENGINE: Naam se spaces hata kar underscore lagayega
+      let cleanName = (room.guest || 'Guest').replace(/\s+/g, '_');
+      let fileName = `${cleanName}_Room_${room.no}_${title.replace(' ', '_')}.jpg`;
+      
+      return `
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+          <div style="height: 100px; background: #f8fafc; cursor: pointer; position: relative;" onclick="viewDocumentInApp('${imgUrl}')">
+              <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+              <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                  <span class="material-symbols-outlined" style="color: white; font-size: 28px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">zoom_in_map</span>
+              </div>
+          </div>
+          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; background: white; border-top: 1px solid #f1f5f9;">
+              <span style="font-size: 11px; font-weight: 800; color: #475569;">${title}</span>
+              <div style="display: flex; gap: 10px;">
+                  <!-- 🚨 YAHAN SMART FILENAME PASS KIYA HAI -->
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #3b82f6; cursor: pointer;" onclick="forceDownloadDocument('${imgUrl}', '${fileName}')">download</span>
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #10b981; cursor: pointer;" onclick="shareDocument('${imgUrl}')">share</span>
+              </div>
+          </div>
+      </div>`;
+  };
+
+  const createEmptyCard = (title) => `
+    <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8;">
+        <span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">image_not_supported</span>
+        <span style="font-size: 11px; font-weight: 600;">No ${title}</span>
+    </div>`;
+
+  if(docsGallery) {
+      let frontHTML = room.idFront ? createDocCard('Front ID', room.idFront) : createEmptyCard('Front ID');
+      let backHTML = room.idBack ? createDocCard('Back ID', room.idBack) : createEmptyCard('Back ID');
+      docsGallery.innerHTML = frontHTML + backHTML;
+  }
+
+  // 2. SMART SIGNATURE GENERATOR (WITH DOWNLOAD BUTTON)
+  if(sigContainer) {
+      if(room.signature) {
+          // 🚨 SMART SIGNATURE FILENAME
+          let cleanName = (room.guest || 'Guest').replace(/\s+/g, '_');
+          let sigFileName = `${cleanName}_Room_${room.no}_Signature.png`;
+
+          sigContainer.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <img src="${room.signature}" style="max-height: 80px; max-width: 60%; filter: contrast(1.5); cursor: pointer;" onclick="viewDocumentInApp('${room.signature}')">
+              
+              <div style="display: flex; gap: 12px; border-left: 1px dashed #e2e8f0; padding-left: 16px;">
+                  <!-- 🚨 SIGNATURE DOWNLOAD BUTTON -->
+                  <div onclick="forceDownloadDocument('${room.signature}', '${sigFileName}')" style="width: 38px; height: 38px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                      <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+                  </div>
+                  <!-- 🚨 SIGNATURE SHARE BUTTON -->
+                  <div onclick="shareDocument('${room.signature}')" style="width: 38px; height: 38px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                      <span class="material-symbols-outlined" style="font-size: 18px;">share</span>
+                  </div>
+              </div>
+          </div>`;
+      } else {
+          sigContainer.innerHTML = `<div style="color: #94a3b8; display: flex; flex-direction: column; align-items: center;"><span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">draw</span><span style="font-size: 11px; font-weight: 600;">No Signature</span></div>`;
+      }
+  }
+
+  let actionMenu = document.getElementById('doc-action-menu');
+  if(actionMenu) actionMenu.style.display = 'none';
+
+  switchRoomDetailsTab('overview');
+}
+// ==========================================================================
+// 🏢 DYNAMIC PROPERTY NAME ENGINE
+// ==========================================================================
+function updateHotelName() {
+  if (typeof RoomPeDB === 'undefined' || typeof RoomPeDB.getProperties !== 'function') return;
+
+  let props = RoomPeDB.getProperties();
+  let activeId = RoomPeDB.getActiveProperty();
+  let activeProp = props.find(p => p.id === activeId) || props[0];
+  
+  let hotelName = (activeProp && activeProp.name) ? activeProp.name : "My Property";
+  
+  let headers = document.querySelectorAll('.active-hotel-name');
+  headers.forEach(h => {
+      h.innerText = hotelName;
+  });
+}
+
+// ==========================================
+// 🚀 SMART CHECKOUT ENGINE (WITH CUSTOM MODAL)
+// ==========================================
+function checkoutGuest(roomNo) {
+  let rooms = RoomPeDB.getActivePropertyRooms();
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let room = rooms.find(r => String(r.no) === String(roomNo));
+  if (!room) return;
+
+  // 1. Initial Math
+  let roomTotalPaid = payments.filter(p => p.bookingId ? (p.bookingId === room.currentBookingId) : (String(p.room) === String(roomNo) && p.guest === room.guest)).reduce((sum, p) => sum + parseInt(p.amount || 0), 0);
+  
+  let isMonthlyStay = room.stayType === 'Monthly';
+  let priceDaily = parseInt(room.priceDaily || room.price || 0);
+  let priceMonthly = parseInt(room.priceMonthly || room.price || 0);
+  let baseDuration = parseInt(room.duration || 1);
+
+  let checkinDate = new Date(room.checkinDate || new Date());
+  let today = new Date();
+  today.setHours(0,0,0,0);
+  checkinDate.setHours(0,0,0,0);
+
+  let fullCycleRent = 0;
+  let proRataRent = 0;
+
+  let diffTimeCurrent = Math.abs(today - checkinDate);
+  let actualDaysStayed = Math.ceil(diffTimeCurrent / (1000 * 60 * 60 * 24));
+  if(actualDaysStayed === 0) actualDaysStayed = 1;
+
+  if (isMonthlyStay) {
+    let monthsPassed = 0;
+    let tempDate = new Date(checkinDate);
+    while (tempDate <= today) {
+        monthsPassed++;
+        tempDate.setMonth(tempDate.getMonth() + 1);
+    }
+    let totalCycles = Math.max(baseDuration, monthsPassed);
+    fullCycleRent = priceMonthly * totalCycles;
+
+    let fullMonthsStayed = Math.floor(actualDaysStayed / 30);
+    let extraDaysStayed = actualDaysStayed % 30;
+    let perDayRate = Math.round(priceMonthly / 30);
+    proRataRent = (fullMonthsStayed * priceMonthly) + (extraDaysStayed * perDayRate);
+    
+    if(proRataRent > fullCycleRent) proRataRent = fullCycleRent;
+  } else {
+    let totalDays = Math.max(baseDuration, actualDaysStayed);
+    fullCycleRent = priceDaily * totalDays;
+    proRataRent = fullCycleRent; 
+  }
+
+  let extrasTotal = 0;
+  if (room.extras && room.extras.length > 0) {
+    room.extras.forEach(ext => extrasTotal += parseInt(ext.price || 0));
+  }
+  fullCycleRent += extrasTotal;
+  proRataRent += extrasTotal;
+
+  // 2. 🚨 CUSTOM VIP POPUP (No more ugly browser confirm)
+  if (isMonthlyStay && proRataRent < fullCycleRent) {
+     let modal = document.getElementById('modal-mid-cycle-checkout');
+     if(modal) {
+         // UI me real values daalo
+         document.getElementById('mc-full-rent').innerText = `₹${fullCycleRent.toLocaleString('en-IN')}`;
+         document.getElementById('mc-pro-rent').innerText = `₹${proRataRent.toLocaleString('en-IN')}`;
+         
+         // Modal show karo
+         modal.style.display = 'flex';
+         
+         // Button Actions Set Karo
+         document.getElementById('mc-btn-prorata').onclick = function() {
+             modal.style.display = 'none';
+             proceedToSettleCheckout(roomNo, proRataRent, roomTotalPaid); // Charge Pro-Rata
+         };
+         
+         document.getElementById('mc-btn-full').onclick = function() {
+             modal.style.display = 'none';
+             proceedToSettleCheckout(roomNo, fullCycleRent, roomTotalPaid); // Charge Full
+         };
+     }
+  } else {
+     // Agar daily hai ya month complete hai, seedha aage badho
+     proceedToSettleCheckout(roomNo, fullCycleRent, roomTotalPaid);
+  }
+}
+
+// ==========================================
+// 🛠️ HELPER: FINAL EXECUTION AFTER CHOICE
+// ==========================================
+function proceedToSettleCheckout(roomNo, finalExpectedRent, roomTotalPaid) {
+  let remainingDue = finalExpectedRent - roomTotalPaid;
+
+  // Block agar dues pending hain
+  if (remainingDue > 0) {
+    let blockedTextElem = document.getElementById('checkout-blocked-text');
+    if(blockedTextElem) {
+        blockedTextElem.innerText = `Room ${roomNo} has a pending due of ₹${remainingDue.toLocaleString('en-IN')}.\nPlease collect the payment first.`;
+    }
+    let blockedModal = document.getElementById('modal-checkout-blocked');
+    if(blockedModal) blockedModal.style.display = 'flex';
+    
+    let payRoomInput = document.getElementById('pay-room-no');
+    let payAmountInput = document.getElementById('pay-amount');
+    if(payRoomInput) payRoomInput.value = roomNo;
+    if(payAmountInput) payAmountInput.value = remainingDue;
+    return; 
+  }
+
+  // Refund msg agar zyada pay kiya hai
+  let refundMsg = "";
+  if (remainingDue < 0) {
+      refundMsg = `<br><br><span style="color:#e11d48; font-weight:bold;">Note: Guest has overpaid by ₹${Math.abs(remainingDue).toLocaleString('en-IN')}. Please settle the refund offline.</span>`;
+  }
+
+  // Final Confirmation Popup
+  showCustomPopup('confirm', 'Confirm Checkout?', `Are you sure you want to checkout the guest from Room ${roomNo}?${refundMsg}`, function() {
+    let activePropId = RoomPeDB.getActiveProperty();
+    let allBookings = RoomPeDB.getBookings();
+    let activeBookingIndex = allBookings.findIndex(b => String(b.room) === String(roomNo) && b.status === 'confirmed' && b.propId === activePropId);
+    
+    if(activeBookingIndex !== -1) {
+      allBookings[activeBookingIndex].status = 'completed'; 
+      allBookings[activeBookingIndex].checkoutDate = new Date().getTime(); 
+      allBookings[activeBookingIndex].totalBilled = finalExpectedRent; 
+      RoomPeDB.saveBookings(allBookings);
+    }
+
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+    
+    if (absIndex !== -1) {
+      absoluteRooms[absIndex].status = 'cleaning';
+      absoluteRooms[absIndex].guest = ''; 
+      absoluteRooms[absIndex].phone = ''; 
+      absoluteRooms[absIndex].stayType = '';
+      absoluteRooms[absIndex].checkinDate = ''; 
+      absoluteRooms[absIndex].duration = '';
+      absoluteRooms[absIndex].extras = [];
+      absoluteRooms[absIndex].signature = ''; 
+      absoluteRooms[absIndex].currentBookingId = '';
+      
+      RoomPeDB.saveRooms(absoluteRooms);
+      
+      closeActionScreen(); 
+      smartRefresh();
+      
+      setTimeout(() => {
+        showPopup('success', 'Checkout Complete', `Room ${roomNo} is now vacant and needs cleaning.`);
+      }, 400);
+    }
+  });
+}
+function openEditRoom(roomNo) {
+  let rooms = RoomPeDB.getRooms();
+  let room = rooms.find(r => r.no === roomNo);
+  if(!room) return;
+  
+  document.getElementById('edit-original-room-no').value = room.no;
+  document.getElementById('edit-room-no').value = room.no;
+  document.getElementById('edit-room-price').value = room.price;
+  document.getElementById('edit-room-cat').value = room.cat;
+  
+  openActionScreen('screen-edit-room');
+}
+
+function saveRoomEdits() {
+  let originalNo = document.getElementById('edit-original-room-no').value;
+  let newNo = document.getElementById('edit-room-no').value.trim();
+  let newPrice = document.getElementById('edit-room-price').value;
+  let newCat = document.getElementById('edit-room-cat').value;
+  
+  if(newNo === "") return showToast("Room number required!", "error"); 
+  
+  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let absIndex = absoluteRooms.findIndex(r => r.no === originalNo && r.propertyId === RoomPeDB.getActiveProperty());
+  
+  if(absIndex !== -1) {
+    absoluteRooms[absIndex].no = newNo;
+    
+    // IMPORTANT FIX: Dono prices update hone chahiye
+    absoluteRooms[absIndex].price = newPrice;
+    absoluteRooms[absIndex].priceMonthly = newPrice; 
+    absoluteRooms[absIndex].priceDaily = Math.round(newPrice / 30);
+    
+    absoluteRooms[absIndex].cat = newCat;
+    
+    // Database (Local Storage aur Firebase dono par update karna)
+    RoomPeDB.saveRooms(absoluteRooms); 
+    
+    // 🚨 NAYA SMART ROUTING LOGIC
+    closeActionScreen(); // Sirf edit room popup band karo
+    
+    // Screen refresh ko direct force call karo
+    if (typeof renderRoomsGrid === 'function') {
+        renderRoomsGrid();
+    }
+    smartRefresh(); // Baki cheeze update karne ke liye
+    
+    showToast('Room details updated!', 'success');
+  }
+}
+
+// --- PERFECT DELETE ROOM ENGINE (Cloud Sync Fixed) ---
+function deleteRoom() {
+  let originalNo = document.getElementById('edit-original-room-no').value;
+
+  // 1. Apna Custom Premium Popup call karo
+  showCustomPopup(
+    'danger', 
+    'Delete Room?', 
+    `Are you sure you want to permanently delete Room ${originalNo}? All data for this room will be lost.`, 
+    function() {
+      // 2. Database (Local + Cloud) se room filter karke nikal do
+      let activePropId = RoomPeDB.getActiveProperty();
+      let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+      
+      let updatedRooms = absoluteRooms.filter(r => !(String(r.no) === String(originalNo) && r.propertyId === activePropId));
+      
+      // 🚨 MASTER FIX: Yahan RoomPeDB.saveRooms use karna hai!
+      // Ye local storage ke sath-sath Cloud (Firebase) par bhi automatically delete sync mar dega.
+      RoomPeDB.saveRooms(updatedRooms);
+      
+      // 3. Edit screen ko band karo aur list refresh karo
+      closeActionScreen();
+      switchTab('rooms');
+      
+      // 4. Delete hone ke 0.4 second baad ek Success message dikha do
+      setTimeout(() => {
+         showPopup('success', 'Room Deleted', `Room ${originalNo} has been removed successfully.`);
+      }, 400);
+    }
+  );
+}
+
+function switchRoomDetailsTab(tabName) {
+    // 1. Sabhi buttons ko normal grey kar do (Inactive state)
+    ['overview', 'payments', 'documents'].forEach(tab => {
+        let btn = document.getElementById('rd-btn-' + tab);
+        if(btn) {
+            btn.style.background = 'transparent';
+            btn.style.color = '#64748b'; // Grey text
+        }
+    });
+    
+    // 2. Jo tab click hua hai usko Green/Active kar do
+    let activeBtn = document.getElementById('rd-btn-' + tabName);
+    if(activeBtn) {
+        activeBtn.style.background = '#059669'; // Tera theme wala dark green
+        activeBtn.style.color = 'white';
+    }
+
+    // 3. Sabhi tab content ko pehle hide (chupa) do
+    ['overview', 'payments', 'documents'].forEach(tab => {
+        let tabContent = document.getElementById('rd-tab-' + tab);
+        if(tabContent) {
+            tabContent.style.display = 'none';
+            // 🚨 CSS conflict fix: Hide karte waqt class wapas lagao
+            tabContent.classList.add('hidden'); 
+        }
+    });
+
+    // 4. Sirf target wale tab ko show karo
+    let targetContent = document.getElementById('rd-tab-' + tabName);
+    if(targetContent) {
+        targetContent.style.display = 'block';
+        // 🚨 MAIN FIX: Dikhate waqt 'hidden' class ko hata do taaki safed screen na aaye
+        targetContent.classList.remove('hidden'); 
+    }
+    
+    // 5. Electricity/Extras wala box SIRF Overview me dikhna chahiye
+    let extrasWrapper = document.getElementById('extras-wrapper');
+    if(extrasWrapper) {
+        extrasWrapper.style.display = (tabName === 'overview') ? 'block' : 'none';
+    }
+}
+
+function handleFileUpload(input) {
+  if (input.files && input.files[0]) {
+    let fileName = input.files[0].name;
+    alert(`📸 Photo Selected: ${fileName}\n\n(In a real app, this will securely upload to the cloud!)`);
+    document.getElementById('uploaded-file-name').innerText = fileName;
+    document.getElementById('uploaded-doc-preview').classList.remove('hidden');
+  }
+}
+
+function goToAddPaymentFromDetails(roomNo, dueAmount) {
+  closeActionScreen(); 
+  setTimeout(() => {
+    openActionScreen('screen-add-payment');
+    document.getElementById('pay-room-no').value = roomNo;
+    document.getElementById('pay-amount').value = dueAmount > 0 ? dueAmount : '';
+  }, 200);
+}
+
+// ==========================================================================
+// 8. PROPERTY MANAGEMENT & SWITCHING
+// ==========================================================================
+function updateAppHeaders() {
+  if (typeof RoomPeDB.getProperties !== 'function') return; 
+
+  let props = RoomPeDB.getProperties();
+  let activeId = RoomPeDB.getActiveProperty();
+  let activeProp = props.find(p => p.id === activeId) || props[0];
+
+  if (activeProp) {
+    // 1. Property Name Update 
+    document.querySelectorAll('.property-title h3').forEach(el => {
+      el.innerText = activeProp.name;
+    });
+
+    // 2. 🚨 SMART FIX: Type determine karo
+    let typeText = 'Property Management';
+    if (activeProp.type === 'Daily' || activeProp.type === 'daily' || activeProp.type === 'Hotel') {
+      typeText = 'Daily Stays (Hotel)';
+    } else if (activeProp.type === 'Monthly' || activeProp.type === 'monthly' || activeProp.type === 'PG') {
+      typeText = 'Monthly Rental (PG/Hostel)';
+    } else if (activeProp.type) {
+      typeText = activeProp.type;
+    }
+
+    // 3. 🚨 SMART FIX: Saare headers me subtitle update karo (class use karke)
+    document.querySelectorAll('.header-prop-type').forEach(el => {
+       el.innerText = typeText;
+    });
+  }
+}
+
+function saveNewProperty() {
+  let propName = document.getElementById('setup-prop-name').value;
+  if (propName) propName = propName.trim();
+  
+  if(!propName) {
+    showToast("Please enter a property name!", "error");
+    return;
+  }
+
+  // 🚨 SMART TYPE DETECTOR: Check karega ki tumne UI mein kaunsa card select kiya hai
+  let propType = 'Daily'; // Default Hotel
+  let activeCard = document.querySelector('#screen-setup .active'); // Jo green card select hua hai
+  
+  if(activeCard) {
+     let cardText = activeCard.innerText.toLowerCase();
+     // Agar card me PG, Monthly ya Hybrid likha hai, toh usko Monthly Property manenge
+     if(cardText.includes('monthly') || cardText.includes('pg') || cardText.includes('hostel') || cardText.includes('hybrid')) {
+         propType = 'Monthly';
+     }
+  }
+
+  let props = RoomPeDB.getProperties();
+  let newProp = {
+    id: 'prop_' + Date.now(),
+    name: propName,
+    type: propType // Ab perfect type save hoga!
+  };
+
+  props.push(newProp);
+  RoomPeDB.saveProperties(props);
+  RoomPeDB.setActiveProperty(newProp.id);
+
+  document.getElementById('setup-prop-name').value = ''; 
+  updateAppHeaders(); 
+  
+  switchTab('dashboard');
+  
+  showPopup('success', 'Property Added', propName + " added successfully!");
+}
+
+function openPropertySwitcher() {
+  let modal = document.getElementById('modal-property-switcher');
+  let sheet = document.getElementById('property-sheet-content');
+  let listContainer = document.getElementById('dynamic-prop-list');
+  
+  if(!modal || !listContainer) return; 
+
+  let props = RoomPeDB.getProperties();
+  let activeId = RoomPeDB.getActiveProperty();
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let listHTML = '';
+  
+  props.forEach(p => {
+    let isActive = (p.id === activeId);
+    let propRooms = allRooms.filter(r => r.propertyId === p.id || (!r.propertyId && p.id === 'prop_default'));
+    let roomCount = propRooms.length;
+    
+    if (isActive) {
+      listHTML += `
+        <div style="width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #ffffff; border: 2px solid #059669; border-radius: 16px; cursor: pointer;">
+          <div style="display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0;">
+            <div style="flex-shrink: 0; width: 44px; height: 44px; background: #059669; border-radius: 12px; display: flex; justify-content: center; align-items: center; color: white;">
+              <span class="material-symbols-outlined" style="font-size: 24px;">domain</span>
+            </div>
+            <div style="flex: 1; min-width: 0; text-align: left;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</h4>
+                <span style="background: #dcfce7; color: #059669; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px;">MAIN</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                <div style="width: 6px; height: 6px; background: #059669; border-radius: 50%;"></div>
+                <p style="margin: 0; font-size: 12px; color: #059669; font-weight: 700;">Active Property</p>
+              </div>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 500;">${roomCount} Rooms</p>
+            </div>
+          </div>
+          <div style="flex-shrink: 0; width: 28px; height: 28px; background: #059669; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; margin-left: 12px;">
+            <span class="material-symbols-outlined" style="font-size: 18px; font-weight: bold;">check</span>
+          </div>
+        </div>
+      `;
+    } else {
+      listHTML += `
+        <div onclick="switchActiveProperty('${p.id}')" style="width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; cursor: pointer;">
+          <div style="display: flex; align-items: flex-start; gap: 14px; flex: 1; min-width: 0;">
+            <div style="flex-shrink: 0; width: 44px; height: 44px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; display: flex; justify-content: center; align-items: center; color: #475569;">
+              <span class="material-symbols-outlined" style="font-size: 24px;">home</span>
+            </div>
+            <div style="flex: 1; min-width: 0; text-align: left;">
+              <h4 style="margin: 0 0 4px 0; font-size: 16px; color: #0f172a; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</h4>
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #475569; font-weight: 500;">Tap to switch</p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 500;">${roomCount} Rooms</p>
+            </div>
+          </div>
+          <span class="material-symbols-outlined" style="color: #cbd5e1; flex-shrink: 0; margin-left: 12px;">chevron_right</span>
+        </div>
+      `;
+    }
+  });
+
+  listContainer.innerHTML = listHTML;
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    modal.style.opacity = '1';
+    sheet.style.transform = 'translateY(0)';
+  }, 10);
+}
+
+function switchActiveProperty(propId) {
+  RoomPeDB.setActiveProperty(propId);
+  updateAppHeaders();
+  closePropertySwitcher();
+  if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
+  if (typeof updateDashboardStats === 'function') updateDashboardStats();
+}
+
+function closePropertySwitcher() {
+  let modal = document.getElementById('modal-property-switcher');
+  let sheet = document.getElementById('property-sheet-content');
+  if(!modal || !sheet) return;
+  
+  sheet.style.transform = 'translateY(100%)';
+  modal.style.opacity = '0';
+  setTimeout(() => { modal.classList.add('hidden'); }, 300);
+}
+
+function goToAddProperty() {
+  closePropertySwitcher();
+  setTimeout(() => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-setup').classList.remove('hidden');
+    // Setup screen par nav bar nahi dikhna chahiye!
+document.getElementById('global-nav').classList.add('hidden');
+  }, 300);
+}
+
+function cancelSetup() {
+  let props = RoomPeDB.getProperties();
+  if (props.length > 1 || (props.length === 1 && props[0].id !== 'prop_default')) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-dashboard').classList.remove('hidden');
+  } else {
+    if(confirm("You need to setup at least one property to use RoomPe. Do you want to cancel and go back to the home screen?")) {
+      localStorage.removeItem('roompe_logged_in_user');
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById('screen-welcome').classList.remove('hidden');
+    }
+  }
+}
+
+function openManageProperties() {
+  let listContainer = document.getElementById('manage-prop-list');
+  let props = RoomPeDB.getProperties();
+  let activeId = RoomPeDB.getActiveProperty();
+  
+  let html = '';
+  props.forEach(p => {
+    let isActive = (p.id === activeId);
+    html += `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 12px;">
+        <div>
+          <h4 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;">${p.name}</h4>
+          ${isActive ? `<span style="font-size: 10px; background: #ecfdf5; color: #10b981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Currently Active</span>` : ''}
+        </div>
+        <button onclick="deletePropertySafetyLock('${p.id}', '${p.name}')" style="background: #fef2f2; color: #ef4444; border: 1px solid #fecdd3; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> Delete
+        </button>
+      </div>
+    `;
+  });
+  
+  if(listContainer) {
+    listContainer.innerHTML = html;
+    openActionScreen('screen-manage-properties');
+  }
+}
+
+function deletePropertySafetyLock(propId, propName) {
+  let props = RoomPeDB.getProperties();
+  if (props.length === 1) {
+    showPopup('error', 'Action Denied', 'Warning: You cannot delete your only property.');
+    return;
+  }
+
+  if (confirm(`Permanently delete "${propName}"? This will delete all rooms and data inside it.`)) {
+    let updatedProps = props.filter(p => p.id !== propId);
+    RoomPeDB.saveProperties(updatedProps);
+    
+    let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let remainingRooms = allRooms.filter(r => r.propertyId !== propId && (r.propertyId || propId !== 'prop_default'));
+    RoomPeDB.saveRooms(remainingRooms);
+    
+    if (RoomPeDB.getActiveProperty() === propId) {
+      RoomPeDB.setActiveProperty(updatedProps[0].id);
+    }
+    
+    updateAppHeaders();
+    openManageProperties(); 
+    if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
+    if (typeof updateDashboardStats === 'function') updateDashboardStats();
+  }
+}
+
+// ==========================================================================
+// 9. DATA ISOLATION & LOAD HOOKS
+// ==========================================================================
+RoomPeDB.getActivePropertyRooms = function() {
+  let allRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let activeId = this.getActiveProperty();
+  return allRooms.filter(r => r.propertyId === activeId || (!r.propertyId && activeId === 'prop_default'));
+};
+
+const originalRenderRoomsGrid = renderRoomsGrid;
+renderRoomsGrid = function() {
+  let oldGetRooms = RoomPeDB.getRooms;
+  RoomPeDB.getRooms = RoomPeDB.getActivePropertyRooms; 
+  originalRenderRoomsGrid(); 
+  RoomPeDB.getRooms = oldGetRooms; 
+};
+
+const originalUpdateDashboardStats = updateDashboardStats;
+updateDashboardStats = function() {
+  let oldGetRooms = RoomPeDB.getRooms;
+  RoomPeDB.getRooms = RoomPeDB.getActivePropertyRooms; 
+  originalUpdateDashboardStats(); 
+  RoomPeDB.getRooms = oldGetRooms; 
+};
+
+// ==========================================================================
+// NOTIFICATION ENGINE
+// ==========================================================================
+function timeAgo(time) {
+  let diff = Math.floor((new Date() - new Date(time)) / 1000);
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return Math.floor(diff / 60) + ' mins ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+  return Math.floor(diff / 86400) + ' days ago';
+}
+
+function openNotifications() {
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let allBookings = RoomPeDB.getBookings().filter(b => b.propId === RoomPeDB.getActiveProperty());
+  let notifList = document.getElementById('real-notification-list');
+  let allNotifs = []; 
+
+  payments.forEach(p => {
+    allNotifs.push({
+      id: p.id, type: 'Payment', title: 'Payment Received',
+      desc: `₹${parseInt(p.amount).toLocaleString('en-IN')} received from <b>${p.guest}</b> (Room ${p.room}) via ${p.mode}.`,
+      time: p.date, icon: 'payments', color: '#059669', bg: '#ecfdf5', action: `closeActionScreen(); openRoomDetails('${p.room}')`, pill: 'View Room'
+    });
+  });
+
+  allBookings.forEach(b => {
+    allNotifs.push({
+      id: b.id, type: 'Booking', title: 'New Booking Confirmed',
+      desc: `<b>${b.guest}</b> booked Room <b>${b.room}</b> for ${b.duration} nights.`,
+      time: b.createdAt, icon: 'book_online', color: '#4f46e5', bg: '#e0e7ff', action: `closeActionScreen(); switchTab('bookings')`, pill: 'View Booking'
+    });
+  });
+
+  allNotifs.sort((a, b) => b.time - a.time);
+
+  let badge = document.getElementById('notif-badge');
+  let countAll = document.getElementById('notif-count-all');
+  if(badge) badge.innerText = allNotifs.length > 0 ? `${allNotifs.length} New` : '0 New';
+  if(countAll) countAll.innerText = allNotifs.length;
+
+  if (allNotifs.length === 0) {
+    notifList.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+        <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">notifications_off</span>
+        <h4 style="margin: 0; font-size: 15px; color: #64748b;">No new notifications</h4>
+      </div>`;
+  } else {
+    let notifHTML = '';
+    allNotifs.forEach(n => {
+      notifHTML += `
+        <div id="notif-${n.id}" class="notif-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; gap: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
+          <div style="width: 40px; height: 40px; background: ${n.bg}; color: ${n.color}; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
+            <span class="material-symbols-outlined">${n.icon}</span>
+          </div>
+          <div style="flex: 1; cursor: pointer;" onclick="${n.action}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <h4 style="margin: 0 0 4px; font-size: 14px; color: #0f172a; font-weight: 700;">${n.title}</h4>
+              <div style="width: 8px; height: 8px; background: ${n.color}; border-radius: 50%;"></div>
+            </div>
+            <p style="margin: 0 0 10px; font-size: 12px; color: #475569; line-height: 1.5;">${n.desc}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 12px;">schedule</span> ${timeAgo(n.time)}</span>
+              <span style="font-size: 10px; font-weight: 700; color: ${n.color}; background: ${n.bg}; padding: 3px 8px; border-radius: 12px;">${n.pill}</span>
+            </div>
+          </div>
+          <div onclick="dismissNotification('notif-${n.id}')" style="position: absolute; right: -30px; top: 0; bottom: 0; width: 40px; background: #fee2e2; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; color: #ef4444; border-top-right-radius: 12px; border-bottom-right-radius: 12px; z-index: 10;">
+             <span class="material-symbols-outlined">close</span>
+          </div>
+        </div>
+      `;
+    });
+    notifList.innerHTML = notifHTML;
+  }
+  openActionScreen('screen-notifications');
+}
+
+function dismissNotification(id) {
+  let el = document.getElementById(id);
+  if (el) {
+    el.classList.add('slide-out');
+    setTimeout(() => {
+      el.remove();
+      let badge = document.getElementById('notif-badge');
+      let countAll = document.getElementById('notif-count-all');
+      let remaining = document.querySelectorAll('.notif-card').length;
+      
+      if(badge) badge.innerText = remaining > 0 ? `${remaining} New` : '0 New';
+      if(countAll) countAll.innerText = remaining;
+      
+      if(remaining === 0) {
+        document.getElementById('real-notification-list').innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+            <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">notifications_off</span>
+            <h4 style="margin: 0; font-size: 15px; color: #64748b;">No new notifications</h4>
+          </div>`;
+      }
+    }, 300);
+  }
+}
+
+function clearAllNotifications() {
+  document.querySelectorAll('.notif-card').forEach(el => {
+    el.classList.add('slide-out');
+  });
+  setTimeout(() => {
+    document.getElementById('real-notification-list').innerHTML = `
+      <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+        <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">done_all</span>
+        <h4 style="margin: 0; font-size: 15px; color: #10b981;">All caught up!</h4>
+      </div>`;
+    document.getElementById('notif-badge').innerText = '0 New';
+    document.getElementById('notif-count-all').innerText = '0';
+  }, 300);
+}
+
+// ==========================================================================
+// 🚀 VIP BOOKING ENGINE & DIGITAL SIGNATURE (Unique ID Architecture)
+// ==========================================================================
+
+function toggleGSTBox() {
+  let isCorp = document.getElementById('book-is-corporate').checked;
+  document.getElementById('corporate-gst-box').style.display = isCorp ? 'block' : 'none';
+}
+
+function saveNewBookingVIP() {
+  let rawGuestName = document.getElementById('book-guest-name').value;
+let guestName = sanitizeInput(rawGuestName.trim());
+
+let rawGuestPhone = document.getElementById('book-guest-phone').value;
+let guestPhone = sanitizeInput(rawGuestPhone.trim());
+  let roomNo = document.getElementById('book-room-no').value.trim();
+  let stayType = document.getElementById('book-stay-type').value;
+  let checkin = document.getElementById('book-checkin').value;
+  let duration = document.getElementById('book-duration').value;
+  let advance = document.getElementById('book-advance').value;
+  
+  let smartMenuBox = document.getElementById('book-smart-menu');
+  let smartMenu = smartMenuBox ? smartMenuBox.checked : false;
+  
+  let sigCanvas = document.getElementById('signature-pad');
+  let signatureData = '';
+  if(sigCanvas) signatureData = sigCanvas.toDataURL(); 
+
+  if(guestName === "" || roomNo === "" || guestPhone === "") {
+    return showPopup('error', 'Missing Details', 'Guest Name, Phone Number, and Room Number are required!');
+  }
+
+  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let activePropId = RoomPeDB.getActiveProperty();
+  let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+  
+  if(absIndex === -1) return showPopup('error', 'Invalid Room', `Room ${roomNo} does not exist in this property!`); 
+  if(absoluteRooms[absIndex].status === 'occupied') return showPopup('error', 'Room Occupied', `Room ${roomNo} is already occupied!`);
+
+  let actualCheckin = checkin || new Date().toISOString().slice(0,16); 
+  let actualDuration = duration || '1';
+
+  // 🚨 MASTER ENGINE: Generate Unique Booking ID
+  let randomString = Math.random().toString(36).substring(2, 6).toUpperCase();
+  let uniqueBookingId = `bk_${activePropId}_${Date.now()}_${randomString}`;
+
+  // Room data me sab save karna + Unique ID lagana
+  absoluteRooms[absIndex].status = 'occupied';
+  absoluteRooms[absIndex].idFront = currentKycFront;
+  absoluteRooms[absIndex].idBack = currentKycBack;
+  absoluteRooms[absIndex].guest = guestName;
+  absoluteRooms[absIndex].phone = guestPhone; 
+  absoluteRooms[absIndex].stayType = stayType; 
+  absoluteRooms[absIndex].checkinDate = actualCheckin;
+  absoluteRooms[absIndex].duration = actualDuration;
+  absoluteRooms[absIndex].signature = signatureData; 
+  absoluteRooms[absIndex].currentBookingId = uniqueBookingId; // 🔐 ID Locked to Room
+  
+  
+  RoomPeDB.saveRooms(absoluteRooms);
+
+  let bookings = RoomPeDB.getBookings();
+  bookings.push({
+    id: uniqueBookingId, // 🔐 Same ID for History
+    propId: activePropId, guest: guestName, room: roomNo, checkin: actualCheckin, duration: actualDuration, advance: advance || '0', status: 'confirmed', createdAt: new Date().getTime(), phone: guestPhone, stayType: stayType, signature: signatureData
+  });
+  RoomPeDB.saveBookings(bookings);
+
+  if (advance && parseInt(advance) > 0) {
+    let payments = RoomPeDB.getPayments();
+    payments.push({
+      id: 'pay_' + Date.now(), 
+      propId: activePropId, 
+      room: roomNo, 
+      guest: guestName, 
+      bookingId: uniqueBookingId, // 🔐 Payment locked to this specific booking
+      amount: advance, 
+      mode: 'UPI', 
+      date: new Date().getTime()
+    });
+    RoomPeDB.savePayments(payments);
+  }
+
+  document.getElementById('book-guest-name').value = '';
+  document.getElementById('book-guest-phone').value = '';
+  document.getElementById('book-room-no').value = '';
+  document.getElementById('book-advance').value = '';
+  currentKycFront = "";
+  currentKycBack = "";
+  if(document.getElementById('front-preview')) document.getElementById('front-preview').style.display = 'none';
+  if(document.getElementById('back-preview')) document.getElementById('back-preview').style.display = 'none';
+  if(document.getElementById('id-front-input')) document.getElementById('id-front-input').value = '';
+  if(document.getElementById('id-back-input')) document.getElementById('id-back-input').value = '';
+  clearSignature('signature-pad');
+
+ closeActionScreen();
+smartRefresh();
+
+  setTimeout(() => {
+    if (smartMenu) showPopup('success', 'Booking & WhatsApp Sent!', `Message delivered to +91 ${guestPhone}. Guest has been successfully checked in.`);
+    else showPopup('success', 'Booking Saved', 'Guest booking has been confirmed successfully!');
+  }, 400);
+}
+// Ensure the HTML button calls the right function
+window.saveNewBooking = saveNewBookingVIP;
+
+function contactGuestAction(actionType, roomNo, dueAmount = 0) {
+  let rooms = RoomPeDB.getActivePropertyRooms();
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let room = rooms.find(r => String(r.no) === String(roomNo));
+  
+  let name = room && room.guest ? room.guest : 'Guest';
+  let phone = room && room.phone ? room.phone : ''; 
+  
+  if(actionType === 'whatsapp') {
+    if(!phone) return showToast("No mobile number saved for this guest!", "error");
+    
+    if(dueAmount > 0) {
+        closeActionScreen(); 
+        setTimeout(() => {
+            openReminderScreen(name, roomNo, dueAmount, phone);
+        }, 150);
+    } else {
+        let msg = `Hi ${name}, this is from the reception.`;
+        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+  } else if (actionType === 'call') {
+    if(!phone) return showToast("No mobile number saved for this guest!", "error");
+    window.open(`tel:${phone}`, '_self');
+  }
+}
+
+// ==========================================================================
+// ✍️ PRO SIGNATURE ENGINE
+// ==========================================================================
+let sigCanvas, sigCtx;
+let isDrawingSig = false;
+
+function initSignaturePad(canvasId) {
+  sigCanvas = document.getElementById(canvasId);
+  if(!sigCanvas) return;
+  sigCtx = sigCanvas.getContext('2d');
+  
+  sigCanvas.width = sigCanvas.offsetWidth;
+  sigCanvas.height = sigCanvas.offsetHeight;
+  sigCtx.lineWidth = 3;
+  sigCtx.lineCap = 'round';
+  sigCtx.strokeStyle = '#0f172a'; 
+
+  sigCanvas.onmousedown = startSig;
+  sigCanvas.onmouseup = endSig;
+  sigCanvas.onmousemove = drawSig;
+  sigCanvas.ontouchstart = (e) => { e.preventDefault(); startSig(e.touches[0]); };
+  sigCanvas.ontouchend = endSig;
+  sigCanvas.ontouchmove = (e) => { e.preventDefault(); drawSig(e.touches[0]); };
+}
+
+function startSig(e) { isDrawingSig = true; drawSig(e); }
+function endSig() { isDrawingSig = false; sigCtx.beginPath(); }
+function drawSig(e) {
+  if (!isDrawingSig) return;
+  let rect = sigCanvas.getBoundingClientRect();
+  let x = e.clientX - rect.left;
+  let y = e.clientY - rect.top;
+  sigCtx.lineTo(x, y);
+  sigCtx.stroke();
+  sigCtx.beginPath();
+  sigCtx.moveTo(x, y);
+}
+
+function clearSignature(canvasId) { 
+  let c = document.getElementById(canvasId);
+  if(c) c.getContext('2d').clearRect(0, 0, c.width, c.height); 
+}
+
+function openFullScreenSignature() {
+  document.getElementById('fullscreen-sig-modal').style.display = 'flex';
+  setTimeout(() => initSignaturePad('fs-signature-pad'), 150);
+}
+
+function closeFullScreenSignature() {
+  document.getElementById('fullscreen-sig-modal').style.display = 'none';
+  initSignaturePad('signature-pad'); 
+}
+
+// ==========================================
+// ✍️ PRO SIGNATURE SAVING ENGINE
+// ==========================================
+function saveFSSignature() {
+    let fsCanvas = document.getElementById('fs-signature-pad');
+    let smallCanvas = document.getElementById('signature-pad');
+    let smallCtx = smallCanvas.getContext('2d');
+    
+    // Full screen canvas se high-quality data nikalna
+    let dataUrl = fsCanvas.toDataURL();
+    let img = new Image();
+    
+    img.onload = function() {
+        // Chote canvas ki correct width aur height set karna zaroori hai
+        smallCanvas.width = smallCanvas.offsetWidth || 300;
+        smallCanvas.height = smallCanvas.offsetHeight || 140;
+        
+        // Pura saaf karke naya sign print karna
+        smallCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
+        smallCtx.drawImage(img, 0, 0, smallCanvas.width, smallCanvas.height);
+    };
+    img.src = dataUrl;
+    closeFullScreenSignature();
+}
+
+const autoSigOpenActionScreen = openActionScreen;
+openActionScreen = function(screenId) {
+  autoSigOpenActionScreen(screenId);
+  if(screenId === 'screen-new-booking') {
+    setTimeout(() => initSignaturePad('signature-pad'), 150); 
+  }
+};
+
+// ==========================================================================
+// 🔐 ROOMPE AUTHENTICATION ENGINE (PERFECT SYNC & AUTO-LOGIN)
+// ==========================================================================
+let isLoginMode = true;
+
+function toggleAuthMode() {
+  isLoginMode = !isLoginMode;
+  
+  // 🚨 SMART FIX: Check if element exists before updating (Fixes the Red Error!)
+  let titleEl = document.getElementById('auth-title');
+  let subtitleEl = document.getElementById('auth-subtitle');
+  let mainBtn = document.getElementById('auth-main-btn');
+  let toggleBtn = document.getElementById('auth-toggle-btn');
+  let toggleText = document.getElementById('auth-toggle-text');
+  
+  // Naye fields (Name aur Forgot Password)
+  let nameWrap = document.getElementById('auth-name-wrap');
+  let forgotLink = document.querySelector('.forgot-pass-link');
+
+  if(titleEl) titleEl.innerHTML = isLoginMode ? 'Hello<br>Sign in!' : 'Create<br>Account';
+  if(subtitleEl) subtitleEl.innerText = isLoginMode ? 'Log in to manage your properties' : 'Sign up to register your property';
+  if(mainBtn) mainBtn.innerText = isLoginMode ? 'SIGN IN' : 'SIGN UP';
+  if(toggleBtn) toggleBtn.innerText = isLoginMode ? 'Sign up' : 'Log In';
+  if(toggleText) toggleText.innerText = isLoginMode ? "Don't have an account? " : "Already have an account? ";
+  
+  // 🪄 MAGIC: Signup me Name dikhao, Login me chhipa do
+  if(nameWrap) nameWrap.style.display = isLoginMode ? 'none' : 'block';
+  // Signup me Forgot Password chhipa do
+  if(forgotLink) forgotLink.style.display = isLoginMode ? 'block' : 'none';
+}
+
+// 🔐 FORGOT PASSWORD LOGIC
+async function handleForgotPassword() {
+    const emailInput = document.getElementById('auth-email');
+    const email = emailInput.value.trim();
+    
+    if (!email) {
+        showToast("Please enter your email address first.", "error");
+        emailInput.style.borderBottomColor = 'var(--red)';
+        return;
+    }
+    
+    try {
+        // Firebase Password Reset Trigger
+        if (window.fbAuth) {
+            import('https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js').then(module => {
+                module.sendPasswordResetEmail(window.fbAuth, email)
+                .then(() => {
+                    showPopup('success', 'Email Sent!', `Password reset link has been sent to ${email}. Check your inbox.`);
+                })
+                .catch((error) => {
+                    showToast(error.message, "error");
+                });
+            });
+        }
+    } catch (error) {
+        showToast("Something went wrong.", "error");
+    }
+}
+
+// 🚀 APP UNLOCKER (Parda hatane aur data laane ka engine)
+function unlockApp(user) {
+  document.getElementById('screen-login').style.display = 'none';
+  document.getElementById('screen-welcome').classList.add('hidden'); // Ekdum clean
+  localStorage.setItem('roompe_logged_in_user', user.email);
+
+  // Private data lana shuru karo
+  startCloudSync(user.uid);
+
+  // Thoda wait karo data aane ke liye, fir dashboard kholo
+  setTimeout(() => {
+    routeToDashboard();
+  }, 800);
+}
+
+// ==========================================
+// 🚀 SMART GOOGLE LOGIN ENGINE
+// ==========================================
+async function handleGoogleLogin() {
+    try {
+        const provider = window.fbGoogleProvider; 
+        const auth = window.fbAuth;
+
+        // Google Popup kholo aur login karwao
+        const result = await window.fbSignInPopup(auth, provider);
+        const user = result.user;
+        
+        console.log("Login Success! Email:", user.email);
+        
+        // 🚨 FIX 1: Login hote hi purana saara cache clean kar do taaki data mix na ho
+        localStorage.removeItem('activeProperty');
+        localStorage.removeItem('roompe_rooms');
+        // (Tu chahe toh seedha localStorage.clear() bhi likh sakta hai)
+
+        // Login screen ko hide karo
+        document.getElementById('screen-login').classList.add('hidden');
+
+        // 🚨 FIX 2: Naye user ko "Property Setup" par bhejo
+        // Note: Asli app mein hum Firebase se check karenge ki user ki property hai ya nahi.
+        // Abhi ke liye hum assume kar rahe hain ki ye naya user hai.
+        
+        let isNewUser = true; // Isko baad mein Firebase database se link karenge
+
+        if (isNewUser) {
+            // Naya Gmail: Seedha 'Setup Your Property' (Screen 4) dikhao
+            document.getElementById('screen-setup').classList.remove('hidden');
+            document.getElementById('screen-setup').classList.add('screen-enter');
+        } else {
+            // Purana Gmail jisko property already assigned hai: Dashboard dikhao
+            document.getElementById('screen-dashboard').classList.remove('hidden');
+            document.getElementById('global-nav').classList.remove('hidden');
+            document.getElementById('screen-dashboard').classList.add('screen-enter');
+        }
+
+    } catch (error) {
+        console.error("Google Login Error:", error);
+        showPopup('error', 'Login Failed', error.message);
+    }
+}
+
+// --- BULLETPROOF EMAIL LOGIN / SIGNUP LOGIC ---
+async function handleEmailAuth(event) {
+  if(event) event.preventDefault();
+  
+  const emailInput = document.getElementById('auth-email');
+  const passInput = document.getElementById('auth-pass');
+  const errorBox = document.getElementById('auth-error-msg');
+  const errorText = document.getElementById('auth-error-text');
+  const btn = document.getElementById('auth-main-btn');
+
+  const email = emailInput.value.trim();
+  const pass = passInput.value.trim();
+
+  // Smart Check: Button par "Up" likha hai ya nahi (Sign Up vs Sign In)
+  const isSignUp = btn.innerText.includes('Up');
+
+  // Reset errors
+  if(errorBox) errorBox.style.display = 'none';
+  emailInput.style.borderColor = 'var(--border-color)';
+  passInput.style.borderColor = 'var(--border-color)';
+
+  // Agar khali chhod diya
+  if(!email || !pass) {
+    if(errorText) errorText.innerText = "Please enter both email and password.";
+    if(errorBox) errorBox.style.display = 'flex';
+    emailInput.style.borderColor = 'var(--red)';
+    passInput.style.borderColor = 'var(--red)';
+    return;
+  }
+
+  // Button ko lock karo taaki user baar baar click na kare
+  btn.disabled = true;
+  btn.innerHTML = 'Please wait...';
+  
+  try {
+    // Check agar Firebase load hone me time le raha hai
+    if (!window.fbAuth) throw new Error("Firebase connection loading... Try again in 2 seconds.");
+
+    if(isSignUp) {
+      await window.fbCreateUser(window.fbAuth, email, pass);
+    } else {
+      await window.fbSignIn(window.fbAuth, email, pass);
+    }
+    
+    // Agar successful hua:
+    btn.innerHTML = 'Success!';
+    btn.style.background = '#10b981'; // Green
+    
+    setTimeout(() => {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById('screen-dashboard').classList.remove('hidden');
+      document.getElementById('global-nav').classList.remove('hidden');
+      
+      // Button wapas normal karo
+      btn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+      btn.style.background = 'var(--primary-dark)';
+      btn.disabled = false;
+    }, 1000);
+
+  } catch (error) {
+    // AGAR GALAT PASSWORD HUA YA ERROR AAYA
+    console.error("Auth Error:", error);
+    
+    // Button wapas normal karo
+    btn.disabled = false;
+    btn.innerHTML = isSignUp ? 'Sign Up' : 'Sign In';
+    
+    // Inputs ko lal (Red) karo
+    emailInput.style.borderColor = 'var(--red)';
+    passInput.style.borderColor = 'var(--red)';
+    if(errorBox) errorBox.style.display = 'flex';
+    
+    // Smart Error Messages
+    if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+      if(errorText) errorText.innerText = "Incorrect email or password.";
+    } else if(error.code === 'auth/email-already-in-use') {
+      if(errorText) errorText.innerText = "This email is already registered. Please log in.";
+    } else if(error.code === 'auth/weak-password') {
+      if(errorText) errorText.innerText = "Password must be at least 6 characters.";
+    } else if(error.code === 'auth/invalid-email') {
+      if(errorText) errorText.innerText = "Invalid email format. E.g. name@roompe.com";
+    } else {
+      if(errorText) errorText.innerText = error.message; // Koi aur issue hoga toh exact error dikhayega
+    }
+  }
+}
+
+// ==========================================
+// 🚀 SECURE LOGOUT ENGINE (ULTRA-SECURE UPGRADE)
+// ==========================================
+async function logOutApp() {
+    try {
+        // Firebase se sach me logout karo
+        if (window.fbAuth) {
+            await window.fbSignOut(window.fbAuth);
+        }
+        
+        // 🚨 MAIN FIX: Browser ki memory se purane user ka saara data uda do
+        localStorage.clear(); 
+        sessionStorage.clear(); // 🛡️ NAYA: Session memory wipe (Security Update)
+        
+        // Saari screens hide karo aur sirf Welcome/Login screen dikhao
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.add('hidden');
+            screen.classList.remove('screen-enter');
+        });
+        
+        document.getElementById('global-nav').classList.add('hidden');
+        document.getElementById('screen-welcome').classList.remove('hidden');
+        
+        console.log("User Logged Out Successfully! Memory Cleared.");
+        
+        // 🛡️ NAYA: JS Variables/RAM ko flush karne ke liye silent page reload
+        setTimeout(() => {
+            window.location.reload();
+        }, 800);
+        
+    } catch (error) {
+        console.error("Logout Error:", error);
+    }
+}
+// 2. INSTANT PROPERTY SWITCHER
+function switchActiveProperty(propId) {
+  RoomPeDB.setActiveProperty(propId);
+  updateAppHeaders();
+  
+  // 🚨 Animation khatam hone ka wait nahi karna, instantly naya data render karo
+  if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
+  if (typeof updateDashboardStats === 'function') updateDashboardStats();
+  if (typeof renderBookingsList === 'function') renderBookingsList();
+  if (typeof renderBillingList === 'function') renderBillingList();
+  
+  closePropertySwitcher();
+}
+function routeToDashboard() {
+  let props = RoomPeDB.getProperties();
+  if (props.length > 0) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    
+    // 🌟 MAGIC FIX: Manual screen show karne ki jagah switchTab call karo
+    // Ye dashboard screen AUR bottom navbar dono ko ek sath show kar dega!
+    switchTab('dashboard'); 
+    
+    updateAppHeaders();
+    if (typeof renderRoomsGrid === 'function') renderRoomsGrid();
+    if (typeof updateDashboardStats === 'function') updateDashboardStats();
+  } else {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    document.getElementById('screen-setup').classList.remove('hidden');
+  }
+}
+
+// ==========================================================================
+// ☁️ ROOMPE MASTER CLOUD ENGINE (SECURE, VISUAL & CONFLICT-FREE)
+// ==========================================================================
+let isReceivingCloudData = false;
+let cloudTimer = null;
+
+// UI Helper: Cloud Icon ko update karne ke liye
+function updateSyncUI(status) {
+    let cloudBox = document.getElementById('cloud-sync-indicator');
+    let cloudIcon = document.getElementById('cloud-icon');
+    if (!cloudBox || !cloudIcon) return;
+
+    if (status === 'syncing') {
+        cloudBox.style.background = '#eff6ff'; // Light Blue
+        cloudBox.style.color = '#3b82f6';
+        cloudIcon.innerText = 'cloud_sync';
+        cloudIcon.style.animation = 'spin 2s linear infinite';
+    } else if (status === 'done') {
+        cloudBox.style.background = '#f0fdf4'; // Light Green
+        cloudBox.style.color = '#10b981';
+        cloudIcon.innerText = 'cloud_done';
+        cloudIcon.style.animation = 'none';
+    } else if (status === 'offline') {
+        cloudBox.style.background = '#fef2f2'; // Light Red
+        cloudBox.style.color = '#ef4444';
+        cloudIcon.innerText = 'cloud_off';
+        cloudIcon.style.animation = 'none';
+    }
+}
+
+// Naya Smart Trigger: Ye tabhi push karega jab local user koi data change karega
+window.triggerCloudSync = function() {
+  if (isReceivingCloudData) return; // Agar Firebase se data download ho raha hai, toh wapas upload mat karo
+  
+  if (!navigator.onLine) {
+      updateSyncUI('offline');
+      if(typeof showToast === 'function') showToast("Offline mode. Data saved locally.", "warning");
+      return;
+  }
+
+  updateSyncUI('syncing');
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(pushToCloud, 1500); // 1.5 sec delay taaki ek sath multiple changes push ho sakein
+};
+
+async function pushToCloud() {
+  let user = window.fbAuth ? window.fbAuth.currentUser : null;
+  if (!window.db || !user) {
+      updateSyncUI('offline');
+      return;
+  }
+  
+  const userRef = window.fbDoc(window.db, "users", user.uid);
+  
+  // Jo current updated local data hai, usko lo
+  let rooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let bookings = JSON.parse(localStorage.getItem('roompe_bookings')) || [];
+  let payments = JSON.parse(localStorage.getItem('roompe_payments')) || [];
+  let properties = JSON.parse(localStorage.getItem('roompe_properties')) || [];
+  
+  try {
+    await window.fbSetDoc(userRef, {
+        rooms: rooms,
+        bookings: bookings,
+        payments: payments,
+        properties: properties,
+        lastUpdated: new Date().getTime()
+    }, { merge: true });
+    console.log("☁️ Private Property Data Safely Saved to Cloud!");
+    updateSyncUI('done');
+  } catch (e) {
+    console.error("Cloud Save Error:", e);
+    updateSyncUI('offline');
+  }
+}
+
+function startCloudSync(uid) {
+  if(!window.db) return;
+  
+  const userRef = window.fbDoc(window.db, "users", uid); 
+  
+  window.fbOnSnapshot(userRef, (docSnap) => {
+      if(docSnap.exists()) {
+          let data = docSnap.data();
+          
+          let localLastUpdated = localStorage.getItem('roompe_last_sync') || 0;
+          if (data.lastUpdated && data.lastUpdated > localLastUpdated) {
+              isReceivingCloudData = true; // 🔒 Lock laga diya
+              updateSyncUI('syncing');
+
+              // Cloud data ko local mein dalo (Bina interceptor ke!)
+              if(data.rooms) localStorage.setItem('roompe_rooms', JSON.stringify(data.rooms));
+              if(data.bookings) localStorage.setItem('roompe_bookings', JSON.stringify(data.bookings));
+              if(data.payments) localStorage.setItem('roompe_payments', JSON.stringify(data.payments));
+              if(data.properties) localStorage.setItem('roompe_properties', JSON.stringify(data.properties));
+              localStorage.setItem('roompe_last_sync', data.lastUpdated);
+              
+              // Data aate hi UI refresh
+              if(typeof renderRoomsGrid === 'function') renderRoomsGrid();
+              if(typeof renderBookingsList === 'function') renderBookingsList();
+              if(typeof updateHotelName === 'function') updateHotelName();
+              if(typeof updateDashboardStats === 'function') updateDashboardStats();
+              
+              // Thodi der baad lock kholo aur loader hatao
+              setTimeout(() => { 
+                  isReceivingCloudData = false; // 🔓 Lock khol diya
+                  updateSyncUI('done');
+                  hideAppLoader(); 
+              }, 800);
+          } else {
+              hideAppLoader();
+          }
+      } else {
+          hideAppLoader(); // Agar user ka pehla din hai (Koi data nahi cloud par)
+      }
+  });
+}
+
+// Internet Detectors
+window.addEventListener('online', () => {
+    updateSyncUI('syncing');
+    pushToCloud();
+    if(typeof showToast === 'function') showToast("Back online! Syncing data...", "success");
+});
+
+window.addEventListener('offline', () => {
+    updateSyncUI('offline');
+});
+
+window.onload = function() {
+  RoomPeDB.init();
+  
+  // 1. Yahan hum pehle saari screens chhupa rahe hain, sirf loader ghoomega
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+
+  // 2. Firebase check karega ki tu login hai ya nahi
+  if(window.fbOnAuthChange && window.fbAuth) {
+    window.fbOnAuthChange(window.fbAuth, (user) => {
+      if (user) {
+        unlockApp(user); // Login hai, toh direct Dashboard khulega
+      } else {
+        document.getElementById('screen-welcome').classList.remove('hidden');
+        hideAppLoader(); 
+      }
+    });
+  } else {
+     document.getElementById('screen-welcome').classList.remove('hidden');
+     hideAppLoader();
+  }
+};
+
+// ==========================================================================
+// 📜 HISTORICAL BOOKING VIEWER
+// ==========================================================================
+function openHistoricalBooking(bookingId) {
+  let allBookings = RoomPeDB.getBookings();
+  let b = allBookings.find(x => x.id === bookingId);
+  if(!b) return;
+  
+  // Us room aur us guest ki payments nikalna
+  let payments = RoomPeDB.getActivePropertyPayments();
+  let bPayments = payments.filter(p => String(p.room) === String(b.room) && p.guest === b.guest);
+  
+  let inDate = new Date(b.checkin);
+  let outDate = b.checkoutDate ? new Date(b.checkoutDate) : new Date();
+  let days = Math.ceil(Math.abs(outDate - inDate) / (1000 * 60 * 60 * 24)) || 1;
+  
+  // UI ko purane data se bharna
+  document.getElementById('rd-room-title').innerText = 'Room ' + b.room + ' (Past Stay)';
+  document.getElementById('rd-guest-name').innerText = b.guest || 'Guest';
+  document.getElementById('rd-guest-initials').innerText = b.guest ? b.guest.charAt(0).toUpperCase() : 'G';
+  document.getElementById('rd-room-cat').innerText = b.stayType || 'Daily Stay';
+  document.getElementById('rd-room-floor').innerText = 'Checked Out: ' + outDate.toLocaleDateString('en-GB');
+  
+  document.getElementById('rd-checkin-date').innerText = inDate.toLocaleDateString('en-GB');
+  document.getElementById('rd-stay-duration').innerText = days + ' days stayed';
+  
+  let totalRent = b.totalBilled || 0;
+  let totalPaid = bPayments.reduce((sum, p) => sum + parseInt(p.amount||0), 0);
+  
+  document.getElementById('rd-room-rent').innerText = '₹' + totalRent.toLocaleString('en-IN');
+  document.getElementById('rd-adv-paid').innerText = '₹' + totalPaid.toLocaleString('en-IN');
+  
+  let extrasListEl = document.getElementById('rd-extras-list');
+  if(extrasListEl) extrasListEl.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px 0;">Archived</div>`;
+  
+  // 🚨 Action Buttons ko Disable karna taaki history alter na ho
+  if(document.getElementById('rd-edit-btn')) document.getElementById('rd-edit-btn').style.display = 'none';
+  if(document.getElementById('rd-checkout-btn')) document.getElementById('rd-checkout-btn').style.display = 'none';
+  if(document.getElementById('rd-add-extra-btn')) document.getElementById('rd-add-extra-btn').style.display = 'none';
+  if(document.getElementById('rd-add-pay-btn')) document.getElementById('rd-add-pay-btn').style.display = 'none';
+  
+  // Dues Box for History
+  let dueCard = document.getElementById('rd-due-card');
+  if(dueCard) { dueCard.style.background = '#f8fafc'; dueCard.style.borderColor = '#e2e8f0'; }
+  document.getElementById('rd-due-title').style.color = '#475569';
+  document.getElementById('rd-due-date').style.color = '#475569';
+  document.getElementById('rd-due-date').innerText = '₹' + (totalRent - totalPaid);
+  document.getElementById('rd-due-status').style.color = '#475569';
+  document.getElementById('rd-due-status').innerText = 'Historical Record Settled';
+  document.getElementById('rd-due-icon').style.color = '#475569';
+  document.getElementById('rd-due-icon').innerText = 'history';
+  
+  // Payment History List
+  let payListContainer = document.getElementById('rd-payments-list');
+  if(payListContainer) {
+    let payHTML = '';
+    if(bPayments.length === 0) {
+      payHTML = `<div style="text-align:center; padding: 20px; color:#94a3b8; font-size:12px;">No payments recorded during this stay.</div>`;
+    } else {
+      bPayments.sort((a,b) => b.date - a.date).forEach(p => {
+        let timeValue = p.date ? (p.date.seconds ? p.date.seconds * 1000 : new Date(p.date).getTime()) : Date.now();
+  let dStr = new Date(timeValue).toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+        payHTML += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:16px; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:12px; margin-bottom:10px;">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <div style="width:36px; height:36px; background:white; border-radius:50%; display:flex; justify-content:center; align-items:center; color:#64748b;">
+                <span class="material-symbols-outlined" style="font-size:18px;">${p.mode === 'UPI' ? 'phone_iphone' : 'payments'}</span>
+              </div>
+              <div>
+                <h5 style="margin:0; font-size:15px; color:#334155; font-weight:800;">₹${parseInt(p.amount).toLocaleString('en-IN')}</h5>
+                <p style="margin:0; font-size:11px; color:#94a3b8;">${dStr} • via ${p.mode}</p>
+              </div>
+            </div>
+            <span style="font-size:10px; background:#e2e8f0; color:#475569; padding:4px 8px; border-radius:6px; font-weight:700;">Archived</span>
+          </div>`;
+      });
+    }
+    payListContainer.innerHTML = payHTML;
+  }
+  
+  switchRoomDetailsTab('overview');
+  openActionScreen('screen-room-details');
+}
+// ==========================================================================
+// 🏢 PROPERTY DETAILS ENGINE (Option 1)
+// ==========================================================================
+
+// 1. Screen kholte waqt purana data fetch karke dikhana
+function openPropertyDetailsScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeProp = props.find(p => p.id === activeId);
+    
+    if(!activeProp) return showToast("Property not found!", "error");
+
+    // Agar property me pehle se data hai, toh form me bhar do, warna khali chhod do
+    document.getElementById('prop-detail-address').value = activeProp.address || '';
+    document.getElementById('prop-detail-wifi').value = activeProp.wifi || '';
+    document.getElementById('prop-detail-checkout').value = activeProp.checkoutTime || '11:00';
+    document.getElementById('prop-detail-rules').value = activeProp.rules || '';
+    
+    openActionScreen('screen-property-details');
+}
+
+// 2. Form bharne ke baad usko usi Property me save karna
+function savePropertyDetails() {
+    let address = document.getElementById('prop-detail-address').value.trim();
+    let wifi = document.getElementById('prop-detail-wifi').value.trim();
+    let checkout = document.getElementById('prop-detail-checkout').value;
+    let rules = document.getElementById('prop-detail-rules').value.trim();
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        // Asli magic: Sirf Active property me ye details add hongi
+        props[activeIndex].address = address;
+        props[activeIndex].wifi = wifi;
+        props[activeIndex].checkoutTime = checkout;
+        props[activeIndex].rules = rules;
+        
+        RoomPeDB.saveProperties(props); // Database me update
+        
+        closeActionScreen();
+        showPopup('success', 'Details Saved', 'Property details and house rules updated successfully!');
+    } else {
+        showToast("Error saving details.", "error");
+    }
+}
+// ==========================================================================
+// 💰 PRICING, TAX & UPI SETUP ENGINE
+// ==========================================================================
+function openPricingSetupScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeProp = props.find(p => p.id === activeId);
+    
+    if(!activeProp) return showToast("Property not found!", "error");
+
+    // Purana data load karo
+    document.getElementById('prop-tax-gstin').value = activeProp.gstin || '';
+    document.getElementById('prop-tax-percent').value = activeProp.gstPercent || '';
+    document.getElementById('prop-tax-electricity').value = activeProp.electricityRate || '';
+    document.getElementById('prop-tax-cycle').value = activeProp.rentCycle || '1st';
+    
+    // Naya UPI data load karo
+    let upiEl = document.getElementById('prop-upi-id');
+    let nameEl = document.getElementById('prop-upi-name');
+    if(upiEl) upiEl.value = activeProp.upiId || '';
+    if(nameEl) nameEl.value = activeProp.upiName || '';
+    
+    openActionScreen('screen-pricing-tax');
+}
+
+function savePricingSetup() {
+    let gstin = document.getElementById('prop-tax-gstin').value.trim().toUpperCase();
+    let gstPercent = document.getElementById('prop-tax-percent').value.trim();
+    let electricityRate = document.getElementById('prop-tax-electricity').value.trim();
+    let rentCycle = document.getElementById('prop-tax-cycle').value;
+    
+    // Naya UPI input uthao
+    let upiId = document.getElementById('prop-upi-id') ? document.getElementById('prop-upi-id').value.trim() : '';
+    let upiName = document.getElementById('prop-upi-name') ? document.getElementById('prop-upi-name').value.trim() : '';
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        props[activeIndex].gstin = gstin;
+        props[activeIndex].gstPercent = gstPercent;
+        props[activeIndex].electricityRate = electricityRate;
+        props[activeIndex].rentCycle = rentCycle;
+        
+        // UPI Save
+        props[activeIndex].upiId = upiId;
+        props[activeIndex].upiName = upiName;
+        
+        RoomPeDB.saveProperties(props); 
+        
+        closeActionScreen();
+        showPopup('success', 'Settings Saved', 'Tax and UPI setup updated successfully!');
+    } else {
+        showToast("Error saving details.", "error");
+    }
+}
+// ==========================================================================
+// 👥 STAFF & ROLES ENGINE
+// ==========================================================================
+
+function openStaffRolesScreen() {
+    renderStaffList(); // Pehle list load karo
+    openActionScreen('screen-staff-roles'); // Fir screen kholo
+}
+
+// 1. Staff ki List dikhane ka engine
+function renderStaffList() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let staffListContainer = document.getElementById('staff-list-container');
+    
+    // Agar koi staff nahi hai
+    if(!activeProp || !activeProp.staff || activeProp.staff.length === 0) {
+        staffListContainer.innerHTML = `<div style="text-align:center; padding: 20px; background:white; border-radius:12px; border:1px dashed #cbd5e1; color:#94a3b8; font-size:13px;">No staff added yet. Add your first team member below.</div>`;
+        return;
+    }
+    
+    // Agar staff hai toh list banao
+    let html = '';
+    activeProp.staff.forEach((s, index) => {
+        let roleColor = s.role === 'Manager' ? '#0ea5e9' : (s.role === 'Receptionist' ? '#8b5cf6' : '#f59e0b');
+        let roleBg = s.role === 'Manager' ? '#e0f2fe' : (s.role === 'Receptionist' ? '#ede9fe' : '#fef3c7');
+        
+        html += `
+        <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div style="width: 40px; height: 40px; background: #f8fafc; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #475569; font-weight: bold; font-size: 16px; border: 1px solid #e2e8f0;">
+                    ${s.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <h5 style="margin: 0 0 4px 0; font-size: 14px; color: #0f172a; font-weight: 800;">${s.name}</h5>
+                    <p style="margin: 0; font-size: 12px; color: #64748b;">+91 ${s.phone}</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <span style="background: ${roleBg}; color: ${roleColor}; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${s.role}</span>
+                <div style="margin-top: 8px; font-size: 11px; color: #ef4444; cursor: pointer; font-weight: 600;" onclick="removeStaff(${index})">Remove</div>
+            </div>
+        </div>`;
+    });
+    
+    staffListContainer.innerHTML = html;
+}
+
+// 2. Naya Staff Save karna
+function saveNewStaff() {
+    let name = document.getElementById('staff-name').value.trim();
+    let phone = document.getElementById('staff-phone').value.trim();
+    let role = document.getElementById('staff-role').value;
+    let pin = document.getElementById('staff-pin').value.trim();
+
+    if(!name || !phone || !pin) return showToast("Enter Full details!", "error");
+    if(pin.length !== 4) return showToast("Login PIN Required 4-digit.", "error");
+
+    let props = RoomPeDB.getProperties();
+    let activeId = RoomPeDB.getActiveProperty();
+    let activeIndex = props.findIndex(p => p.id === activeId);
+
+    if(activeIndex !== -1) {
+        if(!props[activeIndex].staff) props[activeIndex].staff = [];
+        
+        // Data Push karo
+        props[activeIndex].staff.push({
+            name: name,
+            phone: phone,
+            role: role,
+            pin: pin,
+            addedAt: new Date().getTime()
+        });
+        
+        RoomPeDB.saveProperties(props);
+        
+        // Form Khali karo
+        document.getElementById('staff-name').value = '';
+        document.getElementById('staff-phone').value = '';
+        document.getElementById('staff-pin').value = '';
+        
+        renderStaffList(); // List ko turant refresh karo
+        showPopup('success', 'Staff Added', `${name} has been added as ${role}.`);
+    }
+}
+
+// 3. Staff ko Delete karna
+function removeStaff(index) {
+    if(confirm("Are you sure you want to remove this staff member? They will lose access instantly.")) {
+        let props = RoomPeDB.getProperties();
+        let activeId = RoomPeDB.getActiveProperty();
+        let activeIndex = props.findIndex(p => p.id === activeId);
+        
+        if(activeIndex !== -1 && props[activeIndex].staff) {
+            props[activeIndex].staff.splice(index, 1); // Array se delete karo
+            RoomPeDB.saveProperties(props);
+            renderStaffList(); // UI Refresh
+        }
+    }
+}
+// ==========================================================================
+// ⚙️ APP PREFERENCES & LANGUAGE ENGINE (PREMIUM UI LOGIC)
+// ==========================================================================
+
+// --- APP SETTINGS LOGIC ---
+function openAppSettingsScreen() {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    let savedNotif = localStorage.getItem('roompe_pref_notif') || 'on';
+    
+    // Toggles ko on/off karna
+    document.getElementById('toggle-dark').checked = (savedTheme === 'dark');
+    document.getElementById('toggle-notif').checked = (savedNotif === 'on');
+    
+    // Language preview update karna
+    let savedLang = localStorage.getItem('roompe_pref_lang') || 'en';
+    let langMap = {'en': 'English (IN)', 'hi': 'हिंदी', 'bn': 'বাংলা'};
+    document.getElementById('stg-lang-preview').innerText = langMap[savedLang] + ' • Selected';
+    
+    openActionScreen('screen-app-settings');
+}
+
+/* ==========================================================================
+   ⚙️ APP SETTINGS ENGINE (DARK MODE, BACKUP & NOTIFICATIONS)
+   ========================================================================== */
+
+// 1. Dark Mode Apply Karne Ka Asli Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// 2. App khulte hi purani theme wapas lana
+window.addEventListener('DOMContentLoaded', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 1. Dark Mode Apply Karne Ka Asli Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    } else {
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+// 2. App khulte hi purani theme wapas lana
+window.addEventListener('DOMContentLoaded', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 3. Naya Save Settings Function
+function saveAppSettings() {
+    let isDark = document.getElementById('toggle-dark').checked;
+    let isNotif = document.getElementById('toggle-notif').checked;
+    
+    // A. Theme Save aur Apply
+    let theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('roompe_pref_theme', theme);
+    applyTheme(theme); 
+
+    // B. Push Notifications Save & Permission
+    localStorage.setItem('roompe_pref_notif', isNotif ? 'on' : 'off');
+    if (isNotif && "Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if(permission === "granted") showToast("Push Notifications Enabled! 🔔", "success");
+            });
+        }
+    }
+    
+    closeActionScreen();
+    showPopup('success', 'Preferences Saved', 'Your system settings have been updated successfully.');
+}
+
+// 4. Force Cloud Backup Engine
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        pushToCloud();
+    } else {
+        showToast('Cloud sync is connecting... Please wait.', 'error');
+    }
+}
+
+// 4. Force Cloud Backup Engine
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        pushToCloud();
+    } else {
+        showToast('Cloud sync is connecting... Please wait.', 'error');
+    }
+}
+
+// --- LANGUAGE LOGIC ---
+let tempSelectedLang = 'en'; // Temporary selection hold karne ke liye
+
+function openLanguageScreen() {
+    tempSelectedLang = localStorage.getItem('roompe_pref_lang') || 'en';
+    selectLang(tempSelectedLang); // UI me select karo
+    openActionScreen('screen-language');
+}
+
+function selectLang(langCode) {
+    tempSelectedLang = langCode;
+    
+    // Sabhi cards ko reset karo
+    ['en', 'hi', 'bn'].forEach(code => {
+        let card = document.getElementById('lang-btn-' + code);
+        if(card) {
+            card.classList.remove('active');
+            card.querySelector('.material-symbols-outlined').style.display = 'none'; // Checkmark chhupao
+            card.querySelector('p').style.color = '#64748b'; // Description gray
+            card.querySelector('.circle-check').style.background = 'transparent';
+        }
+    });
+    
+    // Jo select hua usko green/active karo
+    let activeCard = document.getElementById('lang-btn-' + langCode);
+    if(activeCard) {
+        activeCard.classList.add('active');
+        activeCard.querySelector('.material-symbols-outlined').style.display = 'block'; // Checkmark dikhao
+        activeCard.querySelector('p').style.color = '#059669'; // Description green
+        activeCard.querySelector('.circle-check').style.background = '#059669';
+    }
+}
+
+function saveLanguageSetting() {
+    localStorage.setItem('roompe_pref_lang', tempSelectedLang);
+    
+    let displayLang = "English (IN)";
+    if(tempSelectedLang === 'hi') displayLang = "हिंदी";
+    if(tempSelectedLang === 'bn') displayLang = "বাংলা";
+    
+    // More tab ki main screen par language naam update
+    let actionTexts = document.querySelectorAll('.setting-action .action-text');
+    if(actionTexts.length > 0) {
+        actionTexts.forEach(el => {
+            if(el.innerText.includes('English') || el.innerText.includes('हिंदी') || el.innerText.includes('বাংলা')) {
+                el.innerText = displayLang;
+            }
+        });
+    }
+    
+    // Wapas settings me bhej do (jaise real app me hota hai)
+    openAppSettingsScreen();
+    setTimeout(() => {
+        showPopup('success', 'Language Updated', `App language changed to ${displayLang}.`);
+    }, 400);
+}
+// ==========================================================================
+// 🧾 BILLING & INVOICE ENGINE (REAL MATH)
+// ==========================================================================
+
+// Ye variables calculation memory me rakhenge
+let currentBillState = {
+    baseRent: 6000, // Abhi ke liye default, real app me DB room price se aayega
+    prevReading: 1420,
+    elecRate: 10,
+    gstPercent: 0,
+    subtotal: 0,
+    totalGST: 0,
+    grandTotal: 0
+};
+
+// 1. Checkout Screen Kholna (Database se GST aur Rate uthana)
+function openCheckoutScreen() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    
+    if(activeProp) {
+        // "Pricing & Tax Setup" se real values nikalna
+        currentBillState.elecRate = parseFloat(activeProp.electricityRate) || 10;
+        currentBillState.gstPercent = parseFloat(activeProp.gstPercent) || 0;
+        
+        // UI me Update karna
+        document.getElementById('chk-elec-rate').innerText = `⚡ ₹${currentBillState.elecRate} / unit`;
+        document.getElementById('chk-subtitle').innerText = `${activeProp.name || 'Property'} • Room 101`;
+    }
+
+    // Input fields reset
+    document.getElementById('calc-curr').value = '';
+    document.getElementById('calc-extra-amt').value = '';
+    document.getElementById('calc-extra-desc').value = '';
+    
+    liveCalculateBill(); // Pehli baar math run karo
+    
+    // Screen open karo
+    document.getElementById('screen-checkout').classList.remove('hidden');
+}
+
+// 2. LIVE MATH ENGINE (Jab bhi user type karega, ye chalega)
+function liveCalculateBill() {
+    let currReading = parseFloat(document.getElementById('calc-curr').value) || 0;
+    let extraAmt = parseFloat(document.getElementById('calc-extra-amt').value) || 0;
+    
+    // Bijli ka hisaab (Agar current reading purani se zyada hai)
+    let units = 0;
+    let elecTotal = 0;
+    if (currReading > currentBillState.prevReading) {
+        units = currReading - currentBillState.prevReading;
+        elecTotal = units * currentBillState.elecRate;
+    }
+
+    // Subtotal (Rent + Bijli + Extra)
+    currentBillState.subtotal = currentBillState.baseRent + elecTotal + extraAmt;
+    
+    // GST (Tax) calculation
+    currentBillState.totalGST = currentBillState.subtotal * (currentBillState.gstPercent / 100);
+    
+    // Grand Total
+    currentBillState.grandTotal = currentBillState.subtotal + currentBillState.totalGST;
+
+    // ----- UI KO UPDATE KARNA -----
+    // Electricity Texts
+    document.getElementById('calc-units-txt').innerText = `Units: ${units}`;
+    document.getElementById('calc-rate-txt').innerText = `Rate: ${units} x ₹${currentBillState.elecRate}`;
+    document.getElementById('calc-elec-total').innerText = `₹${elecTotal.toLocaleString('en-IN')}`;
+    
+    // Grand Total Text
+    document.getElementById('calc-grand-total').innerText = `₹${Math.round(currentBillState.grandTotal).toLocaleString('en-IN')}`;
+}
+
+// 3. INVOICE GENERATE KARNA (Checkout se data Invocie par bhejna)
+function generateFinalInvoice() {
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    
+    let currReading = parseFloat(document.getElementById('calc-curr').value) || currentBillState.prevReading;
+    let units = Math.max(0, currReading - currentBillState.prevReading);
+    let elecTotal = units * currentBillState.elecRate;
+    
+    let extraAmt = parseFloat(document.getElementById('calc-extra-amt').value) || 0;
+    let extraDesc = document.getElementById('calc-extra-desc').value || 'Additional Charges';
+
+    // Invoice Header & Info
+    let date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    let invNum = `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    document.getElementById('inv-header-num').innerText = invNum;
+    document.getElementById('inv-num').innerText = invNum;
+    document.getElementById('inv-date').innerText = date;
+    
+    if(activeProp) {
+        document.getElementById('inv-prop-name').innerText = activeProp.name || 'RoomPe Property';
+        document.getElementById('inv-prop-address').innerText = activeProp.address || 'Address not provided';
+        document.getElementById('inv-gst-txt').innerText = `GST Tax (${activeProp.gstPercent || 0}%) ${activeProp.gstin ? '#' + activeProp.gstin : ''}`;
+    }
+
+    // Line Items populate karna
+    document.getElementById('inv-amt-base').innerText = `₹${currentBillState.baseRent.toLocaleString('en-IN')}`;
+    
+    // Electricity Row
+    document.getElementById('inv-elec-units').innerText = `⚡ ${units} units`;
+    document.getElementById('inv-elec-desc').innerText = `Meter: ${currentBillState.prevReading} to ${currReading} @₹${currentBillState.elecRate}/unit`;
+    document.getElementById('inv-amt-elec').innerText = `₹${elecTotal.toLocaleString('en-IN')}`;
+    
+    // Extra Charges Row
+    if(extraAmt > 0) {
+        document.getElementById('inv-row-extra').style.display = 'table-row';
+        document.getElementById('inv-extra-desc').innerText = extraDesc;
+        document.getElementById('inv-amt-extra').innerText = `₹${extraAmt.toLocaleString('en-IN')}`;
+    } else {
+        document.getElementById('inv-row-extra').style.display = 'none';
+    }
+
+    // Totals
+    document.getElementById('inv-amt-subtotal').innerText = `₹${currentBillState.subtotal.toLocaleString('en-IN')}`;
+    document.getElementById('inv-amt-gst').innerText = `₹${Math.round(currentBillState.totalGST).toLocaleString('en-IN')}`;
+    document.getElementById('inv-grand-total').innerText = `₹${Math.round(currentBillState.grandTotal).toLocaleString('en-IN')}`;
+
+    // Switch Screens (Checkout band, Invoice chalu)
+    document.getElementById('screen-checkout').classList.add('hidden');
+    document.getElementById('screen-invoice').classList.remove('hidden');
+}
+
+// 4. WhatsApp Par Bill Bhejna
+function shareOnWhatsApp() {
+    let invNum = document.getElementById('inv-num').innerText;
+    let amount = document.getElementById('inv-grand-total').innerText;
+    let propName = document.getElementById('inv-prop-name').innerText;
+    
+    let msg = `Hello! 🏢\nHere is your final bill from *${propName}*.\n\n📄 Invoice: ${invNum}\n💰 Total Amount: *${amount}*\n\nThank you for staying with us! - Powered by RoomPe.`;
+    
+    let whatsappUrl = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank');
+}
+/* ==========================================================================
+   🚀 ROOMPE CUSTOM POPUP ENGINE (Fixed Confirm Buttons)
+   ========================================================================== */
+function showCustomPopup(type, title, message, confirmCallback = null) {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  const iconBox = document.getElementById('roompe-popup-icon');
+  const titleEl = document.getElementById('roompe-popup-title');
+  const msgEl = document.getElementById('roompe-popup-msg');
+  const btnBox = document.getElementById('roompe-popup-buttons');
+
+  // 1. Text Set Karo
+  titleEl.innerText = title;
+  msgEl.innerHTML = message;
+
+  // 2. Theme & Buttons Set Karo
+  if (type === 'danger' || type === 'logout') {
+    iconBox.style.background = '#fef2f2';
+    iconBox.style.color = '#ef4444';
+    iconBox.innerHTML = `<span class="material-symbols-outlined" style="font-size:32px;">${type === 'logout' ? 'logout' : 'delete'}</span>`;
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="flex:1; padding:14px; border-radius:12px; background:#f1f5f9; color:#475569; border:none; font-weight:700; font-size:15px; cursor:pointer;">Cancel</button>
+      <button id="popup-confirm-btn" style="flex:1; padding:14px; border-radius:12px; background:#ef4444; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">${type === 'logout' ? 'Yes, Logout' : 'Delete'}</button>
+    `;
+  } 
+  else if (type === 'success') {
+    iconBox.style.background = '#ecfdf5';
+    iconBox.style.color = '#059669';
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="font-size:32px;">check_circle</span>';
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="width:100%; padding:14px; border-radius:12px; background:#059669; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">Okay, Done</button>
+    `;
+  }
+  // 🚨 FIX: YAHAN 'confirm' WALA MISSING CODE ADD KIYA HAI
+  else if (type === 'confirm') {
+    iconBox.style.background = '#fef3c7'; // Warning Yellow Background
+    iconBox.style.color = '#d97706'; // Warning Yellow Text
+    iconBox.innerHTML = '<span class="material-symbols-outlined" style="font-size:32px;">help</span>';
+    
+    btnBox.innerHTML = `
+      <button onclick="closeCustomPopup()" style="flex:1; padding:14px; border-radius:12px; background:#f1f5f9; color:#475569; border:none; font-weight:700; font-size:15px; cursor:pointer;">Cancel</button>
+      <button id="popup-confirm-btn" style="flex:1; padding:14px; border-radius:12px; background:#059669; color:white; border:none; font-weight:700; font-size:15px; cursor:pointer;">Yes, Do it</button>
+    `;
+  }
+
+  // 3. Agar 'Yes' button dabaya, toh agla function chalao (Callback)
+  if (confirmCallback) {
+    setTimeout(() => {
+      const confirmBtn = document.getElementById('popup-confirm-btn');
+      if (confirmBtn) {
+        confirmBtn.onclick = () => {
+          closeCustomPopup();
+          confirmCallback(); // Jaise: logOutApp() ya checkoutGuest()
+        };
+      }
+    }, 50);
+  }
+
+  // 4. Popup Screen Par Dikhao (With smooth animation)
+  overlay.style.display = 'flex';
+  setTimeout(() => {
+    box.classList.add('popup-active');
+  }, 10);
+}
+function closeCustomPopup() {
+  const overlay = document.getElementById('roompe-popup-overlay');
+  const box = document.getElementById('roompe-popup-box');
+  
+  box.classList.remove('popup-active');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 200); // 200ms animation timer
+}
+// --- PASSWORD VISIBILITY TOGGLE ---
+function togglePasswordVisibility() {
+  const passInput = document.getElementById('auth-pass');
+  const eyeIcon = document.getElementById('toggle-password-eye');
+  
+  if (passInput.type === 'password') {
+    passInput.type = 'text';
+    eyeIcon.innerText = 'visibility';
+    eyeIcon.style.color = 'var(--primary-dark)'; // Green color when visible
+  } else {
+    passInput.type = 'password';
+    eyeIcon.innerText = 'visibility_off';
+    eyeIcon.style.color = 'var(--text-light)'; // Grey color when hidden
+  }
+}
+/* ==========================================================================
+   🚀 SMART RENT CALCULATOR (Pro-Rata Engine)
+   ========================================================================== */
+function calculateSmartRent(stayType, durationDays, dailyRate, monthlyRate) {
+  // Fallbacks: Agar kisi ne ek box khali chhod diya ho
+  const safeDaily = dailyRate > 0 ? dailyRate : Math.round(monthlyRate / 30);
+  const safeMonthly = monthlyRate > 0 ? monthlyRate : (dailyRate * 30);
+
+  if (stayType === "Daily") {
+    // Hotel Style: Seedha multiply
+    return durationDays * safeDaily;
+  } 
+  else if (stayType === "Monthly") {
+    // PG Style: Mahine alag, extra din alag (Pro-Rata)
+    const totalMonths = Math.floor(durationDays / 30);
+    const extraDays = durationDays % 30;
+    
+    // Per day of monthly rent (e.g. 6000/30 = 200 per day)
+    const proRataDailyRate = Math.round(safeMonthly / 30); 
+    
+    return (totalMonths * safeMonthly) + (extraDays * proRataDailyRate);
+  }
+  
+  return 0;
+}
+/* ==========================================================================
+   🚀 PAYMENT & CHECKOUT ENGINE
+   ========================================================================== */
+
+// --- 1. OPEN PAYMENT MODAL ---
+// Tere '+' icon ke onclick me ye call karna: onclick="openPaymentModal()"
+function openPaymentModal() {
+  document.getElementById('pay-amount-input').value = ''; // Purana amount hatao
+  document.getElementById('modal-add-payment').style.display = 'flex'; // Modal dikhao
+}
+
+// --- 2. SUBMIT PAYMENT & AUTO-DEDUCT LOGIC ---
+async function submitNewPayment() {
+  const amount = Number(document.getElementById('pay-amount-input').value);
+  const mode = document.getElementById('pay-mode-input').value;
+  
+  if(amount <= 0) {
+    showCustomPopup('danger', 'Invalid Amount', 'Please enter an amount greater than 0.');
+    return;
+  }
+
+  // 1. Modal band karo
+  document.getElementById('modal-add-payment').style.display = 'none';
+
+  // 2. 🟢 AUTO-DEDUCTION LOGIC (UI MATH)
+  // Note: HTML me Amount Paid ko id="ui-amount-paid" aur Net Payable ko id="ui-net-payable" de dena
+  const paidEl = document.getElementById('ui-amount-paid');
+  const payableEl = document.getElementById('ui-net-payable');
+  
+  if(paidEl && payableEl) {
+    // Purana text utha kar usme se comma/₹ hata kar Number me badlo
+    let currentPaid = Number(paidEl.innerText.replace(/[^0-9.-]+/g,""));
+    let currentPayable = Number(payableEl.innerText.replace(/[^0-9.-]+/g,""));
+
+    // Calculation
+    currentPaid += amount;
+    currentPayable -= amount;
+    if(currentPayable < 0) currentPayable = 0; // Negative me na jaye
+
+    // Wapas UI me update karo instantly
+    paidEl.innerText = `₹${currentPaid.toLocaleString('en-IN')}`;
+    payableEl.innerText = `₹${currentPayable.toLocaleString('en-IN')}`;
+    calculateNetPayable(); // Naya amount aate hi color aur status update karega
+  }
+
+  // 3. Success Popup Dikhao
+  showCustomPopup('success', 'Payment Added', `₹${amount} successfully received via ${mode}.`);
+
+  // 4. (Backend) Yahan tu Firebase me save karne ka code likh dena
+  // e.g., await window.fbAddDoc(collection(db, "bookings", bookingId, "payments"), { amount, mode, date: new Date() });
+}
+
+// --- 3. CHECKOUT GUEST ---
+// Checkout button ke onclick me ye dalna: onclick="triggerCheckout('Room 202')"
+function triggerCheckout(roomNo) {
+  // Apna custom popup use kar rahe hain (Alert nahi!)
+  showCustomPopup(
+    'danger', 
+    'Checkout Guest?', 
+    `Are you sure you want to checkout the guest from ${roomNo}? This will free up the room and lock their ledger.`, 
+    () => processCheckoutAction(roomNo) // Agar Yes dabaya toh ye function chalega
+  );
+}
+
+// Asli Checkout ka code
+async function processCheckoutAction(roomNo) {
+  console.log(`${roomNo} is being checked out...`);
+  
+  // (Backend) Yahan tu Firebase me Update marega:
+  // 1. Room ka status 'Vacant' set karega
+  // 2. Room ki currentBookingId ko null/empty karega
+  
+  // Success popup aur screen refresh
+  showCustomPopup('success', 'Checkout Complete', `${roomNo} is now vacant and ready for new guests.`);
+  
+  // Thodi der baad Dashboard ya Rooms list par wapas bhej do
+  setTimeout(() => {
+    // Apni close screen wali function yahan call kar dena
+    // closeActionScreen(); 
+  }, 1500);
+}
+/* ==========================================================================
+   💰 SMART FINANCE ENGINE (Net Payable Calculator)
+   ========================================================================== */
+function calculateNetPayable() {
+  // 1. UI se text uthao aur sirf Numbers nikalo (₹ aur comma hata kar)
+  const rentEl = document.getElementById('rd-room-rent');
+  const paidEl = document.getElementById('ui-amount-paid');
+  const payableEl = document.getElementById('ui-net-payable');
+  const statusEl = document.getElementById('rd-due-status');
+  const dueCard = document.getElementById('rd-due-card');
+  const dueIcon = document.getElementById('rd-due-icon');
+  const dueTitle = document.getElementById('rd-due-title');
+
+  if (!rentEl || !paidEl || !payableEl) return; // Agar elements nahi hain toh ruk jao
+
+  let totalRent = Number(rentEl.innerText.replace(/[^0-9]/g, '')) || 0;
+  let amountPaid = Number(paidEl.innerText.replace(/[^0-9]/g, '')) || 0;
+  
+  // 2. The Core Math 
+  let netPayable = totalRent - amountPaid;
+  
+  // 3. UI Updates (Premium Dynamic Colors)
+  if (netPayable > 0) {
+    // 🔴 PENDING DUE (Lal Rang)
+    payableEl.innerText = `₹${netPayable.toLocaleString('en-IN')}`;
+    statusEl.innerText = "Total Pending Due";
+    dueTitle.innerText = "Net Payable";
+    dueCard.style.background = "#fff1f2";
+    dueCard.style.borderColor = "#fecdd3";
+    payableEl.style.color = "#e11d48";
+    dueIcon.style.color = "#e11d48";
+    dueTitle.style.color = "#e11d48";
+  } 
+  else if (netPayable === 0) {
+    // 🟢 CLEARED (Hara Rang)
+    payableEl.innerText = "₹0";
+    statusEl.innerText = "All Dues Cleared ✓";
+    dueTitle.innerText = "Settled";
+    dueCard.style.background = "#ecfdf5";
+    dueCard.style.borderColor = "#bbf7d0";
+    payableEl.style.color = "#059669";
+    dueIcon.style.color = "#059669";
+    dueTitle.style.color = "#059669";
+  } 
+  else {
+    // 🔵 ADVANCE (Neela Rang - Agar minus me chala gaya)
+    let advanceAmount = Math.abs(netPayable);
+    payableEl.innerText = `₹${advanceAmount.toLocaleString('en-IN')}`;
+    statusEl.innerText = "Advance / Refundable";
+    dueTitle.innerText = "Extra Paid";
+    dueCard.style.background = "#eff6ff";
+    dueCard.style.borderColor = "#bfdbfe";
+    payableEl.style.color = "#2563eb";
+    dueIcon.style.color = "#2563eb";
+    dueTitle.style.color = "#2563eb";
+  }
+}
+// ==========================================
+// 📸 KYC DOCUMENT UPLOAD ENGINE (UPGRADED CLOUD VERSION)
+// ==========================================
+let currentKycFront = "";
+let currentKycBack = "";
+
+function handleKycUpload(input, previewId, side) {
+  let file = input.files[0];
+  if (!file) return;
+
+  // File size limit ab humne badha kar 5MB kar di hai kyunki hum compress kar rahe hain
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Please upload a clear photo under 5MB.', 'error');
+    input.value = ""; 
+    return;
+  }
+
+  showToast('Compressing & Uploading... ⏳', 'warning');
+
+  // Pehle Compress Karo -> Phir Upload Karo
+  compressImageToBase64(file, async function(compressedBase64) {
+    // 1. UI me preview turant dikhao (Taaki user wait na kare)
+    let previewImg = document.getElementById(previewId);
+    if(previewImg) {
+      previewImg.src = compressedBase64;
+      previewImg.style.display = 'block';
+    }
+
+    // 2. Cloud par bhejo (Unique naam ke sath)
+    let fileName = `${Date.now()}_${side}_${Math.floor(Math.random() * 1000)}.jpg`;
+    let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+    if (cloudUrl) {
+      // 3. Memory me Cloud URL save karo (Pehle lamba Base64 hota tha)
+      if (side === 'front') currentKycFront = cloudUrl;
+      if (side === 'back') currentKycBack = cloudUrl;
+      
+      showToast(`${side.charAt(0).toUpperCase() + side.slice(1)} ID securely saved to Cloud! ☁️`, 'success');
+    }
+  });
+}
+
+// ==========================================
+// 📸 ROOM DETAILS DIRECT KYC UPLOAD ENGINE (UPGRADED CLOUD VERSION)
+// ==========================================
+function uploadKycFromRoomDetails(input) {
+  let file = input.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('Please upload a photo under 5MB.', 'error');
+    input.value = '';
+    return;
+  }
+
+  let roomTitle = document.getElementById('rd-room-title').innerText; 
+  let roomNoStr = roomTitle.replace('Room', '').trim();
+  
+  let activePropId = RoomPeDB.getActiveProperty();
+  let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+  let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNoStr) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+
+  if(absIndex === -1) return;
+
+  showToast('Uploading ID to Secure Cloud... ⏳', 'warning');
+
+  compressImageToBase64(file, async function(compressedBase64) {
+    let fileName = `room_${roomNoStr}_${Date.now()}.jpg`;
+    let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+    if (cloudUrl) {
+      // Asli Cloud URL Database me save karo
+      if (!absoluteRooms[absIndex].idFront) {
+          absoluteRooms[absIndex].idFront = cloudUrl;
+      } else {
+          absoluteRooms[absIndex].idBack = cloudUrl;
+      }
+
+      RoomPeDB.saveRooms(absoluteRooms);
+      showToast('Guest ID securely saved to Cloud! ☁️', 'success');
+      
+      // Screen ko turant refresh karo taaki photo dikh jaye
+      openRoomDetails(roomNoStr); 
+    }
+  });
+}
+// ==========================================================================
+// 🚀 DYNAMIC RENT REMINDER ENGINE (WITH TEMPLATES & UPI)
+// ==========================================================================
+
+// Global state taaki teeno templates me same data use ho sake
+let currentReminderData = {
+    name: '', room: '', amount: '', formattedAmount: '', phone: '', 
+    propName: '', upiLinkText: '', plainUpiLink: ''
+};
+
+function openReminderScreen(name, room, amount, phone) {
+    // 1. Data ko global state me save karo
+    currentReminderData.name = name || 'Guest';
+    currentReminderData.room = room || '';
+    currentReminderData.amount = amount || 0;
+    currentReminderData.formattedAmount = "₹" + parseInt(amount).toLocaleString('en-IN');
+    currentReminderData.phone = phone || '919876543210'; // Default phone if missing
+
+    // 2. Property aur UPI data nikalo
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let upiId = activeProp && activeProp.upiId ? activeProp.upiId : '';
+    currentReminderData.propName = activeProp && activeProp.upiName ? activeProp.upiName : 'RoomPe Property';
+    
+    // 3. UPI Links Generate Karo
+    if (upiId) {
+        let deepLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(currentReminderData.propName)}&am=${amount}&cu=INR`;
+        // HTML Preview ke liye (Green Box)
+        currentReminderData.upiLinkText = `<div style="background:#ecfdf5; padding:8px 12px; border-radius:8px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#059669; margin-top:12px; font-size:13px;"><span class="material-symbols-outlined" style="font-size:16px;">link</span> pay.roompe.in/r/${currentReminderData.room}</div>`;
+        // WhatsApp ke liye asli link
+        currentReminderData.plainUpiLink = `\n\n👉 *Pay instantly via UPI:* \n${deepLink}`;
+    } else {
+        currentReminderData.upiLinkText = `<div style="color:#ef4444; font-size:12px; font-weight:600; margin-top:12px;">⚠️ Add UPI ID in Settings to attach payment link.</div>`;
+        currentReminderData.plainUpiLink = "\n\n(Please contact reception for payment details.)";
+    }
+
+    // 4. Top Card UI Update Karo (Screenshot ke hisaab se)
+    let initials = currentReminderData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    
+    // Yahan ensure karna ki tere HTML me ye IDs hon
+    if(document.getElementById('rem-initials')) document.getElementById('rem-initials').innerText = initials;
+    if(document.getElementById('rem-name')) document.getElementById('rem-name').innerText = currentReminderData.name;
+    if(document.getElementById('rem-room')) document.getElementById('rem-room').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; color:#94a3b8;">door_front</span> Room ${currentReminderData.room} • Active Tenant`;
+    if(document.getElementById('rem-amount')) document.getElementById('rem-amount').innerText = currentReminderData.formattedAmount;
+
+    // 5. Default "Standard" template load karo
+    switchReminderTemplate('standard');
+
+    openActionScreen('screen-send-reminder');
+}
+
+// 🎯 Template Switcher Logic
+function switchReminderTemplate(type) {
+    let msgPreviewHTML = "";
+    let plainTextMessage = "";
+    
+    let { name, room, formattedAmount, propName, upiLinkText, plainUpiLink, phone } = currentReminderData;
+
+    // Teeno alag-alag messages
+    if (type === 'standard') {
+        msgPreviewHTML = `<p>Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> at ${propName} is <span style="color:#e11d48;">due today</span>.</p><br><p>Kindly click below to pay instantly via UPI/Card to avoid late penalty charges:</p>${upiLinkText}`;
+        plainTextMessage = `Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* at ${propName} is due today. Kindly pay instantly to avoid late penalty charges.${plainUpiLink}`;
+    } 
+    else if (type === 'gentle') {
+        msgPreviewHTML = `<p>Hi <strong>${name}</strong>, just a gentle reminder that your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is pending.</p><br><p>Whenever you have a moment, please clear the dues. Thank you for staying with us!</p>${upiLinkText}`;
+        plainTextMessage = `Hi *${name}*, just a gentle reminder that your rent of *${formattedAmount}* for *Room ${room}* is pending. Whenever you have a moment, please clear the dues. Thank you!${plainUpiLink}`;
+    } 
+    else if (type === 'urgent') {
+        msgPreviewHTML = `<p><strong>URGENT:</strong> Dear <strong>${name}</strong>, your rent of <strong>${formattedAmount}</strong> for <strong>Room ${room}</strong> is <span style="color:#e11d48; font-weight:bold;">OVERDUE</span>.</p><br><p>Please clear the payment immediately to avoid daily late fees or service interruption.</p>${upiLinkText}`;
+        plainTextMessage = `*URGENT:* Dear *${name}*, your rent of *${formattedAmount}* for *Room ${room}* is OVERDUE. Please clear the payment immediately to avoid daily late fees.${plainUpiLink}`;
+    }
+
+    // UI me preview update karo
+    if(document.getElementById('rem-msg-text')) {
+        document.getElementById('rem-msg-text').innerHTML = msgPreviewHTML;
+    }
+
+    // WhatsApp aur SMS buttons me active template ka text set karo
+    document.getElementById('rem-wa-btn').onclick = function() {
+        window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(plainTextMessage)}`, '_blank');
+    };
+    document.getElementById('rem-sms-btn').onclick = function() {
+        window.open(`sms:+91${phone}?body=${encodeURIComponent(plainTextMessage)}`, '_self');
+    };
+
+    // 🎨 Buttons ka Rang Badlo (Green / Active state set karna)
+    // Pehle sabko normal (white) kar do
+    ['standard', 'gentle', 'urgent'].forEach(t => {
+        let btn = document.getElementById('btn-tpl-' + t);
+        if(btn) {
+            btn.style.background = 'white';
+            btn.style.color = '#475569';
+            btn.style.border = '1px solid #e2e8f0';
+            btn.style.fontWeight = '500';
+            // Checkmark chhupao
+            if(btn.innerHTML.includes('✓')) btn.innerHTML = btn.innerHTML.replace('✓', '').trim();
+        }
+    });
+
+    // Jo select kiya hai usko Green aur BOLD kardo
+    let activeBtn = document.getElementById('btn-tpl-' + type);
+    if(activeBtn) {
+        activeBtn.style.background = '#059669'; // Green
+        activeBtn.style.color = 'white';
+        activeBtn.style.border = '1px solid #059669';
+        activeBtn.style.fontWeight = '700';
+        activeBtn.innerHTML = activeBtn.innerHTML + ' ✓';
+    }
+}
+
+// ==========================================================================
+// 🚀 PREMIUM FLOATING PILL NOTIFICATION ENGINE
+// ==========================================================================
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    
+    // Agar container HTML me nahi hai, toh automatic bana lo
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    let toast = document.createElement('div');
+    toast.className = `custom-toast ${type}`;
+
+    // Icon select karna type ke hisaab se
+    let iconName = 'check_circle';
+    if (type === 'error') iconName = 'error';
+    if (type === 'warning') iconName = 'warning';
+
+    toast.innerHTML = `
+        <span class="material-symbols-outlined icon">${iconName}</span>
+        <span class="message">${message}</span>
+    `;
+
+    container.appendChild(toast);
+
+    // 3 Second baad automatically hatana (dropUp animation)
+    setTimeout(() => {
+        toast.style.animation = 'dropUp 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards';
+        setTimeout(() => {
+            toast.remove();
+        }, 300); // Animation khatam hone ka wait
+    }, 3000);
+}
+
+// ==========================================================================
+// ☁️ SMART IMAGE COMPRESSOR & FIREBASE UPLOADER ENGINE
+// ==========================================================================
+
+// 1. Photo ko chhota karne wala Compressor (2MB to 150KB)
+function compressImageToBase64(file, callback) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = function(event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 800; // Resolution chhota karega (HD quality)
+            const scaleSize = MAX_WIDTH / img.width;
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleSize;
+
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // 0.6 ka matlab 60% quality (Size bahut kam, quality almost same)
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); 
+            callback(compressedBase64);
+        }
+    }
+}
+
+// 2. Chhoti photo ko Firebase Cloud par bhejne wala uploader
+async function uploadToFirebaseCloud(base64Data, fileName) {
+    if (!window.fbStorage) {
+        showToast("Storage not connected! Saving locally.", "error");
+        return base64Data; // Agar net nahi hai toh backup ke liye wahi de dega
+    }
+    
+    try {
+        const storageRef = window.fbRef(window.fbStorage, `kyc_documents/${fileName}`);
+        const snapshot = await window.fbUploadString(storageRef, base64Data, 'data_url');
+        const downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+        return downloadURL; // Ye rahi teri choti si URL!
+    } catch (error) {
+        console.error("Cloud Upload Failed:", error);
+        showToast("Image upload failed. Try again.", "error");
+        return null;
+    }
+}
+
+// ==========================================================================
+// ⚡ SMART ELECTRICITY ENGINE (AUTO-CALCULATE & ADD TO DUES)
+// ==========================================================================
+function openElectricityModal(roomNo) {
+    let rooms = RoomPeDB.getActivePropertyRooms();
+    let room = rooms.find(r => String(r.no) === String(roomNo));
+    if(!room) return;
+
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let rate = activeProp && activeProp.electricityRate ? parseFloat(activeProp.electricityRate) : 10; // Default ₹10 agar setup nahi kiya
+
+    document.getElementById('elec-room-no').value = roomNo;
+    
+    // Smart Memory: Agar purani reading hai toh auto-fill karo, warna 0 (Editable)
+    document.getElementById('elec-prev-reading').value = room.lastMeterReading || '';
+    document.getElementById('elec-curr-reading').value = '';
+    document.getElementById('elec-rate-info').innerText = `Rate: ₹${rate}/unit`;
+
+    document.getElementById('modal-electricity').style.display = 'flex';
+}
+
+function saveElectricityBill() {
+    let roomNo = document.getElementById('elec-room-no').value;
+    let prev = parseFloat(document.getElementById('elec-prev-reading').value) || 0;
+    let curr = parseFloat(document.getElementById('elec-curr-reading').value) || 0;
+    
+    if (curr <= prev) {
+        if(typeof showToast === 'function') showToast("Current reading must be higher than previous!", "error");
+        else alert("Current reading must be higher than previous!");
+        return;
+    }
+
+    // Rate Fetch karo
+    let props = RoomPeDB.getProperties();
+    let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+    let rate = activeProp && activeProp.electricityRate ? parseFloat(activeProp.electricityRate) : 10;
+
+    // Smart Math
+    let units = curr - prev;
+    let billAmount = units * rate;
+
+    // Database me save karo
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNo) && (r.propertyId === activeProp.id || (!r.propertyId && activeProp.id === 'prop_default')));
+    
+    if (absIndex !== -1) {
+        // Nayi reading ko "Previous" bana do agle mahine ke liye
+        absoluteRooms[absIndex].lastMeterReading = curr;
+
+        // Bill ko Extras me daal do, system automatically usko Net Payable (Due) me jod lega!
+        if (!absoluteRooms[absIndex].extras) absoluteRooms[absIndex].extras = [];
+        absoluteRooms[absIndex].extras.push({
+            item: `⚡ Electricity (${units} units x ₹${rate})`,
+            price: billAmount,
+            date: new Date().getTime()
+        });
+
+        RoomPeDB.saveRooms(absoluteRooms); // Cloud sync bhi ho jayega
+        
+        document.getElementById('modal-electricity').style.display = 'none';
+        
+        if(typeof showToast === 'function') showToast(`₹${billAmount} added for ${units} units!`, "success");
+        
+        // UI instantly refresh karo taaki Total Due badha hua dikhe
+        openRoomDetails(roomNo);
+    }
+}
+
+// ==========================================
+// 🪄 SMART DOCUMENT ACTIONS & UPLOAD ENGINE
+// ==========================================
+function toggleDocActionMenu() {
+    let menu = document.getElementById('doc-action-menu');
+    if(menu) {
+        menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+    }
+}
+
+function triggerDocUpload(side) {
+    document.getElementById('doc-action-menu').style.display = 'none';
+    if(side === 'front') document.getElementById('rd-kyc-front-input').click();
+    if(side === 'back') document.getElementById('rd-kyc-back-input').click();
+}
+
+function uploadSpecificKyc(input, dbKey) {
+    let file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('Please upload a photo under 5MB.', 'error');
+        input.value = '';
+        return;
+    }
+
+    let roomTitle = document.getElementById('rd-room-title').innerText; 
+    let roomNoStr = roomTitle.replace('Room', '').trim();
+    
+    let activePropId = RoomPeDB.getActiveProperty();
+    let absoluteRooms = JSON.parse(localStorage.getItem('roompe_rooms')) || [];
+    let absIndex = absoluteRooms.findIndex(r => String(r.no) === String(roomNoStr) && (r.propertyId === activePropId || (!r.propertyId && activePropId === 'prop_default')));
+
+    if(absIndex === -1) return;
+
+    showToast('Uploading ID to Secure Cloud... ⏳', 'warning');
+
+    compressImageToBase64(file, async function(compressedBase64) {
+        let sideText = dbKey === 'idFront' ? 'front' : 'back';
+        let fileName = `room_${roomNoStr}_${sideText}_${Date.now()}.jpg`;
+        let cloudUrl = await uploadToFirebaseCloud(compressedBase64, fileName);
+
+        if (cloudUrl) {
+            // Specific ID ko database me update karo (Front ya Back)
+            absoluteRooms[absIndex][dbKey] = cloudUrl;
+            RoomPeDB.saveRooms(absoluteRooms);
             
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                <span style="font-size: 14px; color: #334155; font-weight: 600;">🏠 Base Rent</span>
-                <span id="inv-base-rent" style="font-size: 14px; color: #0f172a; font-weight: 800;">₹5,700</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                <span style="font-size: 14px; color: #334155; font-weight: 600;">⚡ Electricity</span>
-                <span id="inv-elec-amt" style="font-size: 14px; color: #0f172a; font-weight: 800;">₹400</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                <span style="font-size: 14px; color: #334155; font-weight: 600;">🧹 Extras/Maintenance</span>
-                <span id="inv-extra-amt" style="font-size: 14px; color: #0f172a; font-weight: 800;">₹200</span>
-            </div>
-        </div>
+            showToast('Document securely saved to Cloud! ☁️', 'success');
+            
+            // UI instantly refresh karo taaki Gallery me aa jaye
+            openRoomDetails(roomNoStr); 
+            setTimeout(() => { switchRoomDetailsTab('documents'); }, 100);
+        }
+    });
+}
 
-        <!-- Total Box -->
-        <div style="background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <p style="margin: 0; font-size: 12px; color: #065f46; font-weight: 700;">Total Payable</p>
-                <p style="margin: 0; font-size: 10px; color: #059669; font-weight: 600;">Due Immediately</p>
-            </div>
-            <h2 id="inv-grand-total" style="margin: 0; font-size: 26px; color: #059669; font-weight: 900;">₹6,300</h2>
-        </div>
-    </div>
+function shareDocument(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Guest KYC Document',
+            text: 'Here is the securely scanned KYC document from RoomPe.',
+            url: url
+        }).catch((error) => console.log('Error sharing', error));
+    } else {
+        showToast("Direct sharing not supported on this browser. Use download button.", "warning");
+    }
+}
 
-    <!-- Footer -->
-    <div style="background: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600;">System Generated Document • Powered by RoomPe</p>
-    </div>
-</div>
-  <script src="script.js"></script>
-</body>
-</html>
+// ==========================================
+// 🧠 SMART ROUTING & REFRESH ENGINE
+// ==========================================
+function smartRefresh() {
+    setTimeout(() => {
+        let activeScreen = document.querySelector('.screen:not(.hidden)');
+        
+        // Agar hum Room Details par hain, toh usko silently refresh karo bina back-history badhaye
+        if (activeScreen && activeScreen.id === 'screen-room-details') {
+            let roomTitleText = document.getElementById('rd-room-title').innerText;
+            let currentRoom = roomTitleText.replace('Room ', '').replace(' (Past Stay)', '').trim();
+            
+            // Mute history push temporarily to prevent double back-button issues
+            let originalPush = window.history.pushState;
+            window.history.pushState = function() {}; 
+            openRoomDetails(currentRoom);
+            window.history.pushState = originalPush; 
+        } else {
+            // Agar main tab par hain, toh current active tab ko refresh karo
+            if (currentMainTab === 'billing' && typeof renderBillingList === 'function') renderBillingList();
+            if (currentMainTab === 'dashboard' && typeof updateDashboardStats === 'function') updateDashboardStats();
+            if (currentMainTab === 'rooms' && typeof renderRoomsGrid === 'function') renderRoomsGrid();
+            if (currentMainTab === 'bookings' && typeof renderBookingsList === 'function') renderBookingsList();
+        }
+    }, 150); // Thoda delay taaki UI smooth transition le sake
+}
+
+/* ==========================================================================
+   🚨 ANDROID PWA WAKE-UP ENGINE (CRASH & FREEZE FIX)
+   ========================================================================== */
+let lastSleepTime = 0;
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+        // Jab phone ki screen off ho ya app minimize ho jaye
+        lastSleepTime = new Date().getTime();
+        console.log("App background me gaya. Firebase connection paused.");
+    } 
+    else if (document.visibilityState === "visible") {
+        console.log("App wapas hosh me aa gaya!");
+        
+        let wakeUpTime = new Date().getTime();
+        let sleepDuration = wakeUpTime - lastSleepTime;
+
+        // Agar app 2 minute (120,000 ms) se zyada background me tha
+        if (lastSleepTime > 0 && sleepDuration > 120000) {
+            // Android OS ne pakka Firebase connection kaat diya hoga.
+            // Error aane se pehle hi chupchap app ko nayi saans (Reload) de do
+            if(typeof showToast === 'function') showToast("Restoring secure connection...", "warning");
+            
+            setTimeout(() => {
+                window.location.reload(); 
+            }, 300); // 300ms delay taaki UI freeze na ho
+        } else {
+            // Agar bas thodi der ke liye screen off thi (WhatsApp check karne ke liye), toh sirf chota refresh maaro
+            if (typeof smartRefresh === 'function') {
+                smartRefresh();
+            } else if (typeof renderBillingList === 'function') {
+                renderBillingList();
+            }
+        }
+    }
+});
+/* ==========================================================================
+   🚀 CUSTOM PULL-TO-REFRESH (FACEBOOK/GOOGLE STYLE ENGINE)
+   ========================================================================== */
+let ptrStartY = 0;
+let ptrCurrentY = 0;
+let isPulling = false;
+const ptrContainer = document.getElementById('premium-ptr');
+const ptrIconBox = document.getElementById('ptr-icon'); 
+const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
+
+const THRESHOLD = 70; // 🚨 LIMIT: Itna px khichna padega refresh ke liye
+
+// 1. Touch Start
+document.addEventListener('touchstart', (e) => {
+  let scrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body, .screen');
+  let scrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
+
+  if (scrollTop <= 5) { 
+    ptrStartY = e.touches[0].clientY;
+    isPulling = true;
+    if(ptrContainer) ptrContainer.style.transition = 'none'; 
+    if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
+  } else {
+    isPulling = false; 
+  }
+}, {passive: true});
+
+// 2. Touch Move (Khichne par animation)
+document.addEventListener('touchmove', (e) => {
+  if (!isPulling || !ptrContainer) return;
+  
+  ptrCurrentY = e.touches[0].clientY;
+  let pullDistance = ptrCurrentY - ptrStartY;
+
+  if (pullDistance > 0) {
+    if (e.cancelable) e.preventDefault(); 
+    
+    // Magnetic Resistance (Jitna niche khichega, utna hard khichega)
+    let visualDistance = pullDistance * 0.4;
+
+    ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
+    
+    // Icon ko gol ghumana
+    if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
+        ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
+    }
+
+    // 🚨 MAGIC: Agar limit cross kar li, toh Box ko GREEN kar do!
+    if (visualDistance >= THRESHOLD) {
+        ptrIconBox.classList.add('ready');
+    } else {
+        ptrIconBox.classList.remove('ready');
+    }
+  } else {
+    isPulling = false;
+  }
+}, {passive: false});
+
+// 3. Touch End (Ungli chhodne par decision)
+document.addEventListener('touchend', () => {
+  if (!isPulling || !ptrContainer) return;
+  isPulling = false;
+  
+  let pullDistance = ptrCurrentY - ptrStartY;
+  let visualDistance = pullDistance * 0.4;
+  
+  ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
+
+  // 🚨 DECISION: Agar Threshold cross kiya, tabhi REFRESH hoga!
+  if (visualDistance >= THRESHOLD) {
+    ptrContainer.style.transform = `translate(-50%, 80px)`; // Hawa me rukega
+    
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        ptrIconBox.classList.add('ptr-spin'); // Ghoomne wala class
+    }
+    
+    // Asli Refresh Engine Call
+    if(typeof smartRefresh === 'function') {
+       smartRefresh();
+    } else {
+       window.location.reload(); 
+    }
+
+    // 1.5 Second baad spinner wapas upar bhej do
+    setTimeout(() => {
+      ptrContainer.style.transform = `translate(-50%, 0px)`;
+      if(ptrIconBox) {
+          ptrIconBox.classList.remove('ptr-spin');
+          if(ptrIconSymbol) ptrIconSymbol.style.transform = `rotate(0deg)`;
+      }
+    }, 1500);
+    
+  } else {
+    // 🚨 CANCEL: Galti se khicha tha, wapas upar bhaag jao bina refresh ke!
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        if(ptrIconSymbol) setTimeout(() => { ptrIconSymbol.style.transform = `rotate(0deg)`; }, 300);
+    }
+  }
+  
+  ptrStartY = 0;
+  ptrCurrentY = 0;
+});
+
+/* ==========================================================================
+   📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
+   ========================================================================== */
+async function sendPremiumImageInvoice(tenantName, roomNo, baseRent, electricity, extras) {
+    // 1. Calculate Total
+    let totalAmount = baseRent + electricity + extras;
+
+    // 2. Apne HTML Invoice me data bharo
+    document.getElementById('inv-guest-name').innerText = tenantName;
+    document.getElementById('inv-room-no').innerText = "Room " + roomNo;
+    document.getElementById('inv-base-rent').innerText = "₹" + baseRent.toLocaleString('en-IN');
+    document.getElementById('inv-elec-amt').innerText = "₹" + electricity.toLocaleString('en-IN');
+    document.getElementById('inv-extra-amt').innerText = "₹" + extras.toLocaleString('en-IN');
+    document.getElementById('inv-grand-total').innerText = "₹" + totalAmount.toLocaleString('en-IN');
+    
+    // Aaj ki date set karo
+    let today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    document.getElementById('inv-date-text').innerText = today;
+
+    // Property ka naam Database se nikalo (Agar available ho)
+    let props = window.RoomPeDB ? window.RoomPeDB.getProperties() : [];
+    let activePropId = window.RoomPeDB ? window.RoomPeDB.getActiveProperty() : null;
+    let activeProp = props.find(p => p.id === activePropId);
+    if(activeProp && activeProp.name) {
+        document.getElementById('inv-prop-title').innerText = activeProp.name;
+    }
+
+    // Loader dikhao user ko taaki usko lage processing ho rahi hai
+    showToast("Generating Premium Invoice... ⏳", "success");
+
+    // 3. Photo Khichne ka process
+    const invoiceElement = document.getElementById('premium-invoice-template');
+    
+    // Thodi der ke liye screen par lao (invisible mode me) taaki photo khich sake
+    invoiceElement.style.top = '0px';
+    invoiceElement.style.zIndex = '-100';
+
+    try {
+        const canvas = await html2canvas(invoiceElement, { scale: 2, backgroundColor: null });
+        
+        // Wapas chhipa do
+        invoiceElement.style.top = '-9999px';
+
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `Invoice_Room_${roomNo}.png`, { type: 'image/png' });
+
+            // 4. Mobile ka Share Menu Kholo (WhatsApp ke liye)
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'RoomPe Rent Invoice',
+                    text: `Hello ${tenantName}, here is your rent invoice for Room ${roomNo}.`
+                });
+            } else {
+                // Agar PC par hai toh automatically Image Download kar do
+                const link = document.createElement('a');
+                link.download = `Invoice_Room_${roomNo}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                showToast("Invoice Downloaded! You can now send it on WhatsApp Web.", "success");
+            }
+        }, 'image/png');
+
+    } catch (error) {
+        console.error("Invoice Generation Error:", error);
+        showToast("Failed to generate image.", "error");
+        invoiceElement.style.top = '-9999px';
+    }
+}
+
+/* ==========================================================================
+   ⚙️ APP SETTINGS ENGINE (DARK MODE, BACKUP & NOTIFICATIONS)
+   ========================================================================== */
+
+// 1. Force Cloud Backup Action
+function forceCloudBackup() {
+    if (typeof pushToCloud === 'function') {
+        showToast('Initiating secure cloud backup... ☁️', 'warning');
+        // PushToCloud function ko force call karo
+        pushToCloud();
+    } else {
+        showToast('Cloud sync module is not ready!', 'error');
+    }
+}
+
+// 2. Dark Mode Apply Karne ka Engine
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        // Status bar theme update for mobile
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if(metaTheme) metaTheme.setAttribute("content", "#0f172a");
+    } else {
+        document.body.classList.remove('dark-theme');
+        let metaTheme = document.querySelector('meta[name="theme-color"]');
+        if(metaTheme) metaTheme.setAttribute("content", "#ffffff");
+    }
+}
+
+// 3. App Load Hote hi Purani Settings Apply Karna
+window.addEventListener('load', () => {
+    let savedTheme = localStorage.getItem('roompe_pref_theme') || 'light';
+    applyTheme(savedTheme);
+});
+
+// 4. Update the "Save Preferences" Button Logic
+// Hum purane saveAppSettings ko override kar rahe hain
+window.saveAppSettings = function() {
+    let isDark = document.getElementById('toggle-dark').checked;
+    let isNotif = document.getElementById('toggle-notif').checked;
+    
+    // Theme Save aur Apply
+    let theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('roompe_pref_theme', theme);
+    applyTheme(theme);
+
+    // Push Notifications Logic (Browser Permission Maangna)
+    localStorage.setItem('roompe_pref_notif', isNotif ? 'on' : 'off');
+    if (isNotif && "Notification" in window) {
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if(permission === "granted") {
+                    showToast("Push Notifications Enabled! 🔔", "success");
+                }
+            });
+        }
+    }
+    
+    closeActionScreen(); // Setting screen band karo
+    showPopup('success', 'Preferences Saved', 'Your system settings have been updated successfully.');
+};
+
+/* ==========================================================================
+   🧾 RECEIPT DOWNLOAD HANDLER
+   ========================================================================== */
+function downloadReceipt(guestName) {
+    // Ye code screen par ek message dikhayega ki download shuru ho raha hai
+    alert("Generating PDF Receipt for " + guestName + "...\nStarting download!");
+}
+
+/* ==========================================================================
+   🖼️ SMART DOCUMENT VIEWER & DOWNLOAD ENGINE
+   ========================================================================== */
+
+// 1. App ke andar hi badi image dikhane ke liye
+function viewDocumentInApp(url) {
+    let modal = document.createElement('div');
+    modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:999999; display:flex; justify-content:center; align-items:center; flex-direction:column;";
+    modal.innerHTML = `
+        <div style="width:100%; padding:20px; text-align:right; box-sizing:border-box;">
+            <span class="material-symbols-outlined" style="color:white; font-size:32px; cursor:pointer;" onclick="this.parentElement.parentElement.remove()">close</span>
+        </div>
+        <img src="${url}" style="max-width:95%; max-height:80%; object-fit:contain; border-radius:12px;">
+    `;
+    document.body.appendChild(modal);
+}
+
+// 2. Cloud image ko force download karne ke liye
+async function forceDownloadDocument(url, filename) {
+    try {
+        if(typeof showToast === 'function') showToast('Downloading document...', 'warning');
+        
+        let response = await fetch(url);
+        let blob = await response.blob();
+        let blobUrl = window.URL.createObjectURL(blob);
+        
+        let a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+        
+        if(typeof showToast === 'function') showToast('Download complete!', 'success');
+    } catch(e) {
+        console.error("Download failed", e);
+        // Agar fail ho jaye toh direct open kar do
+        window.open(url, '_blank');
+    }
+}
