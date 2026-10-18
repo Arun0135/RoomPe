@@ -4541,16 +4541,39 @@ function smartRefresh() {
     }, 150); // Thoda delay taaki UI smooth transition le sake
 }
 
-// 🚨 SMART WAKE-UP ENGINE (SCREEN ON/OFF DETECTOR)
+/* ==========================================================================
+   🚨 ANDROID PWA WAKE-UP ENGINE (CRASH & FREEZE FIX)
+   ========================================================================== */
+let lastSleepTime = 0;
+
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-        console.log("App wapas hosh me aa gaya! Refreshing...");
+    if (document.visibilityState === "hidden") {
+        // Jab phone ki screen off ho ya app minimize ho jaye
+        lastSleepTime = new Date().getTime();
+        console.log("App background me gaya. Firebase connection paused.");
+    } 
+    else if (document.visibilityState === "visible") {
+        console.log("App wapas hosh me aa gaya!");
         
-        // Agar Firebase connection background me toot gaya tha, toh usko dhakka maar ke chalu karega
-        if (typeof smartRefresh === 'function') {
-            smartRefresh();
-        } else if (typeof renderBillingList === 'function') {
-            renderBillingList();
+        let wakeUpTime = new Date().getTime();
+        let sleepDuration = wakeUpTime - lastSleepTime;
+
+        // Agar app 2 minute (120,000 ms) se zyada background me tha
+        if (lastSleepTime > 0 && sleepDuration > 120000) {
+            // Android OS ne pakka Firebase connection kaat diya hoga.
+            // Error aane se pehle hi chupchap app ko nayi saans (Reload) de do
+            if(typeof showToast === 'function') showToast("Restoring secure connection...", "warning");
+            
+            setTimeout(() => {
+                window.location.reload(); 
+            }, 300); // 300ms delay taaki UI freeze na ho
+        } else {
+            // Agar bas thodi der ke liye screen off thi (WhatsApp check karne ke liye), toh sirf chota refresh maaro
+            if (typeof smartRefresh === 'function') {
+                smartRefresh();
+            } else if (typeof renderBillingList === 'function') {
+                renderBillingList();
+            }
         }
     }
 });
