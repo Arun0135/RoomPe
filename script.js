@@ -104,7 +104,7 @@ function closePopup() {
 var currentRoomFilter = 'All';
 var currentRoomSearch = '';
 var currentMainTab = 'dashboard'; 
-var currentBillingFilter = 'Received';
+var currentBillingFilter = 'All';
 var currentRoomView = 'grid';
 
 function goToLogin() {
@@ -1451,7 +1451,7 @@ function renderBillingList() {
         : '';
 
       html += `
-        <div class="bill-card" style="background: white; border: 1px solid #fecdd3; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+        <div class="bill-card" onclick="openRoomDetails('${r.no}')" style="background: white; border: 1px solid #fecdd3; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
           <div class="bill-header" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
             <div class="guest-info" style="margin-bottom: 0; display:flex; gap:10px; align-items:center;">
               <div style="width:40px; height:40px; background:#fef2f2; color:#e11d48; border-radius:50%; display:flex; justify-content:center; align-items:center; font-weight:bold; font-size:16px;">
@@ -1470,8 +1470,9 @@ function renderBillingList() {
           <div class="bill-footer" style="background: #fff1f2; padding: 12px 16px; border-top: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #e11d48; font-weight: 600;"><span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle;">error</span> Due this month</div>
             <div style="display:flex; gap:8px;">
-              <button onclick="openReminderScreen('${r.guest || 'Guest'}', '${r.no}', '${r.remainingDue}', '${r.phone || ''}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
-              <button onclick="openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
+              <!-- 🚨 NOTICE: yahan event.stopPropagation() add kiya hai -->
+              <button onclick="event.stopPropagation(); openReminderScreen('${r.guest || 'Guest'}', '${r.no}', '${r.remainingDue}', '${r.phone || ''}')" style="background: white; color: #e11d48; border: 1px solid #fecdd3; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Remind</button>
+              <button onclick="event.stopPropagation(); openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value='${r.no}'; document.getElementById('pay-amount').value='${r.remainingDue}';" style="background: #e11d48; color: white; border: none; padding:6px 12px; border-radius:8px; font-weight: 600; font-size: 12px; cursor: pointer;">Collect</button>
             </div>
           </div>
         </div>
@@ -1487,7 +1488,7 @@ function renderBillingList() {
       let icon = p.mode === 'UPI' ? 'phone_iphone' : 'payments';
       
       html += `
-        <div class="bill-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+        <div class="bill-card" onclick="openRoomDetails('${p.room}')" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
           <div class="bill-header" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
             <div class="guest-info" style="margin-bottom: 0; display:flex; gap:10px; align-items:center;">
               <div style="width:40px; height:40px; background:#f1f5f9; color:#475569; border-radius:50%; display:flex; justify-content:center; align-items:center;">
@@ -1505,7 +1506,8 @@ function renderBillingList() {
           </div>
           <div class="bill-footer bg-green-lightest" style="background: #f8fafc; padding: 12px 16px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
             <div style="font-size: 12px; color: #64748b; font-weight: 500;">Received on ${dateStr}</div>
-            <button onclick="showToast('Receipt downloaded!', 'success')" style="background: transparent; color: #059669; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <!-- 🚨 NOTICE: yahan event.stopPropagation() aur downloadReceipt function call add kiya hai -->
+            <button onclick="event.stopPropagation(); downloadReceipt('${p.guest}')" style="background: transparent; color: #059669; border: none; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
               <span class="material-symbols-outlined" style="font-size: 16px;">receipt</span> Receipt
             </button>
           </div>
@@ -1865,22 +1867,30 @@ function openRoomDetails(roomNo) {
   let docsGallery = document.getElementById('rd-docs-gallery');
   let sigContainer = document.getElementById('rd-sig-container');
 
-  const createDocCard = (title, imgUrl) => `
-    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-        <div style="height: 100px; background: #f8fafc; cursor: pointer; position: relative;" onclick="window.open('${imgUrl}', '_blank')">
-            <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;">
-            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
-                <span class="material-symbols-outlined" style="color: white; font-size: 28px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">zoom_in_map</span>
-            </div>
-        </div>
-        <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; background: white; border-top: 1px solid #f1f5f9;">
-            <span style="font-size: 11px; font-weight: 800; color: #475569;">${title}</span>
-            <div style="display: flex; gap: 10px;">
-                <a href="${imgUrl}" download="Guest_${title}.jpg" style="color: #3b82f6; display: flex; align-items: center; text-decoration: none;"><span class="material-symbols-outlined" style="font-size: 16px;">download</span></a>
-                <span class="material-symbols-outlined" style="font-size: 16px; color: #10b981; cursor: pointer;" onclick="shareDocument('${imgUrl}')">share</span>
-            </div>
-        </div>
-    </div>`;
+  // 1. SMART DOC CARD GENERATOR (WITH PRO NAMING)
+  const createDocCard = (title, imgUrl) => {
+      // 🚨 SMART FILENAME ENGINE: Naam se spaces hata kar underscore lagayega
+      let cleanName = (room.guest || 'Guest').replace(/\s+/g, '_');
+      let fileName = `${cleanName}_Room_${room.no}_${title.replace(' ', '_')}.jpg`;
+      
+      return `
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+          <div style="height: 100px; background: #f8fafc; cursor: pointer; position: relative;" onclick="viewDocumentInApp('${imgUrl}')">
+              <img src="${imgUrl}" style="width: 100%; height: 100%; object-fit: cover;">
+              <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                  <span class="material-symbols-outlined" style="color: white; font-size: 28px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">zoom_in_map</span>
+              </div>
+          </div>
+          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; background: white; border-top: 1px solid #f1f5f9;">
+              <span style="font-size: 11px; font-weight: 800; color: #475569;">${title}</span>
+              <div style="display: flex; gap: 10px;">
+                  <!-- 🚨 YAHAN SMART FILENAME PASS KIYA HAI -->
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #3b82f6; cursor: pointer;" onclick="forceDownloadDocument('${imgUrl}', '${fileName}')">download</span>
+                  <span class="material-symbols-outlined" style="font-size: 16px; color: #10b981; cursor: pointer;" onclick="shareDocument('${imgUrl}')">share</span>
+              </div>
+          </div>
+      </div>`;
+  };
 
   const createEmptyCard = (title) => `
     <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 16px; height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8;">
@@ -1894,9 +1904,28 @@ function openRoomDetails(roomNo) {
       docsGallery.innerHTML = frontHTML + backHTML;
   }
 
+  // 2. SMART SIGNATURE GENERATOR (WITH DOWNLOAD BUTTON)
   if(sigContainer) {
       if(room.signature) {
-          sigContainer.innerHTML = `<img src="${room.signature}" style="max-height: 80px; max-width: 100%; filter: contrast(1.5); cursor: pointer;" onclick="window.open('${room.signature}', '_blank')">`;
+          // 🚨 SMART SIGNATURE FILENAME
+          let cleanName = (room.guest || 'Guest').replace(/\s+/g, '_');
+          let sigFileName = `${cleanName}_Room_${room.no}_Signature.png`;
+
+          sigContainer.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <img src="${room.signature}" style="max-height: 80px; max-width: 60%; filter: contrast(1.5); cursor: pointer;" onclick="viewDocumentInApp('${room.signature}')">
+              
+              <div style="display: flex; gap: 12px; border-left: 1px dashed #e2e8f0; padding-left: 16px;">
+                  <!-- 🚨 SIGNATURE DOWNLOAD BUTTON -->
+                  <div onclick="forceDownloadDocument('${room.signature}', '${sigFileName}')" style="width: 38px; height: 38px; background: #eff6ff; color: #3b82f6; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                      <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+                  </div>
+                  <!-- 🚨 SIGNATURE SHARE BUTTON -->
+                  <div onclick="shareDocument('${room.signature}')" style="width: 38px; height: 38px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.05); transition: 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                      <span class="material-symbols-outlined" style="font-size: 18px;">share</span>
+                  </div>
+              </div>
+          </div>`;
       } else {
           sigContainer.innerHTML = `<div style="color: #94a3b8; display: flex; flex-direction: column; align-items: center;"><span class="material-symbols-outlined" style="font-size: 24px; margin-bottom: 4px; opacity: 0.6;">draw</span><span style="font-size: 11px; font-weight: 600;">No Signature</span></div>`;
       }
@@ -2780,14 +2809,29 @@ function closeFullScreenSignature() {
   initSignaturePad('signature-pad'); 
 }
 
+// ==========================================
+// ✍️ PRO SIGNATURE SAVING ENGINE
+// ==========================================
 function saveFSSignature() {
-  let fsCanvas = document.getElementById('fs-signature-pad');
-  let smallCanvas = document.getElementById('signature-pad');
-  let smallCtx = smallCanvas.getContext('2d');
-  
-  smallCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
-  smallCtx.drawImage(fsCanvas, 0, 0, smallCanvas.width, smallCanvas.height);
-  closeFullScreenSignature();
+    let fsCanvas = document.getElementById('fs-signature-pad');
+    let smallCanvas = document.getElementById('signature-pad');
+    let smallCtx = smallCanvas.getContext('2d');
+    
+    // Full screen canvas se high-quality data nikalna
+    let dataUrl = fsCanvas.toDataURL();
+    let img = new Image();
+    
+    img.onload = function() {
+        // Chote canvas ki correct width aur height set karna zaroori hai
+        smallCanvas.width = smallCanvas.offsetWidth || 300;
+        smallCanvas.height = smallCanvas.offsetHeight || 140;
+        
+        // Pura saaf karke naya sign print karna
+        smallCtx.clearRect(0, 0, smallCanvas.width, smallCanvas.height);
+        smallCtx.drawImage(img, 0, 0, smallCanvas.width, smallCanvas.height);
+    };
+    img.src = dataUrl;
+    closeFullScreenSignature();
 }
 
 const autoSigOpenActionScreen = openActionScreen;
@@ -4511,9 +4555,9 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
-// ==========================================
-// 🚀 CUSTOM PULL-TO-REFRESH (SNAPCHAT STYLE - ANDROID PWA FIXED)
-// ==========================================
+/* ==========================================================================
+   🚀 CUSTOM PULL-TO-REFRESH (BUG FIXED: SCROLL INTERFERENCE)
+   ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
 let isPulling = false;
@@ -4522,39 +4566,42 @@ const ptrIcon = document.getElementById('ptr-icon');
 
 // 1. Jab finger screen touch karegi
 document.addEventListener('touchstart', (e) => {
-  let activeScrollArea = document.querySelector('.screen:not(.hidden) .rooms-scroll-area') || 
-                         document.querySelector('.screen:not(.hidden) .dash-scroll-area');
-                         
-  let scrollTop = activeScrollArea ? activeScrollArea.scrollTop : window.scrollY;
+  // 🚨 SMART FIX: User exactly kis dabbe me scroll kar raha hai, usko pakdo
+  let scrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body, .screen');
+  let scrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
 
-  // Agar screen ekdum top par hai, tabhi pull karne dega
-  if (scrollTop <= 0) {
+  // Sirf tabhi pull active hoga jab screen ekdum TOP par ho (0 ya 5px tak)
+  if (scrollTop <= 5) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
     if(ptrContainer) ptrContainer.style.transition = 'none';
+  } else {
+    // 🚨 AGAR PAGE BEECH ME HAI, TOH REFRESH KO PERMANENT BLOCK KARO
+    isPulling = false; 
   }
 }, {passive: true});
 
-// 2. 🚨 THE MAGIC FIX: Touch Move (Android Native Refresh Block)
+// 2. Touch Move (Android Native Refresh Block & Scroll Logic)
 document.addEventListener('touchmove', (e) => {
   if (!isPulling || !ptrContainer) return;
   
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
-  // Agar user neeche khich raha hai
+  // Agar user neeche khich raha hai (Swipe Down)
   if (pullDistance > 0) {
-    // 🚨 YAHAN HAI ASLI JADOO: Ye Android App ke default refresh ko permanently block kar dega
-    if (e.cancelable) {
-        e.preventDefault(); 
-    }
-
+    // Refresh animation chalne do aur normal scroll roko
+    if (e.cancelable) e.preventDefault(); 
+    
     if (pullDistance < 120) {
       ptrContainer.style.transform = `translateY(${pullDistance}px)`;
       ptrIcon.style.transform = `rotate(${pullDistance * 2.5}deg)`; 
     }
+  } else {
+    // 🚨 SMART FIX: Agar user wapas upar scroll karne lage, toh refresh turant cancel kar do
+    isPulling = false;
   }
-}, {passive: false}); // 🚨 ISE 'false' RAKHNA ZAROORI HAI TAAKI PREVENT DEFAULT KAAM KARE
+}, {passive: false});
 
 // 3. Jab finger chhod di jayegi (Release & Refresh)
 document.addEventListener('touchend', () => {
@@ -4573,18 +4620,17 @@ document.addEventListener('touchend', () => {
     if(typeof smartRefresh === 'function') {
        smartRefresh();
     } else {
-       // Backup refresh
        window.location.reload(); 
     }
 
-    // 1.5 Second baad spinner wapas upar
+    // 1.5 Second baad spinner wapas upar bhejo
     setTimeout(() => {
       ptrContainer.style.transform = `translateY(0px)`;
       ptrIcon.classList.remove('ptr-spin');
     }, 1500);
     
   } else {
-    // Cancel: Wapas upar chala jayega
+    // Cancel: Thoda khich ke chhod diya toh wapas upar chala jayega
     ptrContainer.style.transform = `translateY(0px)`;
   }
   
@@ -4724,3 +4770,52 @@ window.saveAppSettings = function() {
     showPopup('success', 'Preferences Saved', 'Your system settings have been updated successfully.');
 };
 
+/* ==========================================================================
+   🧾 RECEIPT DOWNLOAD HANDLER
+   ========================================================================== */
+function downloadReceipt(guestName) {
+    // Ye code screen par ek message dikhayega ki download shuru ho raha hai
+    alert("Generating PDF Receipt for " + guestName + "...\nStarting download!");
+}
+
+/* ==========================================================================
+   🖼️ SMART DOCUMENT VIEWER & DOWNLOAD ENGINE
+   ========================================================================== */
+
+// 1. App ke andar hi badi image dikhane ke liye
+function viewDocumentInApp(url) {
+    let modal = document.createElement('div');
+    modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:999999; display:flex; justify-content:center; align-items:center; flex-direction:column;";
+    modal.innerHTML = `
+        <div style="width:100%; padding:20px; text-align:right; box-sizing:border-box;">
+            <span class="material-symbols-outlined" style="color:white; font-size:32px; cursor:pointer;" onclick="this.parentElement.parentElement.remove()">close</span>
+        </div>
+        <img src="${url}" style="max-width:95%; max-height:80%; object-fit:contain; border-radius:12px;">
+    `;
+    document.body.appendChild(modal);
+}
+
+// 2. Cloud image ko force download karne ke liye
+async function forceDownloadDocument(url, filename) {
+    try {
+        if(typeof showToast === 'function') showToast('Downloading document...', 'warning');
+        
+        let response = await fetch(url);
+        let blob = await response.blob();
+        let blobUrl = window.URL.createObjectURL(blob);
+        
+        let a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+        
+        if(typeof showToast === 'function') showToast('Download complete!', 'success');
+    } catch(e) {
+        console.error("Download failed", e);
+        // Agar fail ho jaye toh direct open kar do
+        window.open(url, '_blank');
+    }
+}
