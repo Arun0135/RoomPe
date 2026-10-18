@@ -4556,82 +4556,105 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (BUG FIXED: SCROLL INTERFERENCE)
+   🚀 CUSTOM PULL-TO-REFRESH (FACEBOOK/GOOGLE STYLE ENGINE)
    ========================================================================== */
 let ptrStartY = 0;
 let ptrCurrentY = 0;
 let isPulling = false;
 const ptrContainer = document.getElementById('premium-ptr');
-const ptrIcon = document.getElementById('ptr-icon');
+const ptrIconBox = document.getElementById('ptr-icon'); 
+const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
 
-// 1. Jab finger screen touch karegi
+const THRESHOLD = 70; // 🚨 LIMIT: Itna px khichna padega refresh ke liye
+
+// 1. Touch Start
 document.addEventListener('touchstart', (e) => {
-  // 🚨 SMART FIX: User exactly kis dabbe me scroll kar raha hai, usko pakdo
   let scrollContainer = e.target.closest('.rooms-scroll-area, .dash-scroll-area, .setup-body, .screen');
   let scrollTop = scrollContainer ? scrollContainer.scrollTop : window.scrollY;
 
-  // Sirf tabhi pull active hoga jab screen ekdum TOP par ho (0 ya 5px tak)
   if (scrollTop <= 5) { 
     ptrStartY = e.touches[0].clientY;
     isPulling = true;
-    if(ptrContainer) ptrContainer.style.transition = 'none';
+    if(ptrContainer) ptrContainer.style.transition = 'none'; 
+    if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
   } else {
-    // 🚨 AGAR PAGE BEECH ME HAI, TOH REFRESH KO PERMANENT BLOCK KARO
     isPulling = false; 
   }
 }, {passive: true});
 
-// 2. Touch Move (Android Native Refresh Block & Scroll Logic)
+// 2. Touch Move (Khichne par animation)
 document.addEventListener('touchmove', (e) => {
   if (!isPulling || !ptrContainer) return;
   
   ptrCurrentY = e.touches[0].clientY;
   let pullDistance = ptrCurrentY - ptrStartY;
 
-  // Agar user neeche khich raha hai (Swipe Down)
   if (pullDistance > 0) {
-    // Refresh animation chalne do aur normal scroll roko
     if (e.cancelable) e.preventDefault(); 
     
-    if (pullDistance < 120) {
-      ptrContainer.style.transform = `translateY(${pullDistance}px)`;
-      ptrIcon.style.transform = `rotate(${pullDistance * 2.5}deg)`; 
+    // Magnetic Resistance (Jitna niche khichega, utna hard khichega)
+    let visualDistance = pullDistance * 0.4;
+
+    ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
+    
+    // Icon ko gol ghumana
+    if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
+        ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
+    }
+
+    // 🚨 MAGIC: Agar limit cross kar li, toh Box ko GREEN kar do!
+    if (visualDistance >= THRESHOLD) {
+        ptrIconBox.classList.add('ready');
+    } else {
+        ptrIconBox.classList.remove('ready');
     }
   } else {
-    // 🚨 SMART FIX: Agar user wapas upar scroll karne lage, toh refresh turant cancel kar do
     isPulling = false;
   }
 }, {passive: false});
 
-// 3. Jab finger chhod di jayegi (Release & Refresh)
+// 3. Touch End (Ungli chhodne par decision)
 document.addEventListener('touchend', () => {
   if (!isPulling || !ptrContainer) return;
   isPulling = false;
   
   let pullDistance = ptrCurrentY - ptrStartY;
+  let visualDistance = pullDistance * 0.4;
+  
   ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
 
-  // Agar 70px se zyada khicha hai, tabhi REFRESH hoga!
-  if (pullDistance > 70) {
-    ptrContainer.style.transform = `translateY(70px)`; 
-    ptrIcon.classList.add('ptr-spin'); 
+  // 🚨 DECISION: Agar Threshold cross kiya, tabhi REFRESH hoga!
+  if (visualDistance >= THRESHOLD) {
+    ptrContainer.style.transform = `translate(-50%, 80px)`; // Hawa me rukega
     
-    // Asli Firebase Refresh Data Call
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        ptrIconBox.classList.add('ptr-spin'); // Ghoomne wala class
+    }
+    
+    // Asli Refresh Engine Call
     if(typeof smartRefresh === 'function') {
        smartRefresh();
     } else {
        window.location.reload(); 
     }
 
-    // 1.5 Second baad spinner wapas upar bhejo
+    // 1.5 Second baad spinner wapas upar bhej do
     setTimeout(() => {
-      ptrContainer.style.transform = `translateY(0px)`;
-      ptrIcon.classList.remove('ptr-spin');
+      ptrContainer.style.transform = `translate(-50%, 0px)`;
+      if(ptrIconBox) {
+          ptrIconBox.classList.remove('ptr-spin');
+          if(ptrIconSymbol) ptrIconSymbol.style.transform = `rotate(0deg)`;
+      }
     }, 1500);
     
   } else {
-    // Cancel: Thoda khich ke chhod diya toh wapas upar chala jayega
-    ptrContainer.style.transform = `translateY(0px)`;
+    // 🚨 CANCEL: Galti se khicha tha, wapas upar bhaag jao bina refresh ke!
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        if(ptrIconSymbol) setTimeout(() => { ptrIconSymbol.style.transform = `rotate(0deg)`; }, 300);
+    }
   }
   
   ptrStartY = 0;
