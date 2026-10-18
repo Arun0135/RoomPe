@@ -209,6 +209,43 @@
     .gc-footer .material-symbols-outlined {
       font-size: 14px !important;
     }
+
+    <style>
+/* 🚀 FACEBOOK STYLE SMART PULL-TO-REFRESH */
+#premium-ptr {
+    position: fixed;
+    top: -60px; /* Screen ke upar chupa rahega */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none; 
+}
+.ptr-box {
+    background: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #059669; 
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+}
+.ptr-box.ready {
+    background: #059669; /* Limit cross hone par Green ho jayega */
+    color: white;
+    transform: scale(1.1); /* Thoda bada hoga */
+}
+.ptr-spin span {
+    animation: ptrLoadingSpin 0.8s linear infinite;
+}
+@keyframes ptrLoadingSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
   </style>
   <!-- HTML ko Image me badalne ka engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
