@@ -1359,17 +1359,45 @@ function downloadStatement() {
   hiddenDiv.appendChild(printContainer);
   document.body.appendChild(hiddenDiv);
 
-  // 8. Generate and save
-  html2pdf().set(opt).from(printContainer).save().then(() => {
+  // 8. 🚨 PREMIUM APP FIX (ANDROID WEBVIEW NATIVE SHARE & SAVE)
+  html2pdf().set(opt).from(printContainer).output('blob').then((pdfBlob) => {
+      // PDF File create karo exact naam ke saath
+      let fileName = `Statement_${propName.replace(/\s+/g, '_')}_${currentMonthStr.replace(' ', '_')}.pdf`;
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      // Buttons aur UI wapas normal karo
       if(btn) {
           btn.innerHTML = oldHTML;
           btn.style.pointerEvents = 'auto';
       }
-      document.body.removeChild(hiddenDiv);
-      if(typeof showPopup === 'function') {
-          showPopup('success', 'PDF Downloaded!', 'Your detailed billing statement has been saved.');
+      if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+
+      // 🌟 SMART NATIVE ENGINE: Mobile me seedha "Share/Save" popup khulega
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({
+              files: [file],
+              title: fileName,
+              text: `Here is the billing statement for ${propName}.`
+          }).then(() => {
+              if(typeof showPopup === 'function') showPopup('success', 'Success!', 'Statement generated successfully.');
+          }).catch((e) => {
+              console.log("User cancelled share", e);
+          });
       } else {
-          alert('PDF Downloaded Successfully!');
+          // PC Browser ke liye normal download fallback
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = blobUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          URL.revokeObjectURL(blobUrl);
+          document.body.removeChild(a);
+          
+          if(typeof showPopup === 'function') {
+              showPopup('success', 'PDF Downloaded!', 'Statement saved to your device.');
+          }
       }
   }).catch(err => {
       console.error('PDF Generation Error:', err);
@@ -1377,12 +1405,8 @@ function downloadStatement() {
           btn.innerHTML = oldHTML;
           btn.style.pointerEvents = 'auto';
       }
-      if(hiddenDiv && hiddenDiv.parentNode) {
-          document.body.removeChild(hiddenDiv);
-      }
-      if(typeof showPopup === 'function') {
-          showPopup('error', 'Download Failed', 'Something went wrong. Please check console.');
-      }
+      if(document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+      if(typeof showPopup === 'function') showPopup('error', 'Failed', 'PDF generation failed.');
   });
 }
 function selectPayMode(mode) {
