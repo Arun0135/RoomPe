@@ -1359,54 +1359,53 @@ function downloadStatement() {
   hiddenDiv.appendChild(printContainer);
   document.body.appendChild(hiddenDiv);
 
-  // 8. 🚨 PREMIUM APP FIX (ANDROID WEBVIEW NATIVE SHARE & SAVE)
+ // 8. 🚨 THE ULTIMATE WEBVIEW DOWNLOAD FIX (Base64 Force-Download Engine)
   html2pdf().set(opt).from(printContainer).output('blob').then((pdfBlob) => {
-      // PDF File create karo exact naam ke saath
       let fileName = `Statement_${propName.replace(/\s+/g, '_')}_${currentMonthStr.replace(' ', '_')}.pdf`;
-      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-      // Buttons aur UI wapas normal karo
-      if(btn) {
-          btn.innerHTML = oldHTML;
-          btn.style.pointerEvents = 'auto';
-      }
-      if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+      // 🪄 BLOB ko BASE64 me convert karo (Kyunki Android Webview Blob ko block karta hai)
+      let reader = new FileReader();
+      reader.readAsDataURL(pdfBlob);
+      reader.onloadend = function() {
+          let base64data = reader.result;
 
-      // 🌟 SMART NATIVE ENGINE: Mobile me seedha "Share/Save" popup khulega
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({
-              files: [file],
-              title: fileName,
-              text: `Here is the billing statement for ${propName}.`
-          }).then(() => {
-              if(typeof showPopup === 'function') showPopup('success', 'Success!', 'Statement generated successfully.');
-          }).catch((e) => {
-              console.log("User cancelled share", e);
-          });
-      } else {
-          // PC Browser ke liye normal download fallback
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          const a = document.createElement('a');
+          // UI Buttons wapas normal karo
+          if(btn) {
+              btn.innerHTML = oldHTML;
+              btn.style.pointerEvents = 'auto';
+          }
+          if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+
+          // 🚀 SMART FORCE-DOWNLOAD ENGINE FOR ANDROID WEBVIEW
+          let a = document.createElement('a');
           a.style.display = 'none';
-          a.href = blobUrl;
+          
+          // application/pdf ko application/octet-stream me badlo taaki phone force download kare
+          a.href = base64data.replace("application/pdf", "application/octet-stream");
           a.download = fileName;
+          
+          // Anchor tag ko trigger karo
           document.body.appendChild(a);
           a.click();
-          URL.revokeObjectURL(blobUrl);
           document.body.removeChild(a);
-          
+
+          // Success Message
           if(typeof showPopup === 'function') {
-              showPopup('success', 'PDF Downloaded!', 'Statement saved to your device.');
+              showPopup('success', 'PDF Downloaded!', 'File has been securely saved to your phone.');
           }
-      }
+      };
   }).catch(err => {
       console.error('PDF Generation Error:', err);
+      // Agar fail ho jaye toh UI normal karo
       if(btn) {
           btn.innerHTML = oldHTML;
           btn.style.pointerEvents = 'auto';
       }
       if(document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
-      if(typeof showPopup === 'function') showPopup('error', 'Failed', 'PDF generation failed.');
+      
+      if(typeof showPopup === 'function') {
+          showPopup('error', 'Download Failed', 'Could not generate PDF. Please try again.');
+      }
   });
 }
 function selectPayMode(mode) {
