@@ -1359,53 +1359,89 @@ function downloadStatement() {
   hiddenDiv.appendChild(printContainer);
   document.body.appendChild(hiddenDiv);
 
- // 8. 🚨 THE ULTIMATE WEBVIEW DOWNLOAD FIX (Base64 Force-Download Engine)
+ // 8. 🚨 SMART CLOUD ENGINE WITH FALLBACK (NO MORE FREEZING)
   html2pdf().set(opt).from(printContainer).output('blob').then((pdfBlob) => {
       let fileName = `Statement_${propName.replace(/\s+/g, '_')}_${currentMonthStr.replace(' ', '_')}.pdf`;
 
-      // 🪄 BLOB ko BASE64 me convert karo (Kyunki Android Webview Blob ko block karta hai)
       let reader = new FileReader();
       reader.readAsDataURL(pdfBlob);
-      reader.onloadend = function() {
+      reader.onloadend = async function() {
           let base64data = reader.result;
 
-          // UI Buttons wapas normal karo
-          if(btn) {
-              btn.innerHTML = oldHTML;
-              btn.style.pointerEvents = 'auto';
-          }
-          if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+          // Ek function jo Fallback (Plan B) chalayega agar Cloud fail ho jaye
+          const runFallback = () => {
+              if(btn) { btn.innerHTML = oldHTML; btn.style.pointerEvents = 'auto'; }
+              if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+              
+              const fallbackFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+              
+              if (navigator.canShare && navigator.canShare({ files: [fallbackFile] })) {
+                  navigator.share({
+                      files: [fallbackFile],
+                      title: fileName,
+                      text: `Here is the billing statement for ${propName}.`
+                  }).catch(e => console.log("Share cancelled by user", e));
+              } else {
+                  const blobUrl = URL.createObjectURL(pdfBlob);
+                  const a = document.createElement('a');
+                  a.style.display = 'none';
+                  a.href = blobUrl;
+                  a.download = fileName;
+                  document.body.appendChild(a);
+                  a.click();
+                  URL.revokeObjectURL(blobUrl);
+                  document.body.removeChild(a);
+              }
+          };
 
-          // 🚀 SMART FORCE-DOWNLOAD ENGINE FOR ANDROID WEBVIEW
-          let a = document.createElement('a');
-          a.style.display = 'none';
-          
-          // application/pdf ko application/octet-stream me badlo taaki phone force download kare
-          a.href = base64data.replace("application/pdf", "application/octet-stream");
-          a.download = fileName;
-          
-          // Anchor tag ko trigger karo
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
+          try {
+              if(typeof showToast === 'function') showToast('Preparing Document... ⏳', 'warning');
 
-          // Success Message
-          if(typeof showPopup === 'function') {
-              showPopup('success', 'PDF Downloaded!', 'File has been securely saved to your phone.');
+              // Check if Firebase Storage is actually ready
+              if (!window.fbStorage || !window.fbUploadString) {
+                  console.warn("Firebase Storage missing, jumping to fallback.");
+                  return runFallback(); // Seedha Plan B par jao
+              }
+
+              // 🚀 SMART TIMEOUT: Agar 4 second me upload nahi hua, toh aage badh jao (No Freezing)
+              const uploadPromise = new Promise(async (resolve, reject) => {
+                  try {
+                      const storageRef = window.fbRef(window.fbStorage, `billing_statements/${fileName}`);
+                      const snapshot = await window.fbUploadString(storageRef, base64data, 'data_url');
+                      const downloadURL = await window.fbGetDownloadURL(snapshot.ref);
+                      resolve(downloadURL);
+                  } catch (e) {
+                      reject(e);
+                  }
+              });
+
+              // Ye 4 second timer hai. Agar pehle fail hua toh Error dega.
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Upload Timeout')), 4000));
+
+              // Dono me se jo pehle ho (Upload ya Timeout)
+              const finalURL = await Promise.race([uploadPromise, timeoutPromise]);
+
+              // Agar successfully upload ho gaya (Plan A worked!)
+              if(btn) { btn.innerHTML = oldHTML; btn.style.pointerEvents = 'auto'; }
+              if (document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
+
+              window.open(finalURL, '_blank'); 
+
+              if(typeof showPopup === 'function') {
+                  showPopup('success', 'PDF Ready!', 'Statement securely downloaded.');
+              }
+
+          } catch (err) {
+              console.error('Cloud Upload Failed/Timeout. Using Fallback:', err);
+              // Agar Plan A fail ho gaya ya time out ho gaya, toh atkana nahi hai, Plan B chalao!
+              runFallback(); 
           }
       };
   }).catch(err => {
       console.error('PDF Generation Error:', err);
-      // Agar fail ho jaye toh UI normal karo
-      if(btn) {
-          btn.innerHTML = oldHTML;
-          btn.style.pointerEvents = 'auto';
-      }
+      if(btn) { btn.innerHTML = oldHTML; btn.style.pointerEvents = 'auto'; }
       if(document.body.contains(hiddenDiv)) document.body.removeChild(hiddenDiv);
-      
-      if(typeof showPopup === 'function') {
-          showPopup('error', 'Download Failed', 'Could not generate PDF. Please try again.');
-      }
+      if(typeof showPopup === 'function') showPopup('error', 'Failed', 'Could not generate PDF.');
   });
 }
 function selectPayMode(mode) {
