@@ -1230,43 +1230,161 @@ function setBillingFilter(filterName) {
   renderBillingList();
 }
 
+// ==========================================================================
+// 🧾 PREMIUM BILLING STATEMENT DOWNLOADER (PDF)
+// ==========================================================================
 function downloadStatement() {
-  // 1. PDF kis area ka banana hai? (Humne Billing Summary card ko select kiya)
-  const element = document.querySelector('.billing-summary');
+  // 1. Naya container banao jisme full report banegi
+  const printContainer = document.createElement('div');
+  printContainer.style.padding = '30px';
+  printContainer.style.background = 'white';
+  printContainer.style.fontFamily = 'Arial, sans-serif';
+  printContainer.style.color = '#0f172a';
   
-  if(!element) {
-    alert("Error: Billing summary not found!");
-    return;
+  // 2. Data ikhatta karo
+  let props = RoomPeDB.getProperties();
+  let activeProp = props.find(p => p.id === RoomPeDB.getActiveProperty());
+  let propName = activeProp ? activeProp.name : 'My Property';
+  
+  let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  let currentMonthStr = monthNames[new Date().getMonth()] + " " + new Date().getFullYear();
+  
+  let receivedAmt = document.getElementById('billing-received-amt') ? document.getElementById('billing-received-amt').innerText : '₹0';
+  let pendingAmt = document.getElementById('billing-pending-amt') ? document.getElementById('billing-pending-amt').innerText : '₹0';
+  
+  // 3. Header & Summary UI for PDF
+  let pdfHTML = `
+      <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px;">
+          <h1 style="margin: 0; color: #059669; font-size: 32px;">${propName}</h1>
+          <h2 style="margin: 5px 0 0 0; color: #64748b; font-size: 18px;">Monthly Statement - ${currentMonthStr}</h2>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; margin-bottom: 30px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+          <div style="text-align: left;">
+              <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: bold;">Total Received</p>
+              <h3 style="margin: 5px 0 0 0; color: #059669; font-size: 28px;">${receivedAmt}</h3>
+          </div>
+          <div style="text-align: right;">
+              <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: bold;">Total Pending</p>
+              <h3 style="margin: 5px 0 0 0; color: #e11d48; font-size: 28px;">${pendingAmt}</h3>
+          </div>
+      </div>
+      
+      <h3 style="color: #0f172a; font-size: 18px; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Detailed Record</h3>
+  `;
+  
+  // 4. Asli List ko Table Format me convert karna (Taaki PDF A4 size par acha lage)
+  const listContainer = document.querySelector('#screen-billing .room-cards-list');
+  if (listContainer) {
+      let tableHTML = `
+          <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
+              <thead>
+                  <tr style="background-color: #f1f5f9; text-align: left;">
+                      <th style="padding: 12px; border: 1px solid #e2e8f0;">Guest Details</th>
+                      <th style="padding: 12px; border: 1px solid #e2e8f0;">Amount</th>
+                      <th style="padding: 12px; border: 1px solid #e2e8f0;">Status</th>
+                      <th style="padding: 12px; border: 1px solid #e2e8f0;">Remarks</th>
+                  </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      // Screen par dikh rahe saare cards pakdo
+      const cards = listContainer.querySelectorAll('.bill-card');
+      if(cards.length > 0) {
+          cards.forEach(card => {
+              let guestNameEl = card.querySelector('.guest-name');
+              let priceEl = card.querySelector('.bill-price');
+              let statusTag = card.querySelector('.bill-tag');
+              let detailsEl = card.querySelector('.bill-footer div:first-child');
+              
+              let nameText = guestNameEl ? guestNameEl.innerText : 'Unknown';
+              let priceText = priceEl ? priceEl.innerText : '₹0';
+              let statusText = statusTag ? statusTag.innerText : 'UNKNOWN';
+              // HTML tags hata kar sirf text lo
+              let detailsText = detailsEl ? detailsEl.innerText.replace(/error/g, '').trim() : '';
+              
+              let statusColor = statusText.includes('PAID') ? '#059669' : '#e11d48';
+              let statusBg = statusText.includes('PAID') ? '#ecfdf5' : '#fff1f2';
+              
+              tableHTML += `
+                  <tr>
+                      <td style="padding: 12px; border: 1px solid #e2e8f0;"><strong>${nameText}</strong></td>
+                      <td style="padding: 12px; border: 1px solid #e2e8f0; font-weight: bold; color: ${statusColor};">${priceText}</td>
+                      <td style="padding: 12px; border: 1px solid #e2e8f0;">
+                          <span style="color: ${statusColor}; background: ${statusBg}; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">${statusText}</span>
+                      </td>
+                      <td style="padding: 12px; border: 1px solid #e2e8f0; color: #64748b; font-size: 12px;">${detailsText}</td>
+                  </tr>
+              `;
+          });
+      } else {
+           tableHTML += `<tr><td colspan="4" style="padding: 30px; text-align: center; border: 1px solid #e2e8f0; color: #94a3b8;">No records found for this period.</td></tr>`;
+      }
+      
+      tableHTML += `</tbody></table>`;
+      pdfHTML += tableHTML;
   }
 
-  // 2. PDF ki settings set karo
+  // Footer
+  pdfHTML += `
+      <div style="margin-top: 50px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px dashed #e2e8f0; padding-top: 20px;">
+          Generated securely via RoomPe App on ${new Date().toLocaleString('en-IN')}
+      </div>
+  `;
+
+  printContainer.innerHTML = pdfHTML;
+
+  // 5. PDF generation settings (A4 size set kiya hai)
   const opt = {
     margin:       10,
-    filename:     'RoomPe_Billing_Statement.pdf',
+    filename:     `Statement_${propName.replace(/\s+/g, '_')}_${currentMonthStr.replace(' ', '_')}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
 
-  // 3. UX Magic: Button ka text change karke 'Downloading...' dikhao
+  // 6. UI Update (Button Loading)
   let btn = document.querySelector('.bs-statement');
-  let oldHTML = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">hourglass_empty</span> Wait...`;
-  btn.style.pointerEvents = 'none'; // Jab tak ban raha hai, button disable kar do
+  let oldHTML = btn ? btn.innerHTML : 'Download';
+  if(btn) {
+      btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px; animation: ptrLoadingSpin 1s linear infinite;">refresh</span> Wait...`;
+      btn.style.pointerEvents = 'none';
+  }
   
-  // 4. Library ko call karke PDF Generate & Download karo
-  html2pdf().set(opt).from(element).save().then(() => {
-      // 5. PDF banne ke baad button normal kardo aur Success Popup dikhao
-      btn.innerHTML = oldHTML;
-      btn.style.pointerEvents = 'auto';
-      showPopup('success', 'PDF Downloaded!', 'Your billing statement has been saved successfully.');
+  // 7. Background element attach karo
+  const hiddenDiv = document.createElement('div');
+  hiddenDiv.style.position = 'absolute';
+  hiddenDiv.style.left = '-9999px';
+  hiddenDiv.appendChild(printContainer);
+  document.body.appendChild(hiddenDiv);
+
+  // 8. Generate and save
+  html2pdf().set(opt).from(printContainer).save().then(() => {
+      if(btn) {
+          btn.innerHTML = oldHTML;
+          btn.style.pointerEvents = 'auto';
+      }
+      document.body.removeChild(hiddenDiv);
+      if(typeof showPopup === 'function') {
+          showPopup('success', 'PDF Downloaded!', 'Your detailed billing statement has been saved.');
+      } else {
+          alert('PDF Downloaded Successfully!');
+      }
   }).catch(err => {
-      btn.innerHTML = oldHTML;
-      btn.style.pointerEvents = 'auto';
-      showPopup('error', 'Download Failed', 'Something went wrong. Please try again.');
+      console.error('PDF Generation Error:', err);
+      if(btn) {
+          btn.innerHTML = oldHTML;
+          btn.style.pointerEvents = 'auto';
+      }
+      if(hiddenDiv && hiddenDiv.parentNode) {
+          document.body.removeChild(hiddenDiv);
+      }
+      if(typeof showPopup === 'function') {
+          showPopup('error', 'Download Failed', 'Something went wrong. Please check console.');
+      }
   });
 }
-
 function selectPayMode(mode) {
   let upiBtn = document.getElementById('pay-mode-upi');
   let cashBtn = document.getElementById('pay-mode-cash');
