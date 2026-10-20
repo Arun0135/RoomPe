@@ -1359,7 +1359,7 @@ function downloadStatement() {
   hiddenDiv.appendChild(printContainer);
   document.body.appendChild(hiddenDiv);
 
- // 8. 🚨 SMART CLOUD ENGINE WITH FALLBACK (NO MORE FREEZING)
+  // 8. 🚨 SMART CLOUD ENGINE WITH FALLBACK (NO MORE FREEZING)
   html2pdf().set(opt).from(printContainer).output('blob').then((pdfBlob) => {
       let fileName = `Statement_${propName.replace(/\s+/g, '_')}_${currentMonthStr.replace(' ', '_')}.pdf`;
 
@@ -1444,6 +1444,7 @@ function downloadStatement() {
       if(typeof showPopup === 'function') showPopup('error', 'Failed', 'Could not generate PDF.');
   });
 }
+
 function selectPayMode(mode) {
   let upiBtn = document.getElementById('pay-mode-upi');
   let cashBtn = document.getElementById('pay-mode-cash');
@@ -1834,20 +1835,69 @@ function openRoomDetails(roomNo) {
         if(docNoSigEl) { docNoSigEl.style.display = 'block'; }
     }
   } else {
-    // Agar room khali (Vacant) hai
-    if(guestNameEl) guestNameEl.innerText = 'Vacant';
-    if(guestInitEl) guestInitEl.innerText = '-';
-    
-    let guestPhoneEl = document.getElementById('rd-guest-phone');
-    let guestSigEl = document.getElementById('rd-guest-signature');
-    let docSigEl = document.getElementById('rd-doc-signature');
-    let docNoSigEl = document.getElementById('rd-doc-no-sig');
-    
-    if(guestPhoneEl) guestPhoneEl.innerText = '-';
-    if(guestSigEl) guestSigEl.style.display = 'none';
-    if(docSigEl) docSigEl.style.display = 'none';
-    if(docNoSigEl) docNoSigEl.style.display = 'block';
-  }
+      // 🚨 VACANT STATE GHOST-DATA KILLER (PROPER RESET)
+      if(guestNameEl) guestNameEl.innerText = 'Vacant';
+      if(guestInitEl) guestInitEl.innerText = '-';
+      
+      // 1. Status Badge Fix (Hare tag ko hata kar Grey 'Available' karna)
+      let statusBadge = guestNameEl ? guestNameEl.nextElementSibling : null;
+      if(statusBadge && statusBadge.tagName === 'SPAN') {
+          statusBadge.innerHTML = 'Available';
+          statusBadge.style.background = '#f1f5f9';
+          statusBadge.style.color = '#64748b';
+          statusBadge.style.border = 'none';
+      }
+      
+      let guestPhoneEl = document.getElementById('rd-guest-phone');
+      if(guestPhoneEl) guestPhoneEl.innerText = 'No active guest';
+      
+      // 2. Hide Action Buttons (Khali room me Payment/Checkout nahi dikhna chahiye)
+      let chatBtn = document.getElementById('rd-chat-btn');
+      let callBtn = document.getElementById('rd-call-btn');
+      let checkoutBtn = document.getElementById('rd-checkout-btn');
+      let addExtraBtn = document.getElementById('rd-add-extra-btn');
+      let addPayBtn = document.getElementById('rd-add-pay-btn');
+      
+      if(chatBtn) chatBtn.style.display = 'none';
+      if(callBtn) callBtn.style.display = 'none';
+      if(checkoutBtn) checkoutBtn.style.display = 'none';
+      if(addExtraBtn) addExtraBtn.style.display = 'none';
+      if(addPayBtn) addPayBtn.style.display = 'none';
+
+      // 3. Zero out all billing UI (Purana Rent/Due gayab karo)
+      let checkinEl = document.getElementById('rd-checkin-date');
+      let durationEl = document.getElementById('rd-stay-duration');
+      let rentEl = document.getElementById('rd-room-rent');
+      let advEl = document.getElementById('ui-amount-paid');
+      let payableEl = document.getElementById('ui-net-payable');
+      let extrasListEl = document.getElementById('rd-extras-list');
+      
+      if(checkinEl) checkinEl.innerText = '-';
+      if(durationEl) durationEl.innerText = '-';
+      if(rentEl) rentEl.innerText = '₹0';
+      if(advEl) advEl.innerText = '₹0';
+      if(payableEl) { payableEl.innerText = '₹0'; payableEl.style.color = '#64748b'; }
+      if(extrasListEl) extrasListEl.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; padding: 10px 0;">No active extras</div>';
+
+      // 4. Neutralize Due Card (Lal dabbe ko normal grey banao)
+      let dueCard = document.getElementById('rd-due-card');
+      let statusEl = document.getElementById('rd-due-status');
+      let dueTitle = document.getElementById('rd-due-title');
+      let dueIcon = document.getElementById('rd-due-icon');
+
+      if(dueCard) { dueCard.style.background = '#f8fafc'; dueCard.style.borderColor = '#e2e8f0'; }
+      if(statusEl) { statusEl.innerText = "Room is Empty"; statusEl.style.color = "#94a3b8"; }
+      if(dueTitle) { dueTitle.innerText = "Cleared"; dueTitle.style.color = "#64748b"; }
+      if(dueIcon) { dueIcon.style.color = "#64748b"; dueIcon.innerText = "check_circle"; }
+      
+      // Hide signatures
+      let guestSigEl = document.getElementById('rd-guest-signature');
+      let docSigEl = document.getElementById('rd-doc-signature');
+      let docNoSigEl = document.getElementById('rd-doc-no-sig');
+      if(guestSigEl) guestSigEl.style.display = 'none';
+      if(docSigEl) docSigEl.style.display = 'none';
+      if(docNoSigEl) docNoSigEl.style.display = 'block';
+    }
 
   // Actions Assignment
   let chatBtn = document.getElementById('rd-chat-btn');
@@ -2686,9 +2736,13 @@ updateDashboardStats = function() {
   RoomPeDB.getRooms = oldGetRooms; 
 };
 
-// ==========================================================================
-// NOTIFICATION ENGINE
-// ==========================================================================
+/* ==========================================================================
+   🔔 PREMIUM SMART NOTIFICATION ENGINE (FILTER, MEMORY & ROUTING)
+   ========================================================================== */
+
+let currentNotifFilter = 'All'; // Default tab
+
+// ⏳ Time Format Helper
 function timeAgo(time) {
   let diff = Math.floor((new Date() - new Date(time)) / 1000);
   if (diff < 60) return 'Just now';
@@ -2697,108 +2751,209 @@ function timeAgo(time) {
   return Math.floor(diff / 86400) + ' days ago';
 }
 
-function openNotifications() {
-  let payments = RoomPeDB.getActivePropertyPayments();
-  let allBookings = RoomPeDB.getBookings().filter(b => b.propId === RoomPeDB.getActiveProperty());
+// 🧠 Memory Logic (Jo delete kiya, usko yaad rakho)
+function getDismissedNotifs() {
+    return JSON.parse(localStorage.getItem('roompe_dismissed_notifs')) || [];
+}
+
+function saveDismissedNotif(id) {
+    let dismissed = getDismissedNotifs();
+    if(!dismissed.includes(id)) {
+        dismissed.push(id);
+        localStorage.setItem('roompe_dismissed_notifs', JSON.stringify(dismissed));
+    }
+}
+
+// 🎛️ Tab Switcher Logic
+function setNotifFilter(filterName) {
+    currentNotifFilter = filterName;
+    
+    // UI Change: Jo click kiya use Green banao, baki ko White
+    let tabs = document.querySelectorAll('.notif-chip');
+    tabs.forEach(btn => {
+        btn.style.background = 'white';
+        btn.style.color = '#64748b';
+        btn.style.borderColor = '#e2e8f0';
+        
+        // Active tab check
+        if ((btn.id === 'notif-tab-all' && filterName === 'All') ||
+            (btn.id === 'notif-tab-pay' && filterName === 'Payments') ||
+            (btn.id === 'notif-tab-book' && filterName === 'Bookings')) {
+            btn.style.background = '#059669';
+            btn.style.color = 'white';
+            btn.style.borderColor = '#059669';
+        }
+    });
+    
+    renderNotifications(); // Tab badalte hi list refresh
+}
+
+// 📱 Main Engine (Data fetch, Filter, aur UI Draw karta hai)
+function renderNotifications() {
+  let payments = RoomPeDB.getActivePropertyPayments() || [];
+  let allBookings = RoomPeDB.getBookings().filter(b => b.propId === RoomPeDB.getActiveProperty()) || [];
+  let dismissed = getDismissedNotifs(); 
   let notifList = document.getElementById('real-notification-list');
+  
   let allNotifs = []; 
 
+  // 1. Fetch Payments
   payments.forEach(p => {
-    allNotifs.push({
-      id: p.id, type: 'Payment', title: 'Payment Received',
-      desc: `₹${parseInt(p.amount).toLocaleString('en-IN')} received from <b>${p.guest}</b> (Room ${p.room}) via ${p.mode}.`,
-      time: p.date, icon: 'payments', color: '#059669', bg: '#ecfdf5', action: `closeActionScreen(); openRoomDetails('${p.room}')`, pill: 'View Room'
-    });
+    if(!dismissed.includes(p.id)) {
+      allNotifs.push({
+        id: p.id, type: 'Payments', title: 'Payment Received',
+        desc: `₹${parseInt(p.amount).toLocaleString('en-IN')} received from <b>${p.guest}</b> (Room ${p.room}) via ${p.mode}.`,
+        time: p.date, icon: 'payments', color: '#059669', bg: '#ecfdf5', 
+        action: `closeActionScreen(); setTimeout(() => { openRoomDetails('${p.room}'); switchRoomDetailsTab('payments'); }, 300);`, 
+        pill: 'View Room'
+      });
+    }
   });
 
+  // 2. Fetch Bookings
   allBookings.forEach(b => {
-    allNotifs.push({
-      id: b.id, type: 'Booking', title: 'New Booking Confirmed',
-      desc: `<b>${b.guest}</b> booked Room <b>${b.room}</b> for ${b.duration} nights.`,
-      time: b.createdAt, icon: 'book_online', color: '#4f46e5', bg: '#e0e7ff', action: `closeActionScreen(); switchTab('bookings')`, pill: 'View Booking'
-    });
+    if(!dismissed.includes(b.id)) {
+      allNotifs.push({
+        id: b.id, type: 'Bookings', title: 'New Booking Confirmed',
+        desc: `<b>${b.guest}</b> booked Room <b>${b.room}</b> for ${b.duration} nights.`,
+        time: b.createdAt, icon: 'book_online', color: '#4f46e5', bg: '#e0e7ff', 
+        action: `closeActionScreen(); setTimeout(() => switchTab('bookings'), 300);`, 
+        pill: 'View Booking'
+      });
+    }
   });
 
+  // Sort by newest first
   allNotifs.sort((a, b) => b.time - a.time);
+  
+  // 🚨 SMART MATH: Tabs par unka live number update karo
+  let payCount = allNotifs.filter(n => n.type === 'Payments').length;
+  let bookCount = allNotifs.filter(n => n.type === 'Bookings').length;
+  let totalCount = allNotifs.length;
+  
+  let countAllSpan = document.getElementById('notif-count-all');
+  let tabPay = document.getElementById('notif-tab-pay');
+  let tabBook = document.getElementById('notif-tab-book');
+  
+  if(countAllSpan) countAllSpan.innerText = totalCount;
+  if(tabPay) tabPay.innerText = payCount > 0 ? `Payments (${payCount})` : `Payments`;
+  if(tabBook) tabBook.innerText = bookCount > 0 ? `Bookings (${bookCount})` : `Bookings`;
 
-  let badge = document.getElementById('notif-badge');
-  let countAll = document.getElementById('notif-count-all');
-  if(badge) badge.innerText = allNotifs.length > 0 ? `${allNotifs.length} New` : '0 New';
-  if(countAll) countAll.innerText = allNotifs.length;
+  updateNotificationBadgeDisplay(totalCount);
 
-  if (allNotifs.length === 0) {
+  // 🚨 FILTER APPLY KARO
+  let filteredNotifs = allNotifs;
+  if (currentNotifFilter !== 'All') {
+      filteredNotifs = allNotifs.filter(n => n.type === currentNotifFilter);
+  }
+
+  // 3. UI Generator
+  if (filteredNotifs.length === 0) {
+    let emptyMsg = currentNotifFilter === 'All' ? 'No new notifications' : `No new ${currentNotifFilter.toLowerCase()}`;
     notifList.innerHTML = `
       <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
         <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">notifications_off</span>
-        <h4 style="margin: 0; font-size: 15px; color: #64748b;">No new notifications</h4>
+        <h4 style="margin: 0; font-size: 15px; color: #64748b;">${emptyMsg}</h4>
       </div>`;
   } else {
     let notifHTML = '';
-    allNotifs.forEach(n => {
+    filteredNotifs.forEach(n => {
       notifHTML += `
-        <div id="notif-${n.id}" class="notif-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; gap: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); position: relative; overflow: hidden;">
+        <div id="notif-${n.id}" class="notif-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; display: flex; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; margin-bottom: 12px;">
+          
+          <!-- Icon Box -->
           <div style="width: 40px; height: 40px; background: ${n.bg}; color: ${n.color}; border-radius: 50%; display: flex; justify-content: center; align-items: center; flex-shrink: 0;">
             <span class="material-symbols-outlined">${n.icon}</span>
           </div>
-          <div style="flex: 1; cursor: pointer;" onclick="${n.action}">
+          
+          <!-- Text Content (Padding kam kar di) -->
+          <div style="flex: 1; cursor: pointer; padding-right: 28px;" onclick="markAsReadAndRoute('${n.id}', \`${n.action}\`)">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
               <h4 style="margin: 0 0 4px; font-size: 14px; color: #0f172a; font-weight: 700;">${n.title}</h4>
-              <div style="width: 8px; height: 8px; background: ${n.color}; border-radius: 50%;"></div>
+              <div style="width: 8px; height: 8px; background: ${n.color}; border-radius: 50%; margin-top: 4px;"></div>
             </div>
             <p style="margin: 0 0 10px; font-size: 12px; color: #475569; line-height: 1.5;">${n.desc}</p>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px;"><span class="material-symbols-outlined" style="font-size: 12px;">schedule</span> ${timeAgo(n.time)}</span>
-              <span style="font-size: 10px; font-weight: 700; color: ${n.color}; background: ${n.bg}; padding: 3px 8px; border-radius: 12px;">${n.pill}</span>
+              <span style="font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 12px;">schedule</span> ${timeAgo(n.time)}
+              </span>
+              <span style="font-size: 10px; font-weight: 800; color: ${n.color}; background: ${n.bg}; padding: 4px 10px; border-radius: 12px;">${n.pill}</span>
             </div>
           </div>
-          <div onclick="dismissNotification('notif-${n.id}')" style="position: absolute; right: -30px; top: 0; bottom: 0; width: 40px; background: #fee2e2; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; color: #ef4444; border-top-right-radius: 12px; border-bottom-right-radius: 12px; z-index: 10;">
-             <span class="material-symbols-outlined">close</span>
+
+          <!-- 🚨 Naya Premium Close Button (X) 🚨 -->
+          <div onclick="event.stopPropagation(); dismissNotification('${n.id}')" style="position: absolute; right: 12px; top: 12px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #94a3b8; background: #f8fafc; border-radius: 50%; transition: 0.2s;">
+             <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
           </div>
+          
         </div>
       `;
     });
     notifList.innerHTML = notifHTML;
   }
-  openActionScreen('screen-notifications');
 }
 
+// 🚪 Screen Trigger
+function openNotifications() {
+    setNotifFilter('All'); 
+    openActionScreen('screen-notifications');
+}
+
+// 🚀 Action Router 
+function markAsReadAndRoute(id, actionCode) {
+    saveDismissedNotif(id); 
+    let el = document.getElementById('notif-' + id);
+    if(el) el.style.opacity = '0.5';
+    eval(actionCode); 
+}
+
+// 🗑️ Delete Single Notification
 function dismissNotification(id) {
-  let el = document.getElementById(id);
+  let el = document.getElementById('notif-' + id); 
   if (el) {
-    el.classList.add('slide-out');
+    saveDismissedNotif(id); 
+    
+    el.style.transition = '0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    el.style.transform = 'translateX(120%)';
+    el.style.opacity = '0';
+    
     setTimeout(() => {
-      el.remove();
-      let badge = document.getElementById('notif-badge');
-      let countAll = document.getElementById('notif-count-all');
-      let remaining = document.querySelectorAll('.notif-card').length;
-      
-      if(badge) badge.innerText = remaining > 0 ? `${remaining} New` : '0 New';
-      if(countAll) countAll.innerText = remaining;
-      
-      if(remaining === 0) {
-        document.getElementById('real-notification-list').innerHTML = `
-          <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-            <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">notifications_off</span>
-            <h4 style="margin: 0; font-size: 15px; color: #64748b;">No new notifications</h4>
-          </div>`;
-      }
+      renderNotifications(); // UI Auto-refresh
     }, 300);
   }
 }
 
+// 🧹 Clear All Permanently
 function clearAllNotifications() {
-  document.querySelectorAll('.notif-card').forEach(el => {
-    el.classList.add('slide-out');
+  let cards = document.querySelectorAll('.notif-card');
+  cards.forEach(card => {
+    let id = card.id.replace('notif-', '');
+    saveDismissedNotif(id); 
+    
+    card.style.transition = '0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    card.style.transform = 'translateX(100%)';
+    card.style.opacity = '0';
   });
+  
   setTimeout(() => {
-    document.getElementById('real-notification-list').innerHTML = `
-      <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
-        <span class="material-symbols-outlined" style="font-size: 48px; margin-bottom: 12px; opacity: 0.5;">done_all</span>
-        <h4 style="margin: 0; font-size: 15px; color: #10b981;">All caught up!</h4>
-      </div>`;
-    document.getElementById('notif-badge').innerText = '0 New';
-    document.getElementById('notif-count-all').innerText = '0';
+    renderNotifications(); // UI Auto-refresh
   }, 300);
+}
+
+// 🎨 Header Badge Logic
+function updateNotificationBadgeDisplay(count) {
+  let badge = document.getElementById('notif-badge');
+  let countAllHeader = document.getElementById('notif-count-all-header'); // Dashboard ya header count
+  
+  if(badge) {
+      if(count > 0) {
+          badge.innerText = `${count} New`;
+          badge.style.display = 'flex';
+      } else {
+          badge.style.display = 'none';
+      }
+  }
+  if(countAllHeader) countAllHeader.innerText = count;
 }
 
 // ==========================================================================
@@ -4754,7 +4909,125 @@ document.addEventListener("visibilitychange", () => {
         }
     }
 });
+/* ==========================================================================
+   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SMART ENGINE)
+   ========================================================================== */
+let ptrStartY = 0;
+let ptrCurrentY = 0;
+let isPulling = false;
 
+const ptrContainer = document.getElementById('premium-ptr');
+const ptrIconBox = document.getElementById('ptr-icon'); 
+const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
+const THRESHOLD = 70; 
+
+// 🚨 SMART HELPER: Check karta hai ki screen ka KOI BHI hissa scroll hua hai ya nahi
+function getRealScrollTop(targetElement) {
+    let el = targetElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+        if (el.scrollTop > 0) return el.scrollTop; 
+        el = el.parentElement;
+    }
+    return window.scrollY || document.documentElement.scrollTop || 0;
+}
+
+// 1. Touch Start
+document.addEventListener('touchstart', (e) => {
+  let realScroll = getRealScrollTop(e.target);
+
+  // Agar PURI SCREEN sach me ekdum TOP par hai (0 ya 1px) tabhi refresh on hoga
+  if (realScroll <= 1) { 
+    ptrStartY = e.touches[0].clientY;
+    isPulling = true;
+    if(ptrContainer) ptrContainer.style.transition = 'none'; 
+    if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
+  } else {
+    isPulling = false; 
+  }
+}, {passive: true});
+
+// 2. Touch Move
+document.addEventListener('touchmove', (e) => {
+  if (!isPulling || !ptrContainer) return;
+  
+  ptrCurrentY = e.touches[0].clientY;
+  let pullDistance = ptrCurrentY - ptrStartY;
+
+  if (pullDistance > 0) {
+    let realScroll = getRealScrollTop(e.target);
+    
+    // Double check: Kya abhi bhi TOP par hi hai?
+    if(realScroll <= 1) {
+        if (e.cancelable) e.preventDefault(); // Normal scroll block karo
+        
+        let visualDistance = pullDistance * 0.4;
+        ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
+        
+        if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
+            ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
+        }
+
+        if (visualDistance >= THRESHOLD) {
+            ptrIconBox.classList.add('ready');
+        } else {
+            ptrIconBox.classList.remove('ready');
+        }
+    } else {
+        // Agar galti se scroll ho gaya, toh refresh turant cancel
+        isPulling = false;
+        ptrContainer.style.transform = `translate(-50%, 0px)`;
+    }
+  } else {
+    // Ungli upar jaa rahi hai (niche dekhne ke liye)
+    isPulling = false;
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+  }
+}, {passive: false});
+
+// 3. Touch End
+document.addEventListener('touchend', () => {
+  if (!isPulling || !ptrContainer) return;
+  isPulling = false;
+  
+  let pullDistance = ptrCurrentY - ptrStartY;
+  let visualDistance = pullDistance * 0.4;
+  
+  ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
+
+  if (pullDistance > 0 && visualDistance >= THRESHOLD) {
+    ptrContainer.style.transform = `translate(-50%, 80px)`; 
+    
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        ptrIconBox.classList.add('ptr-spin'); 
+    }
+    
+    // Asli Refresh Call
+    if(typeof smartRefresh === 'function') {
+       smartRefresh();
+    } else {
+       window.location.reload(); 
+    }
+
+    setTimeout(() => {
+      ptrContainer.style.transform = `translate(-50%, 0px)`;
+      if(ptrIconBox) {
+          ptrIconBox.classList.remove('ptr-spin');
+          if(ptrIconSymbol) ptrIconSymbol.style.transform = `rotate(0deg)`;
+      }
+    }, 1500);
+    
+  } else {
+    ptrContainer.style.transform = `translate(-50%, 0px)`;
+    if(ptrIconBox) {
+        ptrIconBox.classList.remove('ready');
+        if(ptrIconSymbol) setTimeout(() => { ptrIconSymbol.style.transform = `rotate(0deg)`; }, 300);
+    }
+  }
+  
+  ptrStartY = 0;
+  ptrCurrentY = 0;
+});
 /* ==========================================================================
    📸 SMART IMAGE INVOICE GENERATOR & WHATSAPP SHARE ENGINE
    ========================================================================== */
@@ -4936,123 +5209,3 @@ async function forceDownloadDocument(url, filename) {
         window.open(url, '_blank');
     }
 }
-
-/* ==========================================================================
-   🚀 CUSTOM PULL-TO-REFRESH (ULTIMATE SMART ENGINE)
-   ========================================================================== */
-let ptrStartY = 0;
-let ptrCurrentY = 0;
-let isPulling = false;
-
-const ptrContainer = document.getElementById('premium-ptr');
-const ptrIconBox = document.getElementById('ptr-icon'); 
-const ptrIconSymbol = ptrIconBox ? ptrIconBox.querySelector('span') : null; 
-const THRESHOLD = 70; 
-
-// 🚨 SMART HELPER: Check karta hai ki screen ka KOI BHI hissa scroll hua hai ya nahi
-function getRealScrollTop(targetElement) {
-    let el = targetElement;
-    while (el && el !== document.body && el !== document.documentElement) {
-        if (el.scrollTop > 0) return el.scrollTop; 
-        el = el.parentElement;
-    }
-    return window.scrollY || document.documentElement.scrollTop || 0;
-}
-
-// 1. Touch Start
-document.addEventListener('touchstart', (e) => {
-  let realScroll = getRealScrollTop(e.target);
-
-  // Agar PURI SCREEN sach me ekdum TOP par hai (0 ya 1px) tabhi refresh on hoga
-  if (realScroll <= 1) { 
-    ptrStartY = e.touches[0].clientY;
-    isPulling = true;
-    if(ptrContainer) ptrContainer.style.transition = 'none'; 
-    if(ptrIconBox) ptrIconBox.classList.remove('ready', 'ptr-spin'); 
-  } else {
-    isPulling = false; 
-  }
-}, {passive: true});
-
-// 2. Touch Move
-document.addEventListener('touchmove', (e) => {
-  if (!isPulling || !ptrContainer) return;
-  
-  ptrCurrentY = e.touches[0].clientY;
-  let pullDistance = ptrCurrentY - ptrStartY;
-
-  if (pullDistance > 0) {
-    let realScroll = getRealScrollTop(e.target);
-    
-    // Double check: Kya abhi bhi TOP par hi hai?
-    if(realScroll <= 1) {
-        if (e.cancelable) e.preventDefault(); // Normal scroll block karo
-        
-        let visualDistance = pullDistance * 0.4;
-        ptrContainer.style.transform = `translate(-50%, ${visualDistance}px)`;
-        
-        if(ptrIconSymbol && !ptrIconBox.classList.contains('ptr-spin')) {
-            ptrIconSymbol.style.transform = `rotate(${visualDistance * 4}deg)`;
-        }
-
-        if (visualDistance >= THRESHOLD) {
-            ptrIconBox.classList.add('ready');
-        } else {
-            ptrIconBox.classList.remove('ready');
-        }
-    } else {
-        // Agar galti se scroll ho gaya, toh refresh turant cancel
-        isPulling = false;
-        ptrContainer.style.transform = `translate(-50%, 0px)`;
-    }
-  } else {
-    // Ungli upar jaa rahi hai (niche dekhne ke liye)
-    isPulling = false;
-    ptrContainer.style.transform = `translate(-50%, 0px)`;
-  }
-}, {passive: false});
-
-// 3. Touch End
-document.addEventListener('touchend', () => {
-  if (!isPulling || !ptrContainer) return;
-  isPulling = false;
-  
-  let pullDistance = ptrCurrentY - ptrStartY;
-  let visualDistance = pullDistance * 0.4;
-  
-  ptrContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; 
-
-  if (pullDistance > 0 && visualDistance >= THRESHOLD) {
-    ptrContainer.style.transform = `translate(-50%, 80px)`; 
-    
-    if(ptrIconBox) {
-        ptrIconBox.classList.remove('ready');
-        ptrIconBox.classList.add('ptr-spin'); 
-    }
-    
-    // Asli Refresh Call
-    if(typeof smartRefresh === 'function') {
-       smartRefresh();
-    } else {
-       window.location.reload(); 
-    }
-
-    setTimeout(() => {
-      ptrContainer.style.transform = `translate(-50%, 0px)`;
-      if(ptrIconBox) {
-          ptrIconBox.classList.remove('ptr-spin');
-          if(ptrIconSymbol) ptrIconSymbol.style.transform = `rotate(0deg)`;
-      }
-    }, 1500);
-    
-  } else {
-    ptrContainer.style.transform = `translate(-50%, 0px)`;
-    if(ptrIconBox) {
-        ptrIconBox.classList.remove('ready');
-        if(ptrIconSymbol) setTimeout(() => { ptrIconSymbol.style.transform = `rotate(0deg)`; }, 300);
-    }
-  }
-  
-  ptrStartY = 0;
-  ptrCurrentY = 0;
-});
