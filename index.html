@@ -289,7 +289,6 @@
         <span class="material-symbols-outlined" style="font-size: 24px;">refresh</span>
       </div>
     </div>
-    
 
     <!-- 🚀 ULTRA-PREMIUM SKELETON SHIMMER (STRICTLY TOP ALIGNED) -->
 <div id="roompe-global-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #f8f9fa; z-index: 9999999; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; transition: opacity 0.4s ease, visibility 0.4s;">
@@ -599,7 +598,7 @@
             <span id="cloud-icon" class="material-symbols-outlined" style="font-size: 18px;">cloud_done</span>
           </div>
 
-          <div class="bell-icon" onclick="openActionScreen('screen-notifications')">
+          <div class="bell-icon" onclick="openNotifications()">
             <span class="material-symbols-outlined">notifications</span><div class="red-dot"></div>
           </div>
           <div class="profile-icon-small" onclick="switchTab('more')">
@@ -743,12 +742,11 @@
       </header>
       
       <!-- Filter Chips -->
-      <div style="display: flex; gap: 8px; overflow-x: auto; padding: 16px 20px 8px; background: white; border-bottom: 1px solid #f1f5f9;">
-        <div class="notif-chip" style="background: #059669; color: white; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">All (<span id="notif-count-all">0</span>)</div>
-        <div class="notif-chip" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Payments</div>
-        <div class="notif-chip" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;">Bookings</div>
-      </div>
-
+<div style="display: flex; gap: 8px; overflow-x: auto; padding: 16px 20px 8px; background: white; border-bottom: 1px solid #f1f5f9;">
+    <div id="notif-tab-all" class="notif-chip" onclick="setNotifFilter('All')" style="background: #059669; color: white; border: 1px solid #059669; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">All (<span id="notif-count-all">0</span>)</div>
+    <div id="notif-tab-pay" class="notif-chip" onclick="setNotifFilter('Payments')" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Payments</div>
+    <div id="notif-tab-book" class="notif-chip" onclick="setNotifFilter('Bookings')" style="background: white; color: #64748b; border: 1px solid #e2e8f0; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;">Bookings</div>
+</div>
       <div class="rooms-scroll-area" style="padding: 16px 20px 100px;">
         <p style="font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase;">Recent Updates</p>
         <!-- JS will inject real notifications here -->
