@@ -279,6 +279,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- PDF Generator Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  
 </head>
 <body>
   
@@ -614,39 +616,58 @@
         <h3 style="font-size: 18px; color: #0f172a; font-weight: 800; margin-bottom: 16px;">Overview</h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
             
-            <!-- Collected Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-green">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-collected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #10b981;">done_all</span></div>
+            <!-- Collected Ring + Sparkline -->
+            <div class="glass-card" style="position: relative; overflow: hidden; padding: 12px;">
+                <!-- ORIGINAL CONTENT (Ring + Text) z-index 2 par upar rahega -->
+                <div style="display: flex; align-items: center; gap: 12px; position: relative; z-index: 2;">
+                    <div class="ring-wrapper">
+                        <svg viewBox="0 0 36 36" class="circular-chart ring-green">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle" id="ring-collected" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #10b981;">done_all</span></div>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Collected</p>
+                        <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">
+                            <span id="dash-collected-amt">₹0</span>
+                        </h4>
+                        <div id="dash-collected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div>
+                    </div>
                 </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Collected</p>
-                    <h4 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">     <span id="dash-collected-amt">₹0</span>     <div id="dash-collected-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div> </h4>
-                </div>
+                
+                <!-- NEW BACKGROUND SPARKLINE (z-index 1 par piche rahega) -->
+                <svg viewBox="0 0 100 30" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; opacity: 0.15; pointer-events: none; z-index: 1;" preserveAspectRatio="none">
+                    <path d="M0,30 L15,22 L35,26 L60,12 L80,16 L100,5 L100,30 L0,30 Z" fill="#10b981" />
+                    <path d="M0,30 L15,22 L35,26 L60,12 L80,16 L100,5" fill="none" stroke="#059669" stroke-width="2" />
+                </svg>
             </div>
 
-            <!-- Pending Ring -->
-            <div class="glass-card" style="display: flex; align-items: center; gap: 12px;">
-                <div class="ring-wrapper">
-                    <svg viewBox="0 0 36 36" class="circular-chart ring-red">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" id="ring-pending" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    </svg>
-                    <!-- Center Icon Added -->
-                    <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #ef4444;">warning</span></div>
+            <!-- Pending Ring + Sparkline -->
+            <div class="glass-card" style="position: relative; overflow: hidden; padding: 12px;">
+                <!-- ORIGINAL CONTENT (Ring + Text) -->
+                <div style="display: flex; align-items: center; gap: 12px; position: relative; z-index: 2;">
+                    <div class="ring-wrapper">
+                        <svg viewBox="0 0 36 36" class="circular-chart ring-red">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path class="circle" id="ring-pending" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="ring-icon"><span class="material-symbols-outlined" style="font-size: 22px; color: #ef4444;">warning</span></div>
+                    </div>
+                    <div>
+                        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pending</p>
+                        <h4 style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">
+                            <span id="dash-pending-amt">₹0</span>
+                        </h4>
+                        <div id="dash-pending-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div>
+                    </div>
                 </div>
-                <div>
-                    <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase;">Pending</p>
-                    <h4 style="margin: 0; font-size: 16px; color: #e11d48; font-weight: 800;">
-    <span id="dash-pending-amt">₹0</span>
-    <div id="dash-pending-sub" style="font-size: 9px; color: #64748b; font-weight: 700; margin-top: 2px;"></div>
-</h4>
-                </div>
+
+                <!-- NEW BACKGROUND SPARKLINE (z-index 1 par piche rahega) -->
+                <svg viewBox="0 0 100 30" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; opacity: 0.1; pointer-events: none; z-index: 1;" preserveAspectRatio="none">
+                    <path d="M0,30 L20,18 L40,24 L65,10 L85,15 L100,4 L100,30 L0,30 Z" fill="#f43f5e" />
+                    <path d="M0,30 L20,18 L40,24 L65,10 L85,15 L100,4" fill="none" stroke="#e11d48" stroke-width="2" />
+                </svg>
             </div>
 
             <!-- Expected Ring -->
@@ -1925,41 +1946,45 @@
       </div>
       
       
-      <!-- DYNAMIC OVERVIEW GRID -->
+      <!-- DYNAMIC OVERVIEW GRID (Upgraded to Smart Interactive Cards) -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+        
+        <!-- CARD 1: Check-in / Guest Timeline -->
+        <div onclick="openSmartModal('modal-timeline')" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
           <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 8px;"><span style="font-size: 11px;">Check-in Date</span><span class="material-symbols-outlined" style="font-size: 14px; color: #3b82f6;">calendar_today</span></div>
           <h4 id="rd-checkin-date" style="font-size: 14px; color: #0f172a; margin-bottom: 2px;">--</h4>
           <p id="rd-stay-duration" style="font-size: 10px; color: #94a3b8;">-- days staying</p>
         </div>
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+        
+        <!-- CARD 2: Total Rent / Breakdown & Edit -->
+        <div onclick="openSmartModal('modal-rent-breakdown')" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
           <div style="display: flex; justify-content: space-between; color: #64748b; margin-bottom: 8px;"><span style="font-size: 11px;">Total Rent</span><span class="material-symbols-outlined" style="font-size: 14px; color: #10b981; background: #ecfdf5; padding: 2px; border-radius: 4px;">currency_rupee</span></div>
           <h4 style="font-size: 14px; color: #0f172a; margin-bottom: 2px;"><span id="rd-room-rent">₹0</span></h4>
           <p style="font-size: 10px; color: #10b981;">Base room charges</p>
         </div>
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; position: relative;">
+        
+        <!-- CARD 3: Amount Paid / Payment Ledger -->
+        <div onclick="openSmartModal('modal-payment-history')" style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; position: relative; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
           <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b; margin-bottom: 8px;">
             <span style="font-size: 11px;">Amount Paid</span>
-            <!-- YAHAN HAI TERA PLUS ICON JO POPUP KHOLEGA -->
-            <button onclick="openActionScreen('screen-add-payment')" style="background: #ecfdf5; border: none; border-radius: 6px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669;">
+            <button onclick="event.stopPropagation(); openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value = document.getElementById('rd-room-title').innerText.replace('Room ', '');" style="background: #ecfdf5; border: none; border-radius: 6px; padding: 2px 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669;">
               <span class="material-symbols-outlined" style="font-size: 14px; font-weight: bold;">add</span>
             </button>
           </div>
-          <!-- ID BADAL DI GAYI HAI CALCULATION KE LIYE -->
           <h4 id="ui-amount-paid" style="font-size: 14px; color: #0f172a; margin-bottom: 2px;">₹0</h4>
           <p style="font-size: 10px; color: #94a3b8;">Advance & Payments</p>
         </div>
-        <div id="rd-due-card" style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px;">
+        
+        <!-- CARD 4: Net Payable / 1-Tap Recovery Center -->
+        <div onclick="openSmartModal('modal-quick-settle')" id="rd-due-card" style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
           <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span id="rd-due-title" style="font-size: 11px; color: #e11d48;">Net Payable</span>
             <span class="material-symbols-outlined" id="rd-due-icon" style="font-size: 14px; color: #e11d48;">receipt_long</span>
           </div>
-          <!-- ID BADAL DI GAYI HAI CALCULATION KE LIYE -->
           <h4 id="ui-net-payable" style="font-size: 14px; color: #e11d48; margin-bottom: 2px;">₹0</h4>
           <p id="rd-due-status" style="font-size: 10px; color: #e11d48; font-weight: 600;">Total Pending Due</p>
         </div>
       </div>
-
       <!-- NEW: ROOM SERVICE & EXTRAS SECTION -->
       <div id="extras-wrapper">
         <!-- ADD-ONS AND EXTRAS HEADER -->
@@ -2456,6 +2481,108 @@
     <!-- Footer -->
     <div style="background: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
         <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600;">System Generated Document • Powered by RoomPe</p>
+    </div>
+</div>
+  <!-- ================= 🌟 THE 4 SMART INTERACTIVE MODALS ================= -->
+
+<!-- 1. Timeline Modal (Check-in Box) -->
+<div id="modal-timeline" class="smart-bottom-sheet">
+    <div class="sbs-content">
+        <div class="sbs-header">
+            <h3 class="sbs-title"><span class="material-symbols-outlined" style="color: #3b82f6;">calendar_month</span> Guest Timeline</h3>
+            <div class="sbs-close" onclick="document.getElementById('modal-timeline').style.display='none'"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></div>
+        </div>
+        <div style="position: relative; padding-left: 20px; border-left: 2px dashed #cbd5e1; margin-left: 10px; margin-bottom: 24px;">
+            <div style="position: absolute; left: -9px; top: 0; width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; border: 3px solid white;"></div>
+            <h4 style="margin: 0; font-size: 14px; color: #0f172a;">Checked In</h4>
+            <p style="margin: 4px 0 16px 0; font-size: 12px; color: #64748b;">19 Aug 2026, 10:09 PM</p>
+
+            <div style="position: absolute; left: -9px; top: 60px; width: 16px; height: 16px; background: #10b981; border-radius: 50%; border: 3px solid white;"></div>
+            <h4 style="margin: 0; font-size: 14px; color: #0f172a;">Next Cycle Starts</h4>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">19 Nov 2026 (Upcoming)</p>
+        </div>
+        <button style="width: 100%; padding: 14px; background: #f1f5f9; color: #0f172a; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">Edit Stay Duration</button>
+    </div>
+</div>
+
+<!-- 1. Timeline Modal (Check-in Box) -->
+<div id="modal-timeline" class="smart-bottom-sheet">
+    <div class="sbs-content">
+        <div class="sbs-header">
+            <h3 class="sbs-title"><span class="material-symbols-outlined" style="color: #3b82f6;">calendar_month</span> Guest Timeline</h3>
+            <div class="sbs-close" onclick="document.getElementById('modal-timeline').style.display='none'"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></div>
+        </div>
+        <div style="position: relative; padding-left: 20px; border-left: 2px dashed #cbd5e1; margin-left: 10px; margin-bottom: 24px;">
+            <div style="position: absolute; left: -9px; top: 0; width: 16px; height: 16px; background: #3b82f6; border-radius: 50%; border: 3px solid white;"></div>
+            <h4 style="margin: 0; font-size: 14px; color: #0f172a;">Checked In</h4>
+            <p id="modal-checkin-time" style="margin: 4px 0 16px 0; font-size: 12px; color: #64748b;">Loading...</p>
+
+            <div style="position: absolute; left: -9px; top: 60px; width: 16px; height: 16px; background: #10b981; border-radius: 50%; border: 3px solid white;"></div>
+            <h4 style="margin: 0; font-size: 14px; color: #0f172a;">Next Cycle Starts</h4>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748b;">Upcoming</p>
+        </div>
+        <button style="width: 100%; padding: 14px; background: #f1f5f9; color: #0f172a; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">Edit Stay Duration</button>
+    </div>
+</div>
+
+<!-- 2. Upgraded Rent Breakdown Modal (Dynamic & Detailed) -->
+<div id="modal-rent-breakdown" class="smart-bottom-sheet">
+    <div class="sbs-content">
+        <div class="sbs-header">
+            <h3 class="sbs-title"><span class="material-symbols-outlined" style="color: #10b981;">receipt_long</span> Detailed Bill Breakdown</h3>
+            <div class="sbs-close" onclick="document.getElementById('modal-rent-breakdown').style.display='none'"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></div>
+        </div>
+        
+        <!-- Breakdown Items Container -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between;"><span style="font-size: 13px; color: #475569;">Base Room Rent</span><strong id="modal-base-rent" style="font-size: 14px; color: #0f172a;">₹0</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="font-size: 13px; color: #475569;">⚡ Electricity Charges</span><strong id="modal-elec-amt" style="font-size: 14px; color: #d97706;">₹0</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span style="font-size: 13px; color: #475569;">Extras & Add-ons</span><strong id="modal-extras-amt" style="font-size: 14px; color: #3b82f6;">₹0</strong></div>
+            <hr style="border: 0; height: 1px; background: #cbd5e1; margin: 4px 0;">
+            <div style="display: flex; justify-content: space-between;"><span style="font-size: 13px; font-weight: 800; color: #0f172a;">Grand Total Payable</span><strong id="modal-total-rent" style="font-size: 16px; color: #10b981; font-weight: 800;">₹0</strong></div>
+        </div>
+        
+        <button onclick="document.getElementById('modal-rent-breakdown').style.display='none'; openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value = document.getElementById('rd-room-title').innerText.replace('Room ', '');" style="width: 100%; padding: 14px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">Collect This Amount</button>
+    </div>
+</div>
+
+<!-- 3. Payment History Modal -->
+<div id="modal-payment-history" class="smart-bottom-sheet">
+    <div class="sbs-content">
+        <div class="sbs-header">
+            <h3 class="sbs-title"><span class="material-symbols-outlined" style="color: #059669;">account_balance_wallet</span> Quick Ledger</h3>
+            <div class="sbs-close" onclick="document.getElementById('modal-payment-history').style.display='none'"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></div>
+        </div>
+        <p style="font-size: 12px; color: #64748b; margin-top: -10px; margin-bottom: 16px;">Recent transactions for this cycle</p>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <div><h4 id="modal-paid-amt" style="margin: 0 0 4px 0; font-size: 14px; color: #0f172a;">₹0</h4><p style="margin: 0; font-size: 11px; color: #64748b;">Advance & Rent</p></div>
+                <span style="font-size: 10px; background: #ecfdf5; color: #059669; padding: 4px 8px; border-radius: 8px; font-weight: 700;">Received</span>
+            </div>
+        </div>
+        <button onclick="document.getElementById('modal-payment-history').style.display='none'; switchRoomDetailsTab('payments');" style="width: 100%; padding: 14px; background: #f8fafc; color: #3b82f6; border: 1.5px solid #bfdbfe; border-radius: 12px; font-weight: 700; cursor: pointer;">View Full Statement</button>
+    </div>
+</div>
+
+<!-- 4. Quick Settle Modal -->
+<div id="modal-quick-settle" class="smart-bottom-sheet">
+    <div class="sbs-content">
+        <div class="sbs-header">
+            <h3 class="sbs-title"><span class="material-symbols-outlined" style="color: #e11d48;">warning</span> Action Center</h3>
+            <div class="sbs-close" onclick="document.getElementById('modal-quick-settle').style.display='none'"><span class="material-symbols-outlined" style="font-size: 18px;">close</span></div>
+        </div>
+        <div style="text-align: center; margin-bottom: 24px;">
+            <p style="margin: 0; font-size: 12px; color: #64748b; font-weight: 600;">Total Pending Amount</p>
+            <h2 id="modal-settle-amount" style="margin: 4px 0; font-size: 32px; color: #e11d48; font-weight: 900;">₹0</h2>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button onclick="document.getElementById('modal-quick-settle').style.display='none'; openActionScreen('screen-send-reminder');" style="width: 100%; padding: 14px; background: #25d366; color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);">
+                <span class="material-symbols-outlined" style="font-size: 18px;">chat</span> Send WhatsApp Reminder
+            </button>
+            <button onclick="document.getElementById('modal-quick-settle').style.display='none'; openActionScreen('screen-add-payment'); document.getElementById('pay-room-no').value = document.getElementById('rd-room-title').innerText.replace('Room ', '');" style="width: 100%; padding: 14px; background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer;">
+                Settle / Add Payment
+            </button>
+        </div>
     </div>
 </div>
   <script src="script.js"></script>
