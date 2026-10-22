@@ -1473,3 +1473,95 @@ body.dark-theme .ptr-box {
 .ultimate-submit-btn:active {
     transform: scale(0.97); box-shadow: 0 4px 10px rgba(5,150,105,0.2);
 }
+
+/* ==========================================================================
+   🎨 PREMIUM FINTECH GRADIENT (FINAL OVERLAP FIX)
+   ========================================================================== */
+
+/* 1. Har ek screen par direct solid background aur gradient apply karo */
+.screen {
+    background-color: #f8fafc !important; 
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%) !important;
+    background-attachment: fixed !important;
+}
+
+/* 2. Login screen ka apna alag dark theme hai, usko disturb mat karo */
+#screen-login {
+    background-image: none !important; 
+    background-color: var(--primary-dark) !important; 
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%) !important;
+}
+
+/* 3. Andar ke text/scroll areas ko transparent karo taaki piche ka naya screen gradient dikhe */
+.dash-scroll-area, 
+.rooms-scroll-area, 
+.setup-body {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* 4. Glass cards ko white aur premium 3D look dene ke liye */
+.glass-card {
+    background-color: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05) !important;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+}
+
+/* ==========================================================================
+   🌟 THE 4 SMART INTERACTIVE MODALS (BOTTOM SHEETS)
+   ========================================================================== */
+.smart-bottom-sheet { 
+    display: none; 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(15, 23, 42, 0.6); 
+    z-index: 100000; 
+    align-items: flex-end; 
+    justify-content: center; 
+    backdrop-filter: blur(4px); 
+}
+
+.sbs-content { 
+    background: white; 
+    width: 100%; 
+    max-width: 480px; 
+    border-radius: 24px 24px 0 0; 
+    padding: 24px; 
+    animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+}
+
+@keyframes slideUpModal { 
+    from { transform: translateY(100%); } 
+    to { transform: translateY(0); } 
+}
+
+.sbs-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 20px; 
+}
+
+.sbs-title { 
+    font-size: 18px; 
+    color: #0f172a; 
+    font-weight: 800; 
+    margin: 0; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+
+.sbs-close { 
+    width: 32px; 
+    height: 32px; 
+    background: #f1f5f9; 
+    border-radius: 50%; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    cursor: pointer; 
+    color: #475569; 
+}
