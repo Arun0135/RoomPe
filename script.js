@@ -5209,3 +5209,77 @@ async function forceDownloadDocument(url, filename) {
         window.open(url, '_blank');
     }
 }
+
+/* ==========================================================================
+   🌟 SMART ACTION CARDS (BOTTOM SHEETS) ENGINE
+   ========================================================================== */
+
+function openSmartModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        console.error("🚨 Error: Modal HTML missing for ID -> " + modalId);
+        alert("Bhai, index.html me is popup ka HTML code missing hai!");
+    }
+}
+
+function closeSmartModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// PRO FEATURE: Background me (kaali jagah) click karne par popup automatically band ho jayega
+window.addEventListener('click', function(event) {
+    const smartModals = ['modal-timeline', 'modal-rent-breakdown', 'modal-payment-history', 'modal-quick-settle'];
+    
+    smartModals.forEach(id => {
+        let modalElement = document.getElementById(id);
+        // Agar user ne bahar overlay par click kiya hai
+        if (event.target === modalElement) {
+            modalElement.style.display = "none";
+        }
+    });
+});
+
+/* ==========================================================================
+   🌟 SMART ACTION CARDS (DYNAMIC DATA BINDING)
+   ========================================================================== */
+function openSmartModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        
+        // 🚨 ASLI JADOO: Screen se REAL data padho aur Popup me chipkao 🚨
+        
+        if (modalId === 'modal-rent-breakdown') {
+            // Screen se real rent uthao (jaise tere app me ₹6,000 hai)
+            let realRent = document.getElementById('rd-room-rent').innerText || '₹0';
+            document.getElementById('modal-base-rent').innerText = realRent;
+            document.getElementById('modal-ac-charge').innerText = '₹0'; // Future proofing
+            document.getElementById('modal-total-rent').innerText = realRent;
+        } 
+        else if (modalId === 'modal-quick-settle') {
+            // Lal dabbe ka real due uthao (jaise ₹5,900 hai)
+            let realDue = document.getElementById('ui-net-payable').innerText || '₹0';
+            document.getElementById('modal-settle-amount').innerText = realDue;
+        }
+        else if (modalId === 'modal-payment-history') {
+            // Amount paid uthao
+            let realPaid = document.getElementById('ui-amount-paid').innerText || '₹0';
+            document.getElementById('modal-paid-amt').innerText = realPaid;
+        }
+        else if (modalId === 'modal-timeline') {
+            // Check in date uthao
+            let realCheckin = document.getElementById('rd-checkin-date').innerText || '--';
+            document.getElementById('modal-checkin-time').innerText = realCheckin;
+        }
+
+        // Sab set hone ke baad modal khol do
+        modal.style.display = 'flex';
+        
+    } else {
+        console.error("🚨 Error: Modal HTML missing -> " + modalId);
+    }
+}
